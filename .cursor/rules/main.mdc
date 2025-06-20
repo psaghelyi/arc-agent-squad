@@ -1,0 +1,19 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+I want to create a Python project. 
+I have pyenv installed, please create a virtualenv for the project from 3.13.2.
+I would like to implement an agent swarm with @https://github.com/awslabs/agent-squad .
+I want to host my agents in AWS cloude.
+I want to use Bedrock models with voice support and memory.
+I want to use `aws-vault` for CDK deploy and local test. The preferred account is `acl-playground` in `us-west-2`.
+I also need Makefile to build, push and local start.
+
+Probably we need:
+- Amazon Transcribe
+- Amazon Lex
+- Amazon Bedrock Agent (may start Step Functions workflow)
+- Amazon Polly (NTTS)
+- WebRTC (for audio input and output, but I am not sure on this)

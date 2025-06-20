@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Swarm Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+
+        .agents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .agent-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-left: 5px solid #667eea;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #718096;
+        }
+
+        .error {
+            background: #fed7d7;
+            color: #742a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        /* Chat Interface Styles */
+        #chat-container {
+            max-width: 100%;
+        }
+
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #f8fafc;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 12px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .agent-message {
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+
+        .system-message {
+            background: #f0fff4;
+            color: #22543d;
+            text-align: center;
+            font-style: italic;
+            border-left: 4px solid #38a169;
+        }
+
+        .agent-info {
+            font-size: 0.8em;
+            opacity: 0.7;
+            margin-bottom: 5px;
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        #chat-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        #chat-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 10px 15px;
+            background: #f1f5f9;
+            border-radius: 12px;
+            font-style: italic;
+            color: #64748b;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .message {
+                max-width: 95%;
+            }
+            
+            .chat-input-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Agent Swarm Management</h1>
+            <p>Manage your AI agents with different personalities and capabilities</p>
+        </div>
+
+        <div class="card">
+            <h2>Quick Actions</h2>
+            <button class="btn btn-primary" onclick="loadAgents()">Load Agents</button>
+            <button class="btn btn-primary" onclick="testAPI()">Test API</button>
+        </div>
+
+        <div class="card">
+            <h2>Chat with Super Agent</h2>
+            <div id="chat-container">
+                <div id="chat-messages" class="chat-messages">
+                    <div class="system-message">
+                        🤖 Welcome! I'm your Super Agent. I'll analyze your request and connect you with the most suitable agent from our squad.
+                    </div>
+                </div>
+                <div class="chat-input-container">
+                    <input type="text" id="chat-input" placeholder="Type your message here..." />
+                    <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Your Agent Squad</h2>
+            <div id="agents-container" class="loading">
+                Click "Load Agents" to see your agents...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function apiCall(endpoint, options = {}) {
+            try {
+                const response = await fetch(`/api/agents${endpoint}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('API call failed:', error);
+                throw error;
+            }
+        }
+
+        async function loadAgents() {
+            const container = document.getElementById('agents-container');
+            container.innerHTML = '<div class="loading">Loading agents...</div>';
+            
+            try {
+                const data = await apiCall('/');
+                const agents = data.agents || [];
+                
+                if (agents.length === 0) {
+                    container.innerHTML = '<div class="loading">No agents found. The system will create default agents on first API call.</div>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                const agentsGrid = document.createElement('div');
+                agentsGrid.className = 'agents-grid';
+
+                agents.forEach(agent => {
+                    const agentCard = document.createElement('div');
+                    agentCard.className = 'agent-card';
+                    
+                    // Convert personality type to readable format
+                    const personalityMap = {
+                        'kind_helpful': 'Kind & Helpful',
+                        'to_the_point': 'Direct & Efficient',
+                        'professional': 'Professional',
+                        'casual_friendly': 'Casual & Friendly'
+                    };
+                    const displayPersonality = personalityMap[agent.personality] || agent.personality || 'Unknown';
+                    
+                    agentCard.innerHTML = `
+                        <h3>${agent.name}</h3>
+                        <p><strong>Personality:</strong> ${displayPersonality}</p>
+                        <p><strong>Description:</strong> ${agent.description}</p>
+                        <p><strong>Status:</strong> ${agent.status}</p>
+                        <p><strong>Capabilities:</strong> ${agent.capabilities.join(', ')}</p>
+                    `;
+                    agentsGrid.appendChild(agentCard);
+                });
+
+                container.appendChild(agentsGrid);
+                
+            } catch (error) {
+                container.innerHTML = `<div class="error">Failed to load agents: ${error.message}</div>`;
+            }
+        }
+
+        async function testAPI() {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                alert('API is working! Status: ' + data.status);
+            } catch (error) {
+                alert('API test failed: ' + error.message);
+            }
+        }
+
+        // Chat functionality
+        let currentSessionId = generateSessionId();
+
+        function generateSessionId() {
+            return 'session_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message to chat
+            addMessage('user', message);
+            input.value = '';
+            
+            // Show typing indicator
+            showTypingIndicator();
+            
+            try {
+                // Send message to super agent
+                const response = await fetch('/api/agents/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: currentSessionId
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Hide typing indicator
+                hideTypingIndicator();
+                
+                // Add agent response to chat
+                addMessage('agent', data.message, {
+                    agent_name: data.agent_name,
+                    confidence: data.confidence,
+                    reasoning: data.reasoning
+                });
+                
+            } catch (error) {
+                hideTypingIndicator();
+                addMessage('system', `Error: ${error.message}`, { isError: true });
+            }
+        }
+
+        function addMessage(type, content, metadata = {}) {
+            const messagesContainer = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            
+            if (type === 'user') {
+                messageDiv.className = 'message user-message';
+                messageDiv.innerHTML = content;
+            } else if (type === 'agent') {
+                messageDiv.className = 'message agent-message';
+                let agentInfo = '';
+                if (metadata.agent_name) {
+                    agentInfo = `<div class="agent-info">🤖 ${metadata.agent_name}`;
+                    if (metadata.confidence) {
+                        agentInfo += ` (Confidence: ${Math.round(metadata.confidence * 100)}%)`;
+                    }
+                    agentInfo += `</div>`;
+                }
+                messageDiv.innerHTML = agentInfo + content;
+                
+                // Add reasoning if available
+                if (metadata.reasoning) {
+                    const reasoningDiv = document.createElement('div');
+                    reasoningDiv.className = 'agent-info';
+                    reasoningDiv.style.marginTop = '5px';
+                    reasoningDiv.innerHTML = `💭 ${metadata.reasoning}`;
+                    messageDiv.appendChild(reasoningDiv);
+                }
+            } else {
+                messageDiv.className = 'message system-message';
+                if (metadata.isError) {
+                    messageDiv.style.background = '#fed7d7';
+                    messageDiv.style.color = '#742a2a';
+                    messageDiv.style.borderLeft = '4px solid #f56565';
+                }
+                messageDiv.innerHTML = content;
+            }
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const messagesContainer = document.getElementById('chat-messages');
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typing-indicator';
+            typingDiv.className = 'typing-indicator';
+            typingDiv.innerHTML = '🤖 Super Agent is thinking...';
+            typingDiv.style.display = 'block';
+            messagesContainer.appendChild(typingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            const typingIndicator = document.getElementById('typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        // Allow Enter key to send message
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatInput = document.getElementById('chat-input');
+            if (chatInput) {
+                chatInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        sendMessage();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html> 

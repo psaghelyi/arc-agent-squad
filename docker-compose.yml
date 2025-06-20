@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  voice-agent-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+      - AWS_PROFILE=acl-playground
+      - AWS_REGION=us-west-2
+      - REDIS_URL=redis://redis:6379
+      - API_PORT=8000
+      - API_HOST=0.0.0.0
+    volumes:
+      - ~/.aws:/home/appuser/.aws:ro
+      - ./src:/app/src
+      - ./.env:/app/.env:ro
+    depends_on:
+      - redis
+    networks:
+      - voice-agent-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - voice-agent-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  voice-agent-network:
+    driver: bridge 
