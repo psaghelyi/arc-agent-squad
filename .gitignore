@@ -152,6 +152,9 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+# Cursor MCP configuration with secrets
+.cursor/mcp.json
+
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be added to the global gitignore or merged into this project gitignore.  For a PyCharm
@@ -336,4 +339,12 @@ dump.rdb
 uploads/
 downloads/
 cache/
-sessions/ 
+sessions/
+
+# Added by Task Master AI
+logs
+dev-debug.log
+# Dependency directories
+# Environment variables
+.vscode
+# OS specific.cursor/.env

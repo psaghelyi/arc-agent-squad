@@ -17,7 +17,7 @@ import os
 
 from .routes import agents, health, voice
 from src.services.websocket_manager import WebSocketManager
-from src.utils.config import Settings
+from src.utils.config import settings
 
 
 # Global WebSocket manager
@@ -39,7 +39,6 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
-    settings = Settings()
     
     app = FastAPI(
         title="Voice Agent Swarm API",
@@ -51,10 +50,10 @@ def create_app() -> FastAPI:
     # Add CORS middleware
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.api_cors_origins,
+        allow_origins=settings.cors_origins_list,
         allow_credentials=True,
-        allow_methods=settings.cors_allowed_methods,
-        allow_headers=settings.cors_allowed_headers,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["*"],
     )
     
     # Include routers

@@ -2,79 +2,147 @@
 Configuration settings for the Voice Agent Swarm application.
 
 This module handles all configuration through environment variables using Pydantic.
+All important parameters can be overwritten with environment variables and have sensible defaults.
 """
 
 import os
 from typing import List, Optional
 
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    """Application settings loaded from environment variables."""
+    """Application settings loaded from environment variables with fallback defaults."""
     
-    # Environment
-    environment: str = "development"
-    debug: bool = False
-    development_mode: bool = True  # Default to True for development
+    # AWS Configuration - Critical for AWS services
+    aws_profile: str = Field(default="acl-playground", description="AWS Profile to use")
+    aws_region: str = Field(default="us-west-2", description="AWS Region")
+    aws_access_key_id: Optional[str] = Field(default=None, description="AWS Access Key ID")
+    aws_secret_access_key: Optional[str] = Field(default=None, description="AWS Secret Access Key")
+    aws_session_token: Optional[str] = Field(default=None, description="AWS Session Token")
     
-    # AWS Configuration
-    aws_profile: str = "acl-playground"
-    aws_region: str = "us-west-2"
-    aws_access_key_id: Optional[str] = None
-    aws_secret_access_key: Optional[str] = None
-    aws_session_token: Optional[str] = None
-    skip_aws_validation: bool = False  # Skip AWS validation for local dev
+    # Bedrock Configuration - AI Models
+    bedrock_model_id: str = Field(
+        default="anthropic.claude-3-haiku-20240307-v1:0",
+        description="Default Bedrock model for agent responses"
+    )
+    bedrock_streaming_model_id: str = Field(
+        default="anthropic.claude-3-sonnet-20240229-v1:0",
+        description="Bedrock model for streaming responses"
+    )
     
-    # Bedrock Configuration
-    bedrock_model_id: str = "anthropic.claude-3-haiku-20240307-v1:0"
-    bedrock_streaming_model_id: str = "anthropic.claude-3-sonnet-20240229-v1:0"
+    # Voice Services Configuration - Speech processing
+    transcribe_language_code: str = Field(default="en-US", description="Language code for transcription")
+    polly_voice_id: str = Field(default="Joanna", description="Polly voice ID for TTS")
+    polly_engine: str = Field(default="neural", description="Polly engine type")
     
-    # Voice Services Configuration
-    transcribe_language_code: str = "en-US"
-    polly_voice_id: str = "Joanna"
-    polly_engine: str = "neural"
+    # Lex Configuration - Dialog management
+    lex_bot_id: Optional[str] = Field(default=None, description="Lex Bot ID (required for production)")
+    lex_bot_alias_id: str = Field(default="TSTALIASID", description="Lex Bot Alias ID")
+    lex_session_id: str = Field(default="test-session", description="Lex Session ID")
     
-    # Lex Configuration
-    lex_bot_id: Optional[str] = None
-    lex_bot_alias_id: str = "TSTALIASID"
-    lex_session_id: str = "test-session"
+    # Redis Configuration - Memory and state management
+    redis_url: str = Field(default="redis://localhost:6379", description="Redis connection URL")
+    redis_password: Optional[str] = Field(default=None, description="Redis password")
     
-    # Redis Configuration (for memory/state)
-    redis_url: str = "redis://localhost:6379"
-    redis_password: Optional[str] = None
+    # API Configuration - Web server settings
+    api_port: int = Field(default=8000, description="API server port")
+    api_host: str = Field(default="0.0.0.0", description="API server host")
+    api_cors_origins: str = Field(
+        default="http://localhost:3000,http://localhost:8080",
+        description="CORS allowed origins (comma-separated)"
+    )
     
-    # API Configuration
-    api_port: int = 8000
-    api_host: str = "0.0.0.0"
-    api_cors_origins: List[str] = ["http://localhost:3000", "http://localhost:8080"]
-    
-    # WebRTC Configuration
-    webrtc_stun_servers: str = "stun:stun.l.google.com:19302"
-    webrtc_turn_servers: Optional[str] = None
+    # WebRTC Configuration - Real-time communication
+    webrtc_stun_servers: str = Field(
+        default="stun:stun.l.google.com:19302",
+        description="STUN servers for WebRTC"
+    )
+    webrtc_turn_servers: Optional[str] = Field(default=None, description="TURN servers for WebRTC")
     
     # Logging Configuration
-    log_level: str = "INFO"
-    log_renderer: str = "json"
-    enable_structured_logging: bool = True
+    log_level: str = Field(default="INFO", description="Logging level")
+    structlog_renderer: str = Field(default="json", description="Structured logging renderer")
     
-    # Security Configuration
-    cors_allowed_methods: List[str] = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-    cors_allowed_headers: List[str] = ["*"]
+    # Agent Configuration - Core agent behavior
+    max_concurrent_agents: int = Field(default=10, description="Maximum concurrent agents")
+    agent_timeout_seconds: int = Field(default=300, description="Agent timeout in seconds")
+    memory_retention_hours: int = Field(default=24, description="Memory retention period")
     
-    # Agent Configuration
-    max_concurrent_agents: int = 10
-    agent_timeout_seconds: int = 300
-    memory_retention_hours: int = 24
+    # Development Configuration
+    debug: bool = Field(default=False, description="Enable debug mode")
+    development_mode: bool = Field(default=True, description="Enable development mode")  # Default to development
     
-    def model_post_init(self, __context) -> None:
-        """Post-initialization to set development mode based on environment."""
-        if self.environment.lower() in ["development", "dev", "local"]:
-            self.development_mode = True
-        else:
-            self.development_mode = False
+    @property
+    def cors_origins_list(self) -> List[str]:
+        """Convert CORS origins string to list."""
+        return [origin.strip() for origin in str(self.api_cors_origins).split(",")]
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False 
+    @property
+    def stun_servers_list(self) -> List[str]:
+        """Convert STUN servers string to list."""
+        return [server.strip() for server in str(self.webrtc_stun_servers).split(",")]
+    
+    @property
+    def turn_servers_list(self) -> List[str]:
+        """Convert TURN servers string to list."""
+        if self.webrtc_turn_servers:
+            return [server.strip() for server in str(self.webrtc_turn_servers).split(",")]
+        return []
+    
+    @property
+    def is_production(self) -> bool:
+        """Check if running in production mode."""
+        # Explicitly check for production environment variables
+        env_production = os.getenv("ENVIRONMENT", "").lower() in ["production", "prod"]
+        explicit_production = os.getenv("PRODUCTION", "").lower() == "true"
+        return (not self.development_mode and not self.debug) or env_production or explicit_production
+    
+    def validate_required_for_production(self) -> None:
+        """Validate that required settings are provided for production."""
+        if self.is_production:
+            missing = []
+            if not self.lex_bot_id:
+                missing.append("LEX_BOT_ID")
+            if not self.aws_access_key_id and not os.getenv("AWS_PROFILE"):
+                missing.append("AWS_ACCESS_KEY_ID or AWS_PROFILE")
+            
+            if missing:
+                raise ValueError(f"Missing required production settings: {', '.join(missing)}")
+    
+    def should_validate_production(self) -> bool:
+        """Determine if we should validate production requirements."""
+        # Skip validation for local development scenarios
+        if self.development_mode or self.debug:
+            return False
+        
+        # Only validate if explicitly marked as production
+        env_production = os.getenv("ENVIRONMENT", "").lower() in ["production", "prod"]
+        explicit_production = os.getenv("PRODUCTION", "").lower() == "true"
+        skip_validation = os.getenv("SKIP_AWS_VALIDATION", "").lower() == "true"
+        
+        return (env_production or explicit_production) and not skip_validation
+    
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "case_sensitive": False,
+    }
+
+
+# Global settings instance
+settings = Settings()
+
+# Only validate production requirements when explicitly required
+if settings.should_validate_production():
+    settings.validate_required_for_production()
+
+
+# Usage example:
+# from src.utils.config import settings
+# 
+# print(f"API running on {settings.api_host}:{settings.api_port}")
+# print(f"Using AWS region: {settings.aws_region}")
+# print(f"CORS origins: {settings.cors_origins_list}")
+# print(f"Is production: {settings.is_production}") 

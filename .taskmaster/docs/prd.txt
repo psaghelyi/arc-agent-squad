@@ -1,0 +1,225 @@
+<context>
+# Overview  
+ARC Agents is a voice-enabled AI agent squad specifically designed for the Governance, Risk Management, and Compliance (GRC) industry. The system provides intelligent agents with distinct personalities that assist with compliance assessments, risk management, audit interviews, and regulatory guidance. The solution leverages AWS services including Bedrock, Transcribe, Polly, and Lex to deliver real-time voice interactions and sophisticated agent orchestration.
+
+The primary problem this solves is the complexity and time-intensive nature of GRC processes, particularly audit interviews, compliance assessments, and risk evaluations. By providing specialized AI agents with voice capabilities, organizations can streamline these processes while maintaining high quality and consistency.
+
+# Core Features  
+## 1. Multi-Agent System with Specialized Personalities
+- **Information Collector Agent** (empathetic_interviewer): Talkative, kind, patient agent for conducting interviews and gathering detailed information
+- **Official Compliance Agent** (authoritative_compliance): Formal, official agent for regulatory interpretation and compliance guidance
+- **Risk Expert Agent** (analytical_risk_expert): Analytical, systematic agent for risk assessment and mitigation strategies
+- **Governance Specialist Agent** (strategic_governance): Strategic, consultative agent for governance framework guidance
+- **Super Agent**: Single point of contact that analyzes requests and routes to appropriate specialist agents
+
+## 2. Voice-Enabled Interview Capabilities
+- Real-time speech-to-text using Amazon Transcribe Streaming
+- Natural text-to-speech responses using Amazon Polly Neural TTS
+- Support for structured audit interviews, risk assessments, and governance consultations
+- Conversation flow management with context preservation
+- Multi-language support capability
+
+## 3. Comprehensive Tool Integration
+- MCP (Model Context Protocol) tools for file system operations and database querying
+- Diligent API integration for board meeting management and document repositories
+- External regulatory API connections (SEC EDGAR, GDPR guidance, legal research)
+- Search and analysis tools for compliance repositories and regulatory monitoring
+
+## 4. Enterprise-Grade Infrastructure
+- AWS ECS Fargate deployment for scalability
+- Redis-based conversation memory with graceful fallback
+- CloudWatch integration for comprehensive monitoring and logging
+- WebRTC support for real-time audio streaming
+
+# User Experience  
+## User Personas
+- **GRC Professionals**: Risk managers, compliance officers, internal auditors
+- **Board Members**: Directors requiring governance guidance and strategic insights
+- **External Auditors**: Independent auditors conducting compliance assessments
+- **Legal Teams**: Lawyers requiring regulatory interpretation and guidance
+
+## Key User Flows
+1. **Voice Interview Flow**: User initiates voice session → Super Agent analyzes request → Routes to appropriate specialist agent → Conducts structured interview → Provides summary and recommendations
+2. **Compliance Query Flow**: User asks regulatory question → Official Compliance Agent provides authoritative guidance with regulatory references
+3. **Risk Assessment Flow**: User describes risk scenario → Risk Expert Agent analyzes and provides mitigation strategies
+4. **Multi-Agent Consultation**: Complex scenarios requiring multiple agent perspectives with coordinated responses
+
+## UI/UX Considerations
+- Clean, professional web interface suitable for enterprise environments
+- Voice-first design with visual feedback for transcription accuracy
+- Real-time conversation display with agent identification
+- Document upload capabilities for context-aware analysis
+- Mobile-responsive design for field audit interviews
+</context>
+
+<PRD>
+# Technical Architecture  
+## System Components
+- **Agent Orchestrator**: AWS Labs agent-squad framework for intelligent agent routing
+- **Voice Processing Pipeline**: Amazon Transcribe → Bedrock → Amazon Polly
+- **Memory Management**: Redis cluster with in-memory fallback for session continuity
+- **Tool Integration Layer**: MCP client, Diligent API wrapper, external API connectors
+- **Web Interface**: FastAPI backend with modern responsive frontend
+- **Authentication**: AWS IAM integration with role-based access control
+
+## Data Models
+- **Agent Profiles**: Personality traits, capabilities, tool access permissions
+- **Conversation Sessions**: Message history, context, agent assignments
+- **Interview Templates**: Structured question sets for different compliance scenarios
+- **Document Analysis**: File metadata, content extraction, regulatory mapping
+- **Audit Trails**: Complete interaction logs for compliance requirements
+
+## APIs and Integrations
+- **Internal APIs**: FastAPI endpoints for agent management, chat, voice processing
+- **AWS Services**: Bedrock (Claude models), Transcribe, Polly, Lex, Step Functions
+- **External APIs**: Diligent governance platform, regulatory databases, legal research tools
+- **MCP Protocol**: File operations, database queries, custom business logic
+
+## Infrastructure Requirements
+- **Container Platform**: AWS ECS Fargate with auto-scaling
+- **Networking**: VPC with private subnets for secure AWS service communication
+- **Storage**: Redis ElastiCache cluster, S3 for document storage
+- **Monitoring**: CloudWatch Logs, Metrics, X-Ray tracing
+- **Security**: WAF, IAM roles, encryption in transit and at rest
+
+# Development Roadmap  
+## Phase 1: Foundation (MVP)
+### Core Agent System
+- Implement base agent-squad framework integration
+- Create four specialized agent personalities with distinct traits
+- Build super agent routing logic with confidence scoring
+- Establish basic chat interface for testing agent interactions
+
+### Basic Infrastructure
+- Set up FastAPI application with health checks
+- Configure AWS CDK infrastructure stack
+- Implement Redis memory service with fallback
+- Create Docker containerization and local development environment
+
+### Essential APIs
+- Build agent management endpoints (list, get details, chat)
+- Implement basic conversation management
+- Add agent personality presets and capabilities API
+- Create comprehensive logging and error handling
+
+## Phase 2: Voice Integration
+### Voice Processing Pipeline
+- Integrate Amazon Transcribe Streaming for real-time speech-to-text
+- Implement Amazon Polly Neural TTS for natural speech output
+- Build WebRTC infrastructure for browser-based voice interactions
+- Create voice session management with conversation flow
+
+### Interview Capabilities
+- Develop structured interview templates for compliance audits
+- Build conversation context preservation across voice sessions
+- Implement follow-up question logic and interruption handling
+- Add support for interview summaries and documentation
+
+### Voice Quality Optimization
+- Achieve <2 second latency for full voice processing cycle
+- Implement business terminology optimization for transcription accuracy
+- Add voice activity detection and noise suppression
+- Build multi-language support framework
+
+## Phase 3: Tool Integration
+### MCP Tool Implementation
+- Build MCP client for file system operations and document analysis
+- Implement database querying capabilities for compliance records
+- Create custom business logic integration points
+- Add secure credential management for tool access
+
+### Diligent API Integration
+- Implement board meeting management capabilities
+- Build document repository access and search
+- Create governance workflow integration
+- Add compliance tracking and reporting features
+
+### External API Ecosystem
+- Integrate regulatory database APIs (SEC EDGAR, GDPR guidance)
+- Build legal research API connections
+- Implement industry benchmark and risk assessment tools
+- Create regulatory change monitoring and alerting
+
+## Phase 4: Enterprise Features
+### Advanced Analytics
+- Build conversation analytics and insights dashboard
+- Implement agent performance metrics and optimization
+- Create compliance reporting and audit trail generation
+- Add risk assessment trending and pattern recognition
+
+### Security and Compliance
+- Implement comprehensive audit logging for all interactions
+- Build GDPR/CCPA compliant data handling and retention
+- Add SOC 2 Type II and ISO 27001 alignment features
+- Create role-based access control with detailed permissions
+
+### Production Optimization
+- Implement advanced caching and performance optimization
+- Build high availability and disaster recovery capabilities
+- Add comprehensive monitoring, alerting, and observability
+- Create automated testing and deployment pipelines
+
+# Logical Dependency Chain
+## Foundation Dependencies
+1. **Agent Framework Setup** → Core agent personalities → Super agent routing → Basic chat functionality
+2. **Infrastructure Foundation** → AWS CDK stack → ECS deployment → Redis memory → Local development environment
+3. **API Framework** → FastAPI application → Health endpoints → Agent management APIs → Error handling
+
+## Progressive Feature Building
+1. **Text-Based MVP** → Voice integration → Advanced voice features
+2. **Single Agent Interactions** → Multi-agent coordination → Complex workflow orchestration
+3. **Basic Tool Access** → MCP integration → External APIs → Advanced analytics
+4. **Development Environment** → Staging deployment → Production optimization → Enterprise features
+
+## Getting to Usable Frontend Quickly
+1. Implement basic web interface with agent chat capability first
+2. Add agent selection and personality display
+3. Build conversation history and session management
+4. Progressively enhance with voice capabilities
+5. Layer on advanced features without breaking core functionality
+
+# Risks and Mitigations  
+## Technical Challenges
+- **Voice Processing Latency**: Risk of >2 second response times affecting user experience
+  - Mitigation: Implement streaming responses, optimize AWS service calls, use regional deployments
+- **Agent Routing Accuracy**: Risk of super agent selecting inappropriate specialist agents
+  - Mitigation: Comprehensive testing, confidence scoring, fallback mechanisms, user override options
+- **Tool Integration Complexity**: Risk of external API failures affecting agent capabilities
+  - Mitigation: Circuit breaker patterns, graceful degradation, comprehensive error handling
+
+## MVP Scope Management
+- **Feature Creep**: Risk of over-engineering initial release
+  - Mitigation: Strict MVP definition focusing on core chat functionality with single agent interactions
+- **Voice Integration Complexity**: Risk of voice features delaying core functionality
+  - Mitigation: Build text-based system first, add voice as enhancement layer
+- **Infrastructure Overhead**: Risk of complex AWS setup blocking development
+  - Mitigation: Start with local development, progressive cloud migration, infrastructure as code
+
+## Resource and Integration Constraints
+- **AWS Service Limits**: Risk of hitting Bedrock, Transcribe, or Polly quotas
+  - Mitigation: Request limit increases, multi-region deployment, usage monitoring
+- **Third-Party API Dependencies**: Risk of Diligent or regulatory API changes
+  - Mitigation: Abstract integration layer, version management, alternative data sources
+- **Development Velocity**: Risk of complex architecture slowing feature delivery
+  - Mitigation: Modular development approach, extensive testing, continuous integration
+
+# Appendix  
+## Research Findings
+- AWS Labs agent-squad framework provides robust foundation for multi-agent systems
+- Amazon Transcribe Streaming achieves >95% accuracy for business terminology
+- WebRTC implementation requires careful bandwidth and latency optimization
+- GRC industry requires comprehensive audit trails and compliance documentation
+
+## Technical Specifications
+- **Supported File Formats**: PDF, DOCX, TXT for document analysis
+- **Voice Formats**: WAV, MP3, WebM for audio input/output
+- **API Rate Limits**: Bedrock (1000 requests/minute), Transcribe (10 concurrent streams)
+- **Storage Requirements**: 1GB per 1000 conversation sessions, 5GB per 10000 documents
+- **Performance Targets**: 99.9% uptime, <2s voice response, <500ms API response
+
+## Compliance Requirements
+- **Data Retention**: 7 years for audit conversations, 3 years for general chat
+- **Encryption**: AES-256 for data at rest, TLS 1.3 for data in transit
+- **Access Controls**: Role-based permissions with regular access reviews
+- **Audit Logging**: Complete interaction logs with tamper-evident storage
+</PRD> 

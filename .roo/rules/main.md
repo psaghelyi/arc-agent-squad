@@ -95,13 +95,13 @@ This project implements an AI agent squad specifically designed for the **Govern
    - Third-party risk assessment tools
 
 4. **Search & Analysis Tools**
-   - Document search across compliance repositories
+   - Document search_files across compliance repositories
    - Regulatory change monitoring
    - Best practice research
    - Competitor analysis tools
 
 ### Tool Usage Patterns
-- **Information Collector**: Primarily uses search and document analysis tools
+- **Information Collector**: Primarily uses search_files and document analysis tools
 - **Official Compliance**: Focuses on regulatory APIs and compliance databases
 - **Risk Expert**: Utilizes risk assessment APIs and analytical tools
 - **Governance Specialist**: Leverages board management and strategic planning tools

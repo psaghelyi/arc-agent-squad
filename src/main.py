@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from src.api.main import create_app
 from src.services.aws_config import AWSConfig
 from src.services.logger import setup_logging
-from src.utils.config import Settings
+from src.utils.config import settings
 
 
 def main() -> None:
@@ -34,9 +34,8 @@ def main() -> None:
     logger = structlog.get_logger(__name__)
     
     try:
-        # Load configuration
-        settings = Settings()
-        logger.info("Application starting", version="0.1.0", environment=settings.environment)
+        # Load configuration (using global settings instance)
+        logger.info("Application starting", version="0.1.0", debug=settings.debug, development_mode=settings.development_mode)
         
         # Initialize AWS configuration
         aws_config = AWSConfig(
@@ -46,7 +45,7 @@ def main() -> None:
         
         # Validate AWS credentials (optional for development)
         # We'll do this synchronously to avoid asyncio issues at startup
-        if not settings.skip_aws_validation:
+        if not settings.development_mode:
             try:
                 # Basic validation without async - just check if we can create a session
                 if aws_config.validate_credentials_sync():

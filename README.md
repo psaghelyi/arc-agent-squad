@@ -407,3 +407,100 @@ For questions and support:
 - Create an issue in the repository
 - Check the documentation in the `docs/` directory
 - Review AWS service documentation 
+
+# ARC Agents - GRC Agent Squad
+
+An AI agent squad designed for Governance, Risk Management, and Compliance (GRC) industry applications.
+
+## Quick Start
+
+### Prerequisites
+
+- Python 3.11+
+- AWS CLI configured with appropriate credentials
+- Docker and Docker Compose (for containerized deployment)
+
+### MCP Configuration Setup
+
+The project uses Model Context Protocol (MCP) for AI tool integration. To set up your MCP configuration:
+
+1. **Copy the template file:**
+   ```bash
+   cp .cursor/mcp.json.template .cursor/mcp.json
+   ```
+
+2. **Add your API keys to `.cursor/mcp.json`:**
+   Replace the placeholder values with your actual API keys:
+   - `PERPLEXITY_API_KEY` - For research capabilities
+   - `OPENAI_API_KEY` - For OpenAI models
+   - `GOOGLE_API_KEY` - For Google/Gemini models
+   - `XAI_API_KEY` - For xAI models
+   - `OPENROUTER_API_KEY` - For OpenRouter models
+   - `MISTRAL_API_KEY` - For Mistral models
+   - `AZURE_OPENAI_API_KEY` - For Azure OpenAI
+   - `OLLAMA_API_KEY` - For local Ollama instance
+
+3. **Security Note:** 
+   - The `.cursor/mcp.json` file is git-ignored to prevent API keys from being committed
+   - Never commit actual API keys to version control
+   - Only add the API keys you plan to use
+
+### Installation
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd arc-agents
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+make install
+```
+
+### Development
+
+```bash
+# Run locally
+make local-start
+
+# Run tests
+make test
+
+# Build Docker image
+make build
+```
+
+### Deployment
+
+```bash
+# Deploy infrastructure and application
+make deploy
+```
+
+## Architecture
+
+The system consists of several specialized agents:
+
+- **Information Collector Agent** - Conducts interviews and gathers information
+- **Official Compliance Agent** - Provides formal compliance guidance
+- **Risk Expert Agent** - Performs risk assessments and analysis
+- **Governance Specialist Agent** - Strategic governance recommendations
+- **Super Agent** - Orchestrates and coordinates other agents
+
+## Voice Capabilities
+
+The system supports real-time voice interactions using:
+- Amazon Transcribe for speech-to-text
+- Amazon Polly Neural TTS for text-to-speech
+- WebRTC for browser-based audio streaming
+
+## Contributing
+
+Please read our contributing guidelines and ensure all tests pass before submitting pull requests.
+
+## License
+
+[License information] 
