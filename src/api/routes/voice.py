@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 
 from src.services.grc_agent_squad import GRCAgentSquad
+from src.services.voice_processor import VoiceProcessor
 from src.utils.config import settings
 
 logger = logging.getLogger(__name__)
@@ -18,16 +19,25 @@ router = APIRouter()
 # Initialize configuration
 config = settings
 
-# Global GRC Agent Squad instance
+# Global instances
 grc_squad: Optional[GRCAgentSquad] = None
+voice_processor: Optional[VoiceProcessor] = None
 
 
 async def get_grc_squad() -> GRCAgentSquad:
     """Get or create GRC Agent Squad instance."""
     global grc_squad
     if grc_squad is None:
-        grc_squad = GRCAgentSquad(config)
+        grc_squad = GRCAgentSquad()
     return grc_squad
+
+
+async def get_voice_processor() -> VoiceProcessor:
+    """Get or create Voice Processor instance."""
+    global voice_processor
+    if voice_processor is None:
+        voice_processor = VoiceProcessor()
+    return voice_processor
 
 
 class VoiceRequest(BaseModel):
@@ -42,22 +52,25 @@ class VoiceResponse(BaseModel):
     """Voice processing response model."""
     session_id: str
     text: str
-    audio_url: Optional[str] = None
+    audio_data: Optional[str] = None  # Base64 encoded audio
+    audio_format: Optional[str] = None
+    voice_id: Optional[str] = None
     agent_id: str
+    agent_personality: Optional[str] = None
     processing_time: float
 
 
 @router.post("/process", response_model=VoiceResponse)
 async def process_voice(request: VoiceRequest) -> VoiceResponse:
     """
-    Process voice input (text or audio) and return agent response.
+    Process voice input (text or audio) and return agent response with audio output.
     
     This endpoint handles both text and audio input, processes it through
-    the appropriate GRC agent, and returns a text response with optional
-    audio output.
+    the appropriate GRC agent, and returns both text and audio responses.
     """
     try:
         squad = await get_grc_squad()
+        voice_proc = await get_voice_processor()
         
         # For now, process as text input
         if not request.text:
@@ -68,15 +81,43 @@ async def process_voice(request: VoiceRequest) -> VoiceResponse:
         
         # Process through GRC Agent Squad
         start_time = asyncio.get_event_loop().time()
-        response = await squad.route_request(request.text, request.session_id)
+        agent_response = await squad.process_request(request.text, request.session_id)
+        
+        # Get agent personality for voice synthesis
+        agent_selection = agent_response.get("agent_selection", {})
+        agent_response_data = agent_response.get("agent_response", {})
+        response_text = agent_response_data.get("response", "No response generated")
+        agent_personality = "default"  # We'll need to map this from agent selection
+        
+        # Synthesize speech for the agent response
+        tts_result = await voice_proc.synthesize_agent_response(
+            text=response_text,
+            agent_personality=agent_personality,
+            session_id=request.session_id
+        )
+        
         processing_time = asyncio.get_event_loop().time() - start_time
         
-        return VoiceResponse(
-            session_id=request.session_id,
-            text=response.output,
-            agent_id=response.agent_id or "auto_selected",
-            processing_time=processing_time
-        )
+        # Build response
+        response_data = {
+            "session_id": request.session_id,
+            "text": response_text,
+            "agent_id": agent_selection.get("agent_id", "auto_selected"),
+            "agent_personality": agent_personality,
+            "processing_time": processing_time
+        }
+        
+        # Add audio data if TTS was successful
+        if tts_result.get('success'):
+            response_data.update({
+                "audio_data": tts_result['audio_data'],
+                "audio_format": tts_result['audio_format'],
+                "voice_id": tts_result['voice_id']
+            })
+        else:
+            logger.warning(f"TTS failed: {tts_result.get('error')}")
+        
+        return VoiceResponse(**response_data)
         
     except Exception as e:
         logger.error(f"Voice processing error: {e}")
@@ -121,22 +162,99 @@ async def upload_audio(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/synthesize")
+async def synthesize_speech(
+    text: str = Form(...),
+    voice_id: str = Form("Joanna"),
+    agent_personality: str = Form("default")
+) -> Dict[str, Any]:
+    """
+    Synthesize speech from text using Amazon Polly Neural TTS.
+    
+    This endpoint directly converts text to speech without agent processing.
+    """
+    try:
+        voice_proc = await get_voice_processor()
+        
+        # Synthesize speech
+        result = await voice_proc.synthesize_agent_response(
+            text=text,
+            agent_personality=agent_personality
+        )
+        
+        if result['success']:
+            return {
+                "success": True,
+                "audio_data": result['audio_data'],
+                "audio_format": result['audio_format'],
+                "voice_id": result['voice_id'],
+                "agent_personality": result['agent_personality'],
+                "text_length": result.get('text_length', len(text)),
+                "audio_size": result.get('audio_size', 0)
+            }
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Speech synthesis failed: {result.get('error')}"
+            )
+        
+    except Exception as e:
+        logger.error(f"Speech synthesis error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/voices")
+async def get_available_voices(language: Optional[str] = None) -> Dict[str, Any]:
+    """Get available Polly voices."""
+    try:
+        voice_proc = await get_voice_processor()
+        
+        if language:
+            result = voice_proc.get_available_voices(language)
+        else:
+            result = voice_proc.get_available_voices()
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error getting voices: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/voices/neural")
+async def get_neural_voices() -> Dict[str, Any]:
+    """Get voices that support Neural TTS engine."""
+    try:
+        voice_proc = await get_voice_processor()
+        result = voice_proc.get_neural_voices()
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error getting neural voices: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/test")
 async def test_voice_endpoint() -> Dict[str, Any]:
-    """Test endpoint for voice functionality."""
+    """Test endpoint for voice functionality with TTS."""
     try:
         squad = await get_grc_squad()
+        voice_proc = await get_voice_processor()
         
         # Test message
         test_message = "Hello, I need help with compliance requirements."
-        response = await squad.route_request(test_message, "test_session")
+        agent_response = await squad.process_request(test_message, "test_session")
+        
+        # Test TTS
+        tts_test = await voice_proc.test_voice_synthesis()
         
         return {
             "status": "success",
             "test_input": test_message,
-            "agent_response": response.output,
-            "agent_id": response.agent_id,
-            "message": "I'm here to help! What would you like to know about our GRC Agent Squad?"
+            "agent_response": agent_response.get("agent_response", {}).get("response", "No response"),
+            "agent_id": agent_response.get("agent_selection", {}).get("agent_id", "unknown"),
+            "tts_test": tts_test,
+            "message": "🎙️ I'm here to help! Your GRC Agent Squad is ready to speak!"
         }
         
     except Exception as e:

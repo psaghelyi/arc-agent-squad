@@ -28,6 +28,10 @@ class ChatResponse(BaseModel):
     session_id: str
     confidence: Optional[float] = None
     reasoning: Optional[str] = None
+    audio_data: Optional[str] = None  # Base64 encoded audio
+    audio_format: Optional[str] = None
+    voice_id: Optional[str] = None
+    has_voice: Optional[bool] = False
 
 
 class AgentResponse(BaseModel):
@@ -162,6 +166,9 @@ async def chat_with_agents(
 ) -> ChatResponse:
     """Chat with the GRC Agent Squad. The system will automatically select the best agent."""
     try:
+        from src.services.voice_processor import VoiceProcessor
+        from src.models.agent_models import AgentCapability
+        
         response = await grc_squad.process_request(
             user_input=request.message,
             session_id=request.session_id or "default",
@@ -173,13 +180,73 @@ async def chat_with_agents(
         
         agent_selection = response.get("agent_selection", {})
         agent_response = response.get("agent_response", {})
+        agent_name = agent_selection.get("agent_name", "")
+        
+        # Map agent name to agent ID for voice processing
+        agent_id_map = {
+            "Emma - Information Collector": "empathetic_interviewer",
+            "Dr. Morgan - Compliance Authority": "authoritative_compliance", 
+            "Alex - Risk Analysis Expert": "analytical_risk_expert",
+            "Sam - Governance Strategist": "strategic_governance",
+            # Also handle potential variations
+            "Emma": "empathetic_interviewer",
+            "Dr. Morgan": "authoritative_compliance",
+            "Alex": "analytical_risk_expert", 
+            "Sam": "strategic_governance"
+        }
+        agent_id = agent_id_map.get(agent_name)
+        
+        # If we didn't find a mapping, try to extract from the agent_selection
+        if not agent_id and agent_selection.get("agent_id") != "auto_selected":
+            agent_id = agent_selection.get("agent_id")
+        
+        # Check if agent has voice processing capability
+        has_voice = False
+        audio_data = None
+        audio_format = None
+        voice_id = None
+        
+        if agent_id:
+            agent_info = await grc_squad.get_agent_info(agent_id)
+            if agent_info:
+                capabilities = agent_info.get("capabilities", [])
+                # Check for voice processing capability (handle both enum and string formats)
+                has_voice = (
+                    AgentCapability.VOICE_PROCESSING in capabilities or
+                    "voice_processing" in capabilities or
+                    "VOICE_PROCESSING" in capabilities
+                )
+                
+                try:
+                    # Initialize voice processor and synthesize speech
+                    voice_processor = VoiceProcessor()
+                    tts_result = await voice_processor.synthesize_agent_response(
+                        text=agent_response.get("response", ""),
+                        agent_personality=agent_id,
+                        session_id=request.session_id or "default"
+                    )
+                    
+                    if tts_result.get('success'):
+                        audio_data = tts_result['audio_data']
+                        audio_format = tts_result['audio_format']
+                        voice_id = tts_result['voice_id']
+                    else:
+                        logger.warning(f"TTS failed for agent {agent_id}: {tts_result.get('error')}")
+                        
+                except Exception as voice_error:
+                    logger.error(f"Voice synthesis error for agent {agent_id}: {voice_error}")
+                    # Continue without voice - don't fail the entire request
         
         return ChatResponse(
             message=agent_response.get("response", "No response generated"),
             agent_name=agent_selection.get("agent_name", "GRC Agent Squad"),
             session_id=response.get("session_id", request.session_id or "default"),
             confidence=agent_selection.get("confidence"),
-            reasoning=agent_selection.get("reasoning")
+            reasoning=agent_selection.get("reasoning"),
+            audio_data=audio_data,
+            audio_format=audio_format,
+            voice_id=voice_id,
+            has_voice=has_voice
         )
         
     except HTTPException:

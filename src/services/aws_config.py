@@ -2,11 +2,13 @@
 AWS Configuration and Service Management.
 
 This module handles AWS service configuration, credential validation,
-and provides centralized access to AWS services.
+and provides centralized access to AWS services using aws-vault for credential extraction.
 """
 
 import asyncio
-from typing import Optional
+import json
+import subprocess
+from typing import Optional, Dict, Any
 
 import boto3
 import structlog
@@ -15,7 +17,7 @@ from botocore.session import get_session
 
 
 class AWSConfig:
-    """AWS configuration and service manager."""
+    """AWS configuration and service manager with shared aws-vault credential extraction."""
     
     def __init__(self, profile: Optional[str] = None, region: str = "us-west-2"):
         """
@@ -29,15 +31,114 @@ class AWSConfig:
         self.region = region
         self.logger = structlog.get_logger(__name__)
         
-        # Initialize session
+        # Cache for aws-vault sessions to avoid repeated credential extraction
+        self._aws_vault_session = None
+        self._aws_vault_credentials = None
+        
+        # Initialize session (will use aws-vault if profile is provided)
         if profile:
-            self.session = boto3.Session(profile_name=profile)
+            self.session = self._create_aws_vault_session(profile, region)
         else:
             self.session = boto3.Session()
         
         # Ensure region is set
         if not self.session.region_name:
             self.session = self.session
+    
+    def _create_aws_vault_session(self, profile: str = "acl-playground", region_name: str = "us-west-2") -> boto3.Session:
+        """
+        Create a boto3 session using aws-vault credential extraction.
+        
+        This is the shared implementation used across all services that need AWS access.
+        
+        Args:
+            profile: AWS profile name for aws-vault
+            region_name: AWS region
+            
+        Returns:
+            Configured boto3 session
+            
+        Raises:
+            Exception: If credential extraction fails
+        """
+        if self._aws_vault_session and self._aws_vault_credentials:
+            # Return cached session if available
+            return self._aws_vault_session
+            
+        self.logger.info(f"Extracting credentials from aws-vault profile: {profile}")
+        
+        try:
+            # Run aws-vault exec with --json flag to get credentials
+            result = subprocess.run(
+                f"aws-vault exec {profile} --json", 
+                shell=True, 
+                capture_output=True, 
+                check=True,
+                text=True
+            )
+            
+            credentials = json.loads(result.stdout)
+            
+            self.logger.info(f"Successfully extracted credentials from aws-vault for profile: {profile}",
+                           access_key_prefix=credentials['AccessKeyId'][:10],
+                           session_token_prefix=credentials['SessionToken'][:20])
+            
+            # Create a session with the retrieved credentials
+            session = boto3.session.Session(
+                aws_access_key_id=credentials['AccessKeyId'],
+                aws_secret_access_key=credentials['SecretAccessKey'],
+                aws_session_token=credentials['SessionToken'],
+                region_name=region_name
+            )
+            
+            # Cache the session and credentials
+            self._aws_vault_session = session
+            self._aws_vault_credentials = credentials
+            
+            return session
+            
+        except subprocess.CalledProcessError as e:
+            self.logger.error(f"aws-vault command failed: {e}")
+            raise Exception(f"Failed to extract credentials from aws-vault: {e}")
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Failed to parse aws-vault JSON output: {e}")
+            raise Exception(f"Invalid JSON from aws-vault: {e}")
+        except Exception as e:
+            self.logger.error(f"Failed to create AWS session with aws-vault: {e}")
+            raise
+    
+    @classmethod
+    def create_aws_vault_session(cls, profile: str = "acl-playground", region_name: str = "us-west-2") -> boto3.Session:
+        """
+        Class method to create an aws-vault session without instantiating AWSConfig.
+        
+        This is useful for services that just need a session without the full config object.
+        
+        Args:
+            profile: AWS profile name for aws-vault
+            region_name: AWS region
+            
+        Returns:
+            Configured boto3 session
+        """
+        temp_config = cls(profile=profile, region=region_name)
+        return temp_config.session
+    
+    @classmethod
+    def create_aws_vault_client(cls, service_name: str, profile: str = "acl-playground", region_name: str = "us-west-2"):
+        """
+        Class method to create an AWS service client using aws-vault credentials.
+        
+        Args:
+            service_name: AWS service name (e.g., 'polly', 'bedrock-runtime', 'transcribe')
+            profile: AWS profile name for aws-vault
+            region_name: AWS region
+            
+        Returns:
+            Configured AWS service client
+        """
+        session = cls.create_aws_vault_session(profile, region_name)
+        return session.client(service_name)
     
     def get_session(self):
         """

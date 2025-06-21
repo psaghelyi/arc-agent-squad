@@ -46,6 +46,16 @@ class EmpathicInterviewerConfig:
     @staticmethod
     def get_specialized_tools() -> List[str]:
         return ["interview_template", "stakeholder_analysis", "documentation_helper"]
+    
+    @staticmethod
+    def get_voice_settings() -> Dict[str, str]:
+        return {
+            "voice_id": "Joanna",
+            "engine": "neural",
+            "style": "warm and encouraging",
+            "pace": "moderate",
+            "tone": "empathetic and patient"
+        }
 
 
 class ComplianceAuthorityConfig:
@@ -77,6 +87,7 @@ class ComplianceAuthorityConfig:
     def get_capabilities() -> List[AgentCapability]:
         return [
             AgentCapability.QUESTION_ANSWERING,
+            AgentCapability.VOICE_PROCESSING,
             AgentCapability.TASK_ASSISTANCE,
             AgentCapability.DATA_ANALYSIS
         ]
@@ -84,6 +95,16 @@ class ComplianceAuthorityConfig:
     @staticmethod
     def get_specialized_tools() -> List[str]:
         return ["regulatory_database", "compliance_checker", "policy_generator"]
+    
+    @staticmethod
+    def get_voice_settings() -> Dict[str, str]:
+        return {
+            "voice_id": "Matthew",
+            "engine": "neural",
+            "style": "authoritative and formal",
+            "pace": "measured",
+            "tone": "official and definitive"
+        }
 
 
 class RiskAnalysisExpertConfig:
@@ -115,6 +136,7 @@ class RiskAnalysisExpertConfig:
     def get_capabilities() -> List[AgentCapability]:
         return [
             AgentCapability.QUESTION_ANSWERING,
+            AgentCapability.VOICE_PROCESSING,
             AgentCapability.TASK_ASSISTANCE,
             AgentCapability.DATA_ANALYSIS
         ]
@@ -122,6 +144,16 @@ class RiskAnalysisExpertConfig:
     @staticmethod
     def get_specialized_tools() -> List[str]:
         return ["risk_calculator", "threat_analyzer", "mitigation_planner"]
+    
+    @staticmethod
+    def get_voice_settings() -> Dict[str, str]:
+        return {
+            "voice_id": "Amy",
+            "engine": "neural",
+            "style": "analytical and precise",
+            "pace": "deliberate",
+            "tone": "systematic and thorough"
+        }
 
 
 class GovernanceStrategistConfig:
@@ -153,6 +185,7 @@ class GovernanceStrategistConfig:
     def get_capabilities() -> List[AgentCapability]:
         return [
             AgentCapability.QUESTION_ANSWERING,
+            AgentCapability.VOICE_PROCESSING,
             AgentCapability.TASK_ASSISTANCE,
             AgentCapability.CREATIVE_WRITING
         ]
@@ -160,6 +193,16 @@ class GovernanceStrategistConfig:
     @staticmethod
     def get_specialized_tools() -> List[str]:
         return ["governance_framework", "policy_builder", "board_reporter"]
+    
+    @staticmethod
+    def get_voice_settings() -> Dict[str, str]:
+        return {
+            "voice_id": "Brian",
+            "engine": "neural",
+            "style": "strategic and consultative",
+            "pace": "thoughtful",
+            "tone": "diplomatic and visionary"
+        }
 
 
 class GRCAgentConfigRegistry:
@@ -189,7 +232,7 @@ class GRCAgentConfigRegistry:
         if not config:
             return {}
         
-        return {
+        metadata = {
             "id": config.ID,
             "name": config.NAME,
             "description": config.DESCRIPTION,
@@ -198,4 +241,10 @@ class GRCAgentConfigRegistry:
             "specialized_tools": config.get_specialized_tools(),
             "status": "active",
             "created_at": datetime.now(UTC).isoformat()
-        } 
+        }
+        
+        # Add voice settings if agent has voice processing capability
+        if hasattr(config, 'get_voice_settings'):
+            metadata["voice_settings"] = config.get_voice_settings()
+        
+        return metadata 

@@ -37,25 +37,16 @@ def main() -> None:
         # Load configuration (using global settings instance)
         logger.info("Application starting", version="0.1.0", debug=settings.debug, development_mode=settings.development_mode)
         
-        # Initialize AWS configuration
+        # Initialize AWS configuration (for reference only)
+        # Note: Services use programmatic credential extraction via aws-vault
         aws_config = AWSConfig(
             profile=settings.aws_profile,
             region=settings.aws_region
         )
         
-        # Validate AWS credentials (optional for development)
-        # We'll do this synchronously to avoid asyncio issues at startup
-        if not settings.development_mode:
-            try:
-                # Basic validation without async - just check if we can create a session
-                if aws_config.validate_credentials_sync():
-                    logger.info("AWS credentials validated successfully")
-                else:
-                    logger.warning("AWS credentials validation failed - continuing in development mode")
-            except Exception as e:
-                logger.warning("AWS credentials validation error - continuing in development mode", error=str(e))
-        else:
-            logger.info("Skipping AWS validation for local development")
+        # Skip credential validation - services handle their own credentials
+        # using programmatic aws-vault extraction which is more reliable
+        logger.info("AWS credential validation skipped - services use programmatic extraction")
         
         # Use the configured application
         # app is already imported and configured

@@ -14,9 +14,6 @@ Key Features:
 import structlog
 from typing import Dict, List, Optional, Any
 from datetime import datetime, UTC
-import boto3
-import json
-import subprocess
 
 from agent_squad.orchestrator import AgentSquad
 from agent_squad.agents import BedrockLLMAgent, BedrockLLMAgentOptions
@@ -24,6 +21,7 @@ from agent_squad.classifiers import BedrockClassifier, BedrockClassifierOptions
 
 from ..tools.tool_registry import ToolRegistry, get_default_registry
 from ..models.agent_models import AgentCapability
+from .aws_config import AWSConfig
 
 
 class GRCAgentSquad:
@@ -62,56 +60,6 @@ class GRCAgentSquad:
                         agent_count=len(self.squad.agents) if self.squad else 0,
                         available_tools=len(self.tool_registry.list_tools()))
     
-    def _create_bedrock_client_with_aws_vault(self, profile="acl-playground", region_name="us-west-2"):
-        """
-        Extract AWS credentials from aws-vault programmatically and create Bedrock client.
-        This approach doesn't require aws-vault to be running before the application starts.
-        """
-        self.logger.info(f"Extracting credentials from aws-vault profile: {profile}")
-        
-        # Run aws-vault exec with --json flag to get credentials
-        result = subprocess.run(
-            f"aws-vault exec {profile} --json", 
-            shell=True, 
-            capture_output=True, 
-            check=True,
-            text=True
-        )
-        
-        credentials = json.loads(result.stdout)
-        
-        self.logger.info("Successfully extracted credentials from aws-vault",
-                        access_key_prefix=credentials['AccessKeyId'][:10],
-                        session_token_prefix=credentials['SessionToken'][:20])
-        
-        # Create a session with the retrieved credentials
-        session = boto3.session.Session(
-            aws_access_key_id=credentials['AccessKeyId'],
-            aws_secret_access_key=credentials['SecretAccessKey'],
-            aws_session_token=credentials['SessionToken'],
-            region_name=region_name
-        )
-        
-        # Create Bedrock client from the session
-        bedrock_client = session.client('bedrock-runtime')
-        
-        # Test the connection
-        try:
-            test_response = bedrock_client.converse(
-                modelId='anthropic.claude-3-5-sonnet-20241022-v2:0',
-                messages=[{
-                    'role': 'user',
-                    'content': [{'text': 'Test connection'}]
-                }],
-                inferenceConfig={'maxTokens': 10}
-            )
-            self.logger.info("Bedrock test connection successful with programmatic credentials")
-        except Exception as test_error:
-            self.logger.error(f"Bedrock test connection failed: {test_error}")
-            raise
-        
-        return bedrock_client
-
     def _initialize_grc_agents(self):
         """Initialize the four specialized GRC agents with Bedrock memory configuration."""
         
@@ -122,11 +70,10 @@ class GRCAgentSquad:
             "topP": 0.9
         }
         
-        # Configure AWS session using programmatic credential extraction
-        # This approach uses aws-vault --json to get credentials programmatically
+        # Configure AWS session using shared AWSConfig implementation
         try:
-            bedrock_client = self._create_bedrock_client_with_aws_vault()
-            self.logger.info("AWS session and Bedrock client configured successfully using aws-vault --json")
+            bedrock_client = AWSConfig.create_aws_vault_client('bedrock-runtime')
+            self.logger.info("AWS session and Bedrock client configured successfully using shared AWSConfig")
         except Exception as e:
             self.logger.error(f"Failed to configure AWS session or Bedrock client: {e}")
             raise
@@ -285,6 +232,7 @@ class GRCAgentSquad:
                 "personality": "authoritative_compliance",
                 "capabilities": [
                     AgentCapability.QUESTION_ANSWERING,
+                    AgentCapability.VOICE_PROCESSING,
                     AgentCapability.TECHNICAL_SUPPORT,
                     AgentCapability.DATA_ANALYSIS
                 ],
