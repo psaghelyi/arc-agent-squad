@@ -1,120 +1,127 @@
 """
-FastAPI application for the Voice Agent Swarm.
-
-This module creates and configures the FastAPI application with all routes,
-middleware, and WebSocket endpoints for voice communication.
+Main FastAPI application for GRC Agent Squad.
+Uses agent-squad framework with Bedrock built-in memory for conversation persistence.
 """
 
-from contextlib import asynccontextmanager
-from typing import List
-
 import structlog
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from contextlib import asynccontextmanager
+from typing import Dict, Any
+
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
-import os
 
 from .routes import agents, health, voice
-from src.services.websocket_manager import WebSocketManager
-from src.utils.config import settings
+from ..utils.config import settings
 
 
-# Global WebSocket manager
-websocket_manager = WebSocketManager()
+# Configure structured logging
+structlog.configure(
+    processors=[
+        structlog.stdlib.filter_by_level,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.processors.UnicodeDecoder(),
+        structlog.processors.JSONRenderer()
+    ],
+    context_class=dict,
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    cache_logger_on_first_use=True,
+)
+
+logger = structlog.get_logger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan manager."""
-    logger = structlog.get_logger(__name__)
-    logger.info("Starting Voice Agent Swarm API")
+    """Manage application lifespan events."""
+    # Startup
+    logger.info("Starting GRC Agent Squad API")
     
-    # Startup logic here
-    yield
+    try:
+        # Initialize configuration
+        logger.info("Configuration loaded", 
+                   log_level=settings.log_level,
+                   debug_mode=settings.debug)
+        
+        logger.info("GRC Agent Squad API startup complete")
+        
+        yield
+        
+    except Exception as e:
+        logger.error("Failed to start application", error=str(e))
+        raise
     
-    # Shutdown logic here
-    logger.info("Shutting down Voice Agent Swarm API")
+    # Shutdown
+    logger.info("Shutting down GRC Agent Squad API")
 
 
-def create_app() -> FastAPI:
-    """Create and configure the FastAPI application."""
+# Create FastAPI app
+app = FastAPI(
+    title="GRC Agent Squad API",
+    description="AI agent squad specialized for Governance, Risk Management, and Compliance (GRC) industry applications",
+    version="1.1.0",
+    lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Configure appropriately for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Define API routes first
+@app.get("/api/info")
+async def get_api_info() -> Dict[str, Any]:
+    """Get API information and status."""
     
-    app = FastAPI(
-        title="Voice Agent Swarm API",
-        description="Voice-enabled AI agent swarm using AWS services",
-        version="0.1.0",
-        lifespan=lifespan
-    )
-    
-    # Add CORS middleware
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.cors_origins_list,
-        allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["*"],
-    )
-    
-    # Include routers
-    app.include_router(health.router, prefix="/health", tags=["health"])
-    app.include_router(agents.router, prefix="/api/agents", tags=["agents"])
-    app.include_router(voice.router, prefix="/api/v1/voice", tags=["voice"])
-    
-    # Mount static files
-    static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
-    if os.path.exists(static_dir):
-        app.mount("/static", StaticFiles(directory=static_dir), name="static")
-    
-    # WebSocket endpoint for real-time voice communication
-    @app.websocket("/ws/voice/{session_id}")
-    async def websocket_voice_endpoint(websocket: WebSocket, session_id: str):
-        """WebSocket endpoint for real-time voice communication."""
-        await websocket_manager.connect(websocket, session_id)
-        try:
-            while True:
-                # Receive data (could be text or binary)
-                data = await websocket.receive()
-                
-                if "bytes" in data:
-                    # Handle audio data
-                    audio_data = data["bytes"]
-                    await websocket_manager.handle_audio_data(websocket, audio_data)
-                elif "text" in data:
-                    # Handle text messages
-                    text_data = data["text"]
-                    # Echo back for now - replace with actual processing
-                    await websocket_manager.send_personal_message(
-                        f"Received: {text_data}", websocket
-                    )
-                    
-        except WebSocketDisconnect:
-            websocket_manager.disconnect(websocket)
-    
-    # WebSocket connection status endpoint
-    @app.get("/api/v1/websocket/stats")
-    async def get_websocket_stats():
-        """Get WebSocket connection statistics."""
-        return websocket_manager.get_connection_stats()
-    
-    # Root endpoint - serve the web UI
-    @app.get("/")
-    async def root():
-        """Serve the web UI."""
-        static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
-        index_file = os.path.join(static_dir, "index.html")
-        if os.path.exists(index_file):
-            return FileResponse(index_file)
-        else:
-            return {
-                "message": "Voice Agent Swarm API",
-                "version": "0.1.0",
-                "docs": "/docs",
-                "health": "/health"
-            }
-    
-    return app
+    return {
+        "name": "GRC Agent Squad API",
+        "version": "1.1.0",
+        "description": "AI agent squad for Governance, Risk Management, and Compliance",
+        "memory_system": "bedrock_built_in",
+        "agents": {
+            "total": 4,
+            "types": [
+                "empathetic_interviewer",
+                "authoritative_compliance", 
+                "analytical_risk_expert",
+                "strategic_governance"
+            ]
+        },
+        "features": [
+            "Intelligent agent routing",
+            "GRC-specialized personalities",
+            "Bedrock built-in memory",
+            "Voice processing capabilities",
+            "Tool integration support"
+        ],
+        "endpoints": {
+            "agents": "/api/agents",
+            "chat": "/api/agents/chat", 
+            "voice": "/api/voice",
+            "health": "/health",
+            "docs": "/docs"
+        }
+    }
 
 
-# Create the app instance
-app = create_app() 
+# Include routers
+app.include_router(agents.router, prefix="/api/agents", tags=["agents"])
+app.include_router(health.router, prefix="/health", tags=["health"])
+app.include_router(voice.router, prefix="/api/voice", tags=["voice"])
+
+# Mount static files (must come last to avoid overriding API routes)
+try:
+    app.mount("/", StaticFiles(directory="src/static", html=True), name="static")
+except Exception as e:
+    logger.warning("Failed to mount static files", error=str(e)) 

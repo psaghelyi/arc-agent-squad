@@ -6,7 +6,7 @@ This directory contains tools that agents can use to interact with external syst
 
 ### 1. ExternalApiTool
 
-**Purpose**: Make HTTP requests to external APIs (renamed from CompanyAPITool for broader use)
+**Purpose**: Make HTTP requests to external APIs
 
 **Usage**:
 ```python

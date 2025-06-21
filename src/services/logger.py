@@ -1,5 +1,5 @@
 """
-Logging configuration for the Voice Agent Swarm application.
+Logging configuration for the GRC Agent Squad application.
 
 This module sets up structured logging using structlog.
 """

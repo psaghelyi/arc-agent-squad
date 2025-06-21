@@ -1,20 +1,22 @@
-# Voice Agent Swarm
+# 🎯 GRC Agent Squad
 
-A voice-enabled AI agent swarm using AWS services and the agent-squad framework. This project demonstrates how to build scalable, cloud-native voice AI applications with intelligent agent selection, personality-based responses, and real-time voice processing using Amazon Bedrock, Transcribe, Polly, and other AWS services.
+**AI-powered agent squad specialized for Governance, Risk Management, and Compliance (GRC) using AWS services and agent-squad framework**
+
+A specialized AI agent squad for Governance, Risk Management, and Compliance (GRC) using AWS services and the agent-squad framework. This project provides intelligent, voice-enabled agents that assist with compliance assessments, risk management, audit interviews, and regulatory guidance using Amazon Bedrock, Transcribe, Polly, and other AWS services.
 
 ## Features
 
-- 🎙️ **Voice Processing**: Real-time speech-to-text and text-to-speech with Amazon Transcribe and Polly
-- 🤖 **Intelligent Agent Swarm**: 4 specialized agents with distinct personalities using agent-squad framework
-- 🧠 **Smart Agent Selection**: Automatic agent selection based on request analysis and personality matching
-- 💬 **Personality-Based Responses**: Agents with different communication styles (helpful, direct, professional, casual)
+- 🎙️ **Voice-Enabled GRC**: Real-time speech-to-text and text-to-speech for audit interviews and compliance discussions
+- 🤖 **Specialized GRC Agents**: 4 expert agents tailored for Governance, Risk, and Compliance use cases
+- 🧠 **Intelligent Orchestration**: Automatic agent selection using agent-squad framework based on GRC context
+- 💼 **GRC Personalities**: Agents optimized for different GRC scenarios (interviewer, compliance authority, risk expert, governance strategist)
 - ☁️ **AWS Native**: Built for AWS cloud with Bedrock, Transcribe, Polly, and Lex integration
-- 🔄 **WebRTC Support**: Real-time audio streaming capabilities (planned)
-- 💾 **Memory Management**: Redis-based conversation memory with graceful fallback
-- 📊 **Monitoring**: CloudWatch integration for logging and metrics
-- 🐳 **Containerized**: Docker support for easy deployment
-- 🚀 **Infrastructure as Code**: AWS CDK for infrastructure management
-- 🌐 **Modern Web UI**: Beautiful, responsive web interface for agent management
+- 🔄 **WebRTC Support**: Real-time audio streaming for compliance interviews (planned)
+- 💾 **Audit Trail**: Bedrock built-in conversation memory for compliance documentation
+- 📊 **GRC Monitoring**: CloudWatch integration for audit logging and compliance metrics
+- 🐳 **Enterprise Ready**: Docker support for secure enterprise deployment
+- 🚀 **Infrastructure as Code**: AWS CDK for compliant infrastructure management
+- 🌐 **Compliance Dashboard**: Web interface for GRC agent management and audit documentation
 
 ## Architecture
 
@@ -29,12 +31,12 @@ A voice-enabled AI agent swarm using AWS services and the agent-squad framework.
                 ┌─────────────┐                   ┌─────────────┐                 ┌─────────────┐
                 │   Amazon    │                   │   Amazon    │                 │   Amazon    │
                 │ Transcribe  │                   │   Bedrock   │                 │    Polly    │
-                └─────────────┘                   └─────────────┘                 └─────────────┘
-                       │                                 │                                 │
-                ┌─────────────┐                   ┌─────────────┐                 ┌─────────────┐
-                │   Amazon    │                   │    Redis    │                 │ CloudWatch  │
-                │     Lex     │                   │  (Memory)   │                 │    Logs     │
-                └─────────────┘                   └─────────────┘                 └─────────────┘
+                └─────────────┘                   │ (Built-in   │                 └─────────────┘
+                       │                          │  Memory)    │                         │
+                ┌─────────────┐                   └─────────────┘                 ┌─────────────┐
+                │   Amazon    │                                                   │ CloudWatch  │
+                │     Lex     │                                                   │    Logs     │
+                └─────────────┘                                                   └─────────────┘
 ```
 
 ## Prerequisites
@@ -53,7 +55,7 @@ A voice-enabled AI agent swarm using AWS services and the agent-squad framework.
 - Intelligent agent selection based on request analysis
 - REST API with chat functionality
 - Modern web interface
-- Memory management with Redis fallback
+- Bedrock built-in memory for conversation persistence
 - Docker containerization
 - AWS CDK infrastructure code
 
@@ -69,7 +71,7 @@ A voice-enabled AI agent swarm using AWS services and the agent-squad framework.
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd voice-agent-swarm
+cd grc-agent-squad
 
 # Create and activate virtual environment
 make install
@@ -109,7 +111,7 @@ make deploy
 ## Project Structure
 
 ```
-voice-agent-swarm/
+grc-agent-squad/
 ├── src/                    # Application source code
 │   ├── agents/            # Agent implementations
 │   ├── api/               # FastAPI application
@@ -179,28 +181,28 @@ docker-compose down
 - `GET /api/agents/personalities/presets` - Get available personality presets
 - `GET /api/agents/capabilities/list` - Get available agent capabilities
 
-### Available Agents
-The system includes 4 pre-configured agents with distinct personalities:
+### Available GRC Agents
+The system includes 4 specialized GRC agents with distinct expertise:
 
-1. **Emma the Helper** (`kind_helpful`)
-   - Empathetic and supportive
-   - Provides detailed explanations
-   - Best for: General help, emotional support, learning
+1. **Emma - Information Collector** (`empathetic_interviewer`)
+   - Empathetic and patient interviewer
+   - Skilled at gathering detailed compliance information
+   - Best for: Audit interviews, stakeholder consultations, requirement gathering
 
-2. **Alex the Direct** (`to_the_point`) 
-   - Brief and straightforward
-   - Quick, concise answers
-   - Best for: Urgent requests, simple questions
+2. **Dr. Morgan - Compliance Authority** (`authoritative_compliance`) 
+   - Official and regulation-focused
+   - Provides definitive compliance guidance
+   - Best for: Regulatory interpretation, compliance reporting, formal documentation
 
-3. **Dr. Morgan** (`professional`)
-   - Professional and technical
-   - Formal communication style
-   - Best for: Technical queries, business contexts
+3. **Alex - Risk Analysis Expert** (`analytical_risk_expert`)
+   - Analytical and detail-oriented
+   - Systematic approach to risk assessment
+   - Best for: Risk modeling, control gap analysis, threat assessment
 
-4. **Sam the Buddy** (`casual_friendly`)
-   - Casual and creative
-   - Friendly, conversational tone
-   - Best for: Creative tasks, casual conversations
+4. **Sam - Governance Strategist** (`strategic_governance`)
+   - Strategic and consultative
+   - Big-picture governance thinking
+   - Best for: Governance framework design, policy development, board reporting
 
 ### Voice Processing (Planned)
 - `POST /api/voice/transcribe` - Transcribe audio to text
@@ -265,7 +267,6 @@ Each agent is scored based on personality matching, and the best fit is selected
 | `BEDROCK_MODEL_ID` | Bedrock model identifier | `anthropic.claude-3-haiku-20240307-v1:0` |
 | `TRANSCRIBE_LANGUAGE_CODE` | Language for transcription | `en-US` |
 | `POLLY_VOICE_ID` | Polly voice identifier | `Joanna` |
-| `REDIS_URL` | Redis connection URL | `redis://localhost:6379` |
 | `API_PORT` | API server port | `8001` |
 
 ### AWS Services Configuration
@@ -313,8 +314,8 @@ make deploy
 ### CloudWatch Logs
 
 Logs are automatically sent to CloudWatch Log Groups:
-- `/aws/ecs/voice-agent-swarm` - Application logs
-- `/aws/apigateway/voice-agent-swarm` - API Gateway logs
+- `/aws/ecs/grc-agent-squad` - Application logs
+- `/aws/apigateway/grc-agent-squad` - API Gateway logs
 
 ### Metrics
 
@@ -334,22 +335,17 @@ Key metrics to monitor:
    - Check agent orchestrator logs for selection reasoning
    - Ensure proper personality presets are loaded
 
-2. **Memory Service Issues**
-   - Redis connection failures are handled gracefully with fallback
-   - Check Redis connectivity if persistent memory is needed
-   - Verify memory service logs for connection status
-
-3. **API Response Errors**
+2. **API Response Errors**
    - Datetime validation errors: Check `created_at` field formatting
    - Agent not found: Verify agent IDs are current (they regenerate on restart)
    - 500 errors: Check server logs for detailed error information
 
-4. **AWS Service Errors** (Future)
+3. **AWS Service Errors** (Future)
    - Verify IAM permissions for Bedrock, Transcribe, Polly
    - Check service quotas and region availability
    - Validate AWS credentials and region configuration
 
-5. **Container Issues**
+4. **Container Issues**
    - Check ECS task logs for startup errors
    - Verify environment variables are properly set
    - Ensure health checks are responding correctly
@@ -371,7 +367,7 @@ make local-start
 ✅ **Major Fixes:**
 - Fixed agent-squad library integration and Agent class initialization
 - Resolved datetime validation errors in API responses
-- Implemented proper Redis connection handling with graceful fallback
+- Implemented proper Bedrock built-in memory for conversation persistence
 - Fixed agent orchestrator to properly call agent-squad compatible methods
 - Added comprehensive error handling and logging
 
@@ -482,13 +478,14 @@ make deploy
 
 ## Architecture
 
-The system consists of several specialized agents:
+The system consists of four specialized GRC agents:
 
-- **Information Collector Agent** - Conducts interviews and gathers information
-- **Official Compliance Agent** - Provides formal compliance guidance
-- **Risk Expert Agent** - Performs risk assessments and analysis
-- **Governance Specialist Agent** - Strategic governance recommendations
-- **Super Agent** - Orchestrates and coordinates other agents
+- **Emma (Information Collector)** - Empathetic interviewer for audit interviews and information gathering
+- **Dr. Morgan (Compliance Authority)** - Official, formal compliance guidance and regulatory interpretation
+- **Alex (Risk Expert)** - Analytical risk assessment and mitigation strategies
+- **Sam (Governance Strategist)** - Strategic governance framework guidance and recommendations
+
+The agents are orchestrated using the [AWS Labs agent-squad](https://github.com/awslabs/agent-squad) framework, which automatically routes requests to the most appropriate agent based on the content and context.
 
 ## Voice Capabilities
 

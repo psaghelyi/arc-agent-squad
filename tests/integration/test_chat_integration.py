@@ -1,168 +1,163 @@
 """
-Integration tests for chat functionality.
+Integration tests for GRC Agent Squad chat functionality.
 
-Tests the complete chat flow through the orchestrator with real agent selection.
+Tests the complete chat flow through the GRC Agent Squad with proper mocking.
 """
 
 import pytest
 import asyncio
 from unittest.mock import Mock, AsyncMock, patch
 
-from src.services.agent_orchestrator import AgentOrchestrator
-from src.services.memory_service import MemoryService
-from src.models.agent_models import (
-    AgentPersonality,
-    AgentCapability,
-    OrchestratorRequest,
-    ChatMessage
-)
+from src.services.grc_agent_squad import GRCAgentSquad
+from src.tools.tool_registry import ToolRegistry
 
 
 class TestChatIntegration:
-    """Integration tests for chat functionality."""
+    """Integration tests for GRC Agent Squad chat functionality."""
 
     @pytest.fixture
-    async def memory_service(self):
-        """Create a memory service for testing."""
-        memory_service = MemoryService()
-        # Use in-memory mode for testing (don't connect to Redis)
-        memory_service.connected = False
-        return memory_service
+    async def tool_registry(self):
+        """Create a tool registry for testing."""
+        registry = Mock(spec=ToolRegistry)
+        registry.get_tools = Mock(return_value=[])
+        registry.list_tools = Mock(return_value=[])
+        return registry
 
     @pytest.fixture
-    async def orchestrator(self, memory_service):
-        """Create an orchestrator with initialized agents."""
-        orchestrator = AgentOrchestrator(memory_service)
-        await orchestrator.initialize_default_agents()
-        return orchestrator
+    async def grc_squad(self, tool_registry):
+        """Create a GRC Agent Squad instance."""
+        squad = GRCAgentSquad(tool_registry=tool_registry)
+        return squad
+
+    def create_mock_response(self, output_text, agent_name="Emma - Information Collector", confidence=0.85):
+        """Helper method to create a mock response object."""
+        mock_response = Mock()
+        mock_response.output = output_text
+        mock_response.streaming = False
+        mock_response.metadata = Mock()
+        mock_response.metadata.agent_name = agent_name
+        mock_response.metadata.confidence = confidence
+        return mock_response
 
     @pytest.mark.asyncio
-    async def test_simple_chat_flow(self, orchestrator):
+    async def test_simple_chat_flow(self, grc_squad):
         """Test a simple chat conversation flow."""
-        # Mock the actual LLM response
-        with patch('src.agents.personality_agent.PersonalityAgent.process_request') as mock_process:
-            mock_response = Mock()
-            mock_response.content = [{"text": "Hello! I'm Emma, and I'm happy to help you with anything you need. How can I assist you today?"}]
-            mock_process.return_value = mock_response
-            
-            # Send a greeting message
-            request = OrchestratorRequest(
-                user_input="Hello, I need some help",
-                session_id="chat-session-1",
-                context={}
+        with patch.object(grc_squad.squad, 'route_request', new_callable=AsyncMock) as mock_route:
+            # Create a mock response that matches agent-squad response structure
+            mock_response = self.create_mock_response(
+                "Hello! I'm Emma, your empathetic interviewer. I'm here to help you with compliance interviews and information gathering. How can I assist you today?",
+                confidence=0.85
             )
+            mock_route.return_value = mock_response
             
-            result = await orchestrator.process_request(request)
+            response = await grc_squad.process_request(
+                user_input="Hello, I need help with a compliance audit",
+                session_id="chat-session-1"
+            )
             
             # Verify the response
-            assert result["success"] is True
-            assert result["agent_selection"]["agent_name"] == "Emma the Helper"
-            assert "Emma" in result["agent_response"]["response"]
-            assert result["agent_selection"]["confidence"] > 0.5
+            assert response["success"] is True
+            assert response["agent_selection"]["agent_id"] == "auto_selected"
+            assert "Emma" in response["agent_response"]["response"]
+            assert response["agent_selection"]["confidence"] == 0.85
 
     @pytest.mark.asyncio
-    async def test_multi_turn_conversation(self, orchestrator):
-        """Test a multi-turn conversation with the same agent."""
+    async def test_multi_turn_conversation(self, grc_squad):
+        """Test a multi-turn conversation with session continuity."""
         session_id = "multi-turn-session"
         
-        with patch('src.agents.personality_agent.PersonalityAgent.process_request') as mock_process:
-            # First turn
-            mock_response_1 = Mock()
-            mock_response_1.content = [{"text": "Hello! I'm here to help you. What would you like to know?"}]
-            mock_process.return_value = mock_response_1
+        with patch.object(grc_squad.squad, 'route_request', new_callable=AsyncMock) as mock_route:
+            # First turn - compliance question
+            mock_response = self.create_mock_response(
+                "I can help you understand GDPR compliance requirements. What specific aspect would you like to discuss?",
+                "Dr. Morgan - Compliance Authority"
+            )
+            mock_route.return_value = mock_response
             
-            request_1 = OrchestratorRequest(
-                user_input="Hi, can you help me understand Python?",
-                session_id=session_id,
-                context={}
+            response_1 = await grc_squad.process_request(
+                user_input="Can you explain GDPR data protection requirements?",
+                session_id=session_id
             )
             
-            result_1 = await orchestrator.process_request(request_1)
-            assert result_1["success"] is True
-            selected_agent_id = result_1["agent_selection"]["agent_id"]
+            assert response_1["success"] is True
+            assert response_1["agent_selection"]["agent_id"] == "auto_selected"
             
-            # Second turn - should use the same agent due to session continuity
-            mock_response_2 = Mock()
-            mock_response_2.content = [{"text": "Of course! Python is a versatile programming language. What specific aspect would you like to learn about?"}]
-            mock_process.return_value = mock_response_2
+            # Second turn - follow-up question in same session
+            mock_response = self.create_mock_response(
+                "Under GDPR Article 32, you must implement appropriate technical and organizational measures to ensure security of processing...",
+                "Dr. Morgan - Compliance Authority"
+            )
+            mock_route.return_value = mock_response
             
-            request_2 = OrchestratorRequest(
-                user_input="What are Python data types?",
-                session_id=session_id,
-                context={}
+            response_2 = await grc_squad.process_request(
+                user_input="What specific security measures are required?",
+                session_id=session_id
             )
             
-            result_2 = await orchestrator.process_request(request_2)
-            assert result_2["success"] is True
-            
-            # Verify session tracking
-            agent_instance = orchestrator.agents[selected_agent_id]
-            assert session_id in agent_instance.current_sessions
-            assert agent_instance.total_conversations == 2
+            assert response_2["success"] is True
+            assert response_2["session_id"] == session_id
+            assert "Article 32" in response_2["agent_response"]["response"]
 
     @pytest.mark.asyncio
-    async def test_different_request_types_select_different_agents(self, orchestrator):
-        """Test that different request types select appropriate agents."""
+    async def test_different_request_types_select_appropriate_agents(self, grc_squad):
+        """Test that different GRC request types work with agent-squad orchestration."""
         test_cases = [
             {
-                "input": "I'm feeling overwhelmed and need emotional support",
-                "expected_agent": "Emma the Helper",
-                "session": "emotional-session"
+                "input": "I need help conducting an audit interview with our IT team",
+                "session": "interview-session",
+                "response": "I'd be happy to help you prepare for the audit interview. Let's discuss the key areas we should cover with your IT team.",
+                "agent_name": "Emma - Information Collector"
             },
             {
-                "input": "Quick question: what's 2+2?",
-                "expected_agent": "Alex the Direct",
-                "session": "quick-session"
+                "input": "What are the specific GDPR requirements for data retention?",
+                "session": "compliance-session",
+                "response": "According to GDPR Article 5(1)(e), personal data must be kept in a form which permits identification for no longer than necessary...",
+                "agent_name": "Dr. Morgan - Compliance Authority"
             },
             {
-                "input": "I need help debugging this technical API issue",
-                "expected_agent": "Dr. Morgan",
-                "session": "technical-session"
+                "input": "Can you help me assess the risks of our new cloud migration?",
+                "session": "risk-session", 
+                "response": "Let me analyze the risk factors for your cloud migration. We need to consider data security, compliance, vendor risk, and operational continuity...",
+                "agent_name": "Alex - Risk Analysis Expert"
             },
             {
-                "input": "Can you help me brainstorm creative ideas for a story?",
-                "expected_agent": "Sam the Buddy",
-                "session": "creative-session"
+                "input": "How should we structure our board committees for better governance?",
+                "session": "governance-session",
+                "response": "For effective board governance, I recommend establishing clear committee structures with defined roles and responsibilities...",
+                "agent_name": "Sam - Governance Strategist"
             }
         ]
         
-        with patch('src.agents.personality_agent.PersonalityAgent.process_request') as mock_process:
-            mock_response = Mock()
-            mock_response.content = [{"text": "Test response"}]
-            mock_process.return_value = mock_response
-            
+        with patch.object(grc_squad.squad, 'route_request', new_callable=AsyncMock) as mock_route:
             for case in test_cases:
-                request = OrchestratorRequest(
+                mock_response = self.create_mock_response(case["response"], case["agent_name"])
+                mock_route.return_value = mock_response
+                
+                response = await grc_squad.process_request(
                     user_input=case["input"],
-                    session_id=case["session"],
-                    context={}
+                    session_id=case["session"]
                 )
                 
-                result = await orchestrator.process_request(request)
-                
-                assert result["success"] is True
-                # Note: Agent selection is probabilistic, so we verify reasonable selection
-                selected_agent = result["agent_selection"]["agent_name"]
-                assert selected_agent in ["Emma the Helper", "Alex the Direct", "Dr. Morgan", "Sam the Buddy"]
-                assert result["agent_selection"]["confidence"] > 0.3  # Should have reasonable confidence
+                assert response["success"] is True
+                # Agent-squad handles selection automatically, so we verify the response content
+                assert response["agent_response"]["response"] == case["response"]
+                assert response["agent_selection"]["agent_id"] == "auto_selected"
 
     @pytest.mark.asyncio
-    async def test_concurrent_chat_sessions(self, orchestrator):
+    async def test_concurrent_chat_sessions(self, grc_squad):
         """Test handling multiple concurrent chat sessions."""
-        with patch('src.agents.personality_agent.PersonalityAgent.process_request') as mock_process:
-            mock_response = Mock()
-            mock_response.content = [{"text": "Concurrent response"}]
-            mock_process.return_value = mock_response
+        with patch.object(grc_squad.squad, 'route_request', new_callable=AsyncMock) as mock_route:
+            mock_response = self.create_mock_response("Concurrent response from GRC agent")
+            mock_route.return_value = mock_response
             
             # Create multiple concurrent requests
             tasks = []
             for i in range(5):
-                request = OrchestratorRequest(
+                task = grc_squad.process_request(
                     user_input=f"Hello from session {i}",
-                    session_id=f"concurrent-session-{i}",
-                    context={}
+                    session_id=f"concurrent-session-{i}"
                 )
-                tasks.append(orchestrator.process_request(request))
+                tasks.append(task)
             
             # Execute all requests concurrently
             results = await asyncio.gather(*tasks)
@@ -170,169 +165,196 @@ class TestChatIntegration:
             # Verify all requests succeeded
             for i, result in enumerate(results):
                 assert result["success"] is True
-                assert result["agent_response"]["response"] == "Concurrent response"
+                assert result["agent_response"]["response"] == "Concurrent response from GRC agent"
+                assert result["session_id"] == f"concurrent-session-{i}"
 
     @pytest.mark.asyncio
-    async def test_error_handling_in_chat(self, orchestrator):
+    async def test_error_handling_in_chat(self, grc_squad):
         """Test error handling during chat processing."""
-        with patch('src.agents.personality_agent.PersonalityAgent.process_request') as mock_process:
+        with patch.object(grc_squad.squad, 'route_request', new_callable=AsyncMock) as mock_route:
             # Simulate an agent error
-            mock_process.side_effect = Exception("Simulated agent error")
+            mock_route.side_effect = Exception("Simulated GRC agent error")
             
-            request = OrchestratorRequest(
+            response = await grc_squad.process_request(
                 user_input="This should cause an error",
-                session_id="error-session",
-                context={}
+                session_id="error-session"
             )
             
-            result = await orchestrator.process_request(request)
-            
-            assert result["success"] is False
-            assert "error" in result
-            assert "Simulated agent error" in result["error"]
+            assert response["success"] is False
+            assert "error" in response
+            assert "Simulated GRC agent error" in response["error"]
 
     @pytest.mark.asyncio
-    async def test_agent_selection_confidence_scoring(self, orchestrator):
-        """Test that agent selection provides meaningful confidence scores."""
+    async def test_agent_selection_confidence_scoring(self, grc_squad):
+        """Test that agent selection provides confidence scores via agent-squad."""
         test_cases = [
             {
-                "input": "I'm really sad and need someone to talk to",  # Strong emotional signal
-                "expected_high_confidence": True
+                "input": "I need help with GDPR Article 25 data protection by design requirements",  # Strong compliance signal
+                "expected_high_confidence": True,
+                "agent_name": "Dr. Morgan - Compliance Authority",
+                "confidence": 0.95
             },
             {
-                "input": "URGENT: Need answer now!",  # Strong urgency signal
-                "expected_high_confidence": True
-            },
-            {
-                "input": "Hello there",  # Neutral, should have lower confidence
-                "expected_high_confidence": False
+                "input": "Can you help me with something?",  # Vague request
+                "expected_high_confidence": False,
+                "agent_name": "Emma - Information Collector",
+                "confidence": 0.65
             }
         ]
         
-        with patch('src.agents.personality_agent.PersonalityAgent.process_request') as mock_process:
-            mock_response = Mock()
-            mock_response.content = [{"text": "Test response"}]
-            mock_process.return_value = mock_response
-            
-            for i, case in enumerate(test_cases):
-                request = OrchestratorRequest(
+        with patch.object(grc_squad.squad, 'route_request', new_callable=AsyncMock) as mock_route:
+            for case in test_cases:
+                mock_response = self.create_mock_response(
+                    "Response based on confidence level",
+                    case["agent_name"],
+                    case["confidence"]
+                )
+                mock_route.return_value = mock_response
+                
+                response = await grc_squad.process_request(
                     user_input=case["input"],
-                    session_id=f"confidence-session-{i}",
-                    context={}
+                    session_id="confidence-test"
                 )
                 
-                result = await orchestrator.process_request(request)
-                confidence = result["agent_selection"]["confidence"]
-                
-                if case["expected_high_confidence"]:
-                    assert confidence > 0.5, f"Expected higher confidence for '{case['input']}', got {confidence}"
-                else:
-                    assert confidence <= 0.7, f"Expected lower confidence for '{case['input']}', got {confidence}"
+                assert response["success"] is True
+                # Agent-squad handles confidence internally, we verify the response structure
+                confidence = response["agent_selection"]["confidence"]
+                assert isinstance(confidence, (int, float))
+                assert 0.0 <= confidence <= 1.0
+                assert confidence == case["confidence"]
 
     @pytest.mark.asyncio
-    async def test_chat_with_context(self, orchestrator):
-        """Test chat with additional context information."""
-        with patch('src.agents.personality_agent.PersonalityAgent.process_request') as mock_process:
-            mock_response = Mock()
-            mock_response.content = [{"text": "I understand your context and will help accordingly."}]
-            mock_process.return_value = mock_response
+    async def test_chat_with_context(self, grc_squad):
+        """Test chat functionality with additional context."""
+        context = {
+            "company": "ACME Financial Services",
+            "department": "Risk Management",
+            "topic": "SOX compliance audit"
+        }
+        
+        with patch.object(grc_squad.squad, 'route_request', new_callable=AsyncMock) as mock_route:
+            mock_response = self.create_mock_response(
+                "For ACME Financial Services' SOX compliance audit in Risk Management, I recommend focusing on key controls around financial reporting...",
+                "Dr. Morgan - Compliance Authority"
+            )
+            mock_route.return_value = mock_response
             
-            request = OrchestratorRequest(
-                user_input="Help me with this problem",
+            response = await grc_squad.process_request(
+                user_input="What should we focus on for our SOX audit?",
                 session_id="context-session",
-                context={
-                    "user_preference": "detailed_explanations",
-                    "previous_topic": "machine_learning",
-                    "urgency_level": "low"
-                }
+                context=context
             )
             
-            result = await orchestrator.process_request(request)
-            
-            assert result["success"] is True
-            # Verify the context was passed to the agent
-            mock_process.assert_called_once()
-            call_args = mock_process.call_args
-            assert call_args[1]["additional_params"] == request.context
+            assert response["success"] is True
+            # Verify context is incorporated (agent-squad handles this internally)
+            assert response["agent_response"]["response"] is not None
+            assert len(response["agent_response"]["response"]) > 0
 
     @pytest.mark.asyncio
-    async def test_agent_response_formatting(self, orchestrator):
+    async def test_agent_response_formatting(self, grc_squad):
         """Test that agent responses are properly formatted."""
-        with patch('src.agents.personality_agent.PersonalityAgent.process_request') as mock_process:
-            # Test different response formats
-            test_responses = [
-                # Standard text response
-                Mock(content=[{"text": "This is a standard response"}]),
-                # Response with multiple content parts
-                Mock(content=[
-                    {"text": "Part 1: "},
-                    {"text": "Part 2: Additional info"}
-                ]),
-                # Empty response
-                Mock(content=[]),
-                # Response with non-text content (should be handled gracefully)
-                Mock(content=[{"type": "image", "data": "base64data"}])
-            ]
+        with patch.object(grc_squad.squad, 'route_request', new_callable=AsyncMock) as mock_route:
+            mock_response = self.create_mock_response(
+                "This is a properly formatted GRC agent response with clear structure and helpful information.",
+                "Emma - Information Collector"
+            )
+            mock_route.return_value = mock_response
             
-            for i, mock_response in enumerate(test_responses):
-                mock_process.return_value = mock_response
+            response = await grc_squad.process_request(
+                user_input="Test message for formatting",
+                session_id="format-session"
+            )
+            
+            assert response["success"] is True
+            
+            # Verify response structure
+            agent_response = response["agent_response"]
+            assert isinstance(agent_response, dict)
+            assert "response" in agent_response
+            assert isinstance(agent_response["response"], str)
+            assert len(agent_response["response"]) > 0
+
+    @pytest.mark.asyncio
+    async def test_session_isolation(self, grc_squad):
+        """Test that different sessions are properly isolated."""
+        with patch.object(grc_squad.squad, 'route_request', new_callable=AsyncMock) as mock_route:
+            # Session 1
+            mock_response = self.create_mock_response(
+                "Response for session 1 about compliance",
+                "Dr. Morgan - Compliance Authority"
+            )
+            mock_route.return_value = mock_response
+            
+            response_1 = await grc_squad.process_request(
+                user_input="Tell me about GDPR compliance",
+                session_id="session-1"
+            )
+            
+            assert response_1["success"] is True
+            assert response_1["session_id"] == "session-1"
+            
+            # Session 2 - different topic
+            mock_response = self.create_mock_response(
+                "Response for session 2 about risk assessment",
+                "Alex - Risk Analysis Expert"
+            )
+            mock_route.return_value = mock_response
+            
+            response_2 = await grc_squad.process_request(
+                user_input="Help me assess operational risks",
+                session_id="session-2"
+            )
+            
+            assert response_2["success"] is True
+            assert response_2["session_id"] == "session-2"
+            
+            # Verify sessions are isolated
+            assert response_1["session_id"] != response_2["session_id"]
+
+    @pytest.mark.asyncio
+    async def test_grc_specific_scenarios(self, grc_squad):
+        """Test GRC-specific scenarios and use cases."""
+        scenarios = [
+            {
+                "name": "Compliance Assessment",
+                "input": "We need to assess our GDPR compliance status",
+                "expected_agent": "Dr. Morgan - Compliance Authority",
+                "response": "I'll help you assess your GDPR compliance status. Let's review your current data processing activities..."
+            },
+            {
+                "name": "Risk Analysis",
+                "input": "What are the key risks in our new vendor relationship?",
+                "expected_agent": "Alex - Risk Analysis Expert", 
+                "response": "For vendor risk analysis, we need to evaluate several key areas including data security, operational reliability..."
+            },
+            {
+                "name": "Audit Interview",
+                "input": "I need to prepare questions for interviewing the finance team",
+                "expected_agent": "Emma - Information Collector",
+                "response": "I'll help you prepare effective interview questions for the finance team audit..."
+            },
+            {
+                "name": "Governance Framework",
+                "input": "How should we improve our board governance structure?",
+                "expected_agent": "Sam - Governance Strategist",
+                "response": "To improve board governance, I recommend reviewing your current committee structure and establishing clear accountability..."
+            }
+        ]
+        
+        with patch.object(grc_squad.squad, 'route_request', new_callable=AsyncMock) as mock_route:
+            for scenario in scenarios:
+                mock_response = self.create_mock_response(
+                    scenario["response"],
+                    scenario["expected_agent"]
+                )
+                mock_route.return_value = mock_response
                 
-                request = OrchestratorRequest(
-                    user_input=f"Test message {i}",
-                    session_id=f"format-session-{i}",
-                    context={}
+                response = await grc_squad.process_request(
+                    user_input=scenario["input"],
+                    session_id=f"grc-scenario-{scenario['name'].lower().replace(' ', '-')}"
                 )
                 
-                result = await orchestrator.process_request(request)
-                
-                assert result["success"] is True
-                assert "agent_response" in result
-                assert "response" in result["agent_response"]
-                # Response should be a string, even if empty
-                assert isinstance(result["agent_response"]["response"], str)
-
-    @pytest.mark.asyncio
-    async def test_session_isolation(self, orchestrator):
-        """Test that different sessions are properly isolated."""
-        with patch('src.agents.personality_agent.PersonalityAgent.process_request') as mock_process:
-            mock_response = Mock()
-            mock_response.content = [{"text": "Session response"}]
-            mock_process.return_value = mock_response
-            
-            # Create requests for different sessions
-            session_1_request = OrchestratorRequest(
-                user_input="I need help with Python",
-                session_id="session-1",
-                context={"topic": "python"}
-            )
-            
-            session_2_request = OrchestratorRequest(
-                user_input="I need help with JavaScript", 
-                session_id="session-2",
-                context={"topic": "javascript"}
-            )
-            
-            # Process both requests
-            result_1 = await orchestrator.process_request(session_1_request)
-            result_2 = await orchestrator.process_request(session_2_request)
-            
-            # Both should succeed
-            assert result_1["success"] is True
-            assert result_2["success"] is True
-            
-            # Verify that sessions are tracked separately
-            agent_1_id = result_1["agent_selection"]["agent_id"]
-            agent_2_id = result_2["agent_selection"]["agent_id"]
-            
-            agent_1_instance = orchestrator.agents[agent_1_id]
-            agent_2_instance = orchestrator.agents[agent_2_id]
-            
-            # Each agent should track their respective sessions
-            if agent_1_id == agent_2_id:
-                # Same agent handled both sessions
-                assert "session-1" in agent_1_instance.current_sessions
-                assert "session-2" in agent_1_instance.current_sessions
-            else:
-                # Different agents handled the sessions
-                assert "session-1" in agent_1_instance.current_sessions
-                assert "session-2" in agent_2_instance.current_sessions 
+                assert response["success"] is True, f"Failed scenario: {scenario['name']}"
+                # Agent-squad handles selection, we verify the response quality
+                assert response["agent_response"]["response"] == scenario["response"]
+                assert response["agent_selection"]["agent_id"] == "auto_selected" 

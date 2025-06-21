@@ -203,11 +203,11 @@
         </div>
 
         <div class="card">
-            <h2>Chat with Super Agent</h2>
+            <h2>Chat with GRC Agent Squad</h2>
             <div id="chat-container">
                 <div id="chat-messages" class="chat-messages">
                     <div class="system-message">
-                        🤖 Welcome! I'm your Super Agent. I'll analyze your request and connect you with the most suitable agent from our squad.
+                        🤖 Welcome to the GRC Agent Squad! I'll connect you with the most suitable agent from our specialized team: Emma (Information Collector), Dr. Morgan (Compliance Authority), Alex (Risk Expert), or Sam (Governance Strategist).
                     </div>
                 </div>
                 <div class="chat-input-container">
@@ -270,6 +270,10 @@
                     
                     // Convert personality type to readable format
                     const personalityMap = {
+                        'empathetic_interviewer': 'Empathetic Interviewer',
+                        'authoritative_compliance': 'Compliance Authority',
+                        'analytical_risk_expert': 'Risk Analysis Expert',
+                        'strategic_governance': 'Governance Strategist',
                         'kind_helpful': 'Kind & Helpful',
                         'to_the_point': 'Direct & Efficient',
                         'professional': 'Professional',
@@ -325,7 +329,7 @@
             showTypingIndicator();
             
             try {
-                // Send message to super agent
+                // Send message to GRC agent squad
                 const response = await fetch('/api/agents/chat', {
                     method: 'POST',
                     headers: {
@@ -405,7 +409,7 @@
             const typingDiv = document.createElement('div');
             typingDiv.id = 'typing-indicator';
             typingDiv.className = 'typing-indicator';
-            typingDiv.innerHTML = '🤖 Super Agent is thinking...';
+            typingDiv.innerHTML = '🤖 GRC Agent Squad is analyzing your request...';
             typingDiv.style.display = 'block';
             messagesContainer.appendChild(typingDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;

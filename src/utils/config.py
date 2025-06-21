@@ -1,5 +1,5 @@
 """
-Configuration settings for the Voice Agent Swarm application.
+Configuration settings for the GRC Agent Squad application.
 
 This module handles all configuration through environment variables using Pydantic.
 All important parameters can be overwritten with environment variables and have sensible defaults.
@@ -17,20 +17,10 @@ class Settings(BaseSettings):
     
     # AWS Configuration - Critical for AWS services
     aws_profile: str = Field(default="acl-playground", description="AWS Profile to use")
-    aws_region: str = Field(default="us-west-2", description="AWS Region")
-    aws_access_key_id: Optional[str] = Field(default=None, description="AWS Access Key ID")
-    aws_secret_access_key: Optional[str] = Field(default=None, description="AWS Secret Access Key")
+    aws_region: str = Field(default="us-west-2", description="AWS region")
+    aws_access_key_id: Optional[str] = Field(default=None, description="AWS access key ID")
+    aws_secret_access_key: Optional[str] = Field(default=None, description="AWS secret access key")
     aws_session_token: Optional[str] = Field(default=None, description="AWS Session Token")
-    
-    # Bedrock Configuration - AI Models
-    bedrock_model_id: str = Field(
-        default="anthropic.claude-3-haiku-20240307-v1:0",
-        description="Default Bedrock model for agent responses"
-    )
-    bedrock_streaming_model_id: str = Field(
-        default="anthropic.claude-3-sonnet-20240229-v1:0",
-        description="Bedrock model for streaming responses"
-    )
     
     # Voice Services Configuration - Speech processing
     transcribe_language_code: str = Field(default="en-US", description="Language code for transcription")
@@ -42,9 +32,7 @@ class Settings(BaseSettings):
     lex_bot_alias_id: str = Field(default="TSTALIASID", description="Lex Bot Alias ID")
     lex_session_id: str = Field(default="test-session", description="Lex Session ID")
     
-    # Redis Configuration - Memory and state management
-    redis_url: str = Field(default="redis://localhost:6379", description="Redis connection URL")
-    redis_password: Optional[str] = Field(default=None, description="Redis password")
+    # Memory Configuration - Handled by Bedrock built-in memory
     
     # API Configuration - Web server settings
     api_port: int = Field(default=8000, description="API server port")

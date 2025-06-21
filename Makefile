@@ -1,4 +1,9 @@
-# Voice Agent Swarm Makefile
+# GRC Agent Squad Makefile
+# 
+# Credential Management:
+# - Application startup (local-start, local-api) uses programmatic credential extraction
+# - Infrastructure operations (CDK, Docker, AWS CLI) still use aws-vault for credential management
+#
 .PHONY: help install dev-install test lint format clean build deploy local-start docker-build docker-run cdk-deploy cdk-destroy
 
 # Variables
@@ -8,13 +13,13 @@ PIP := $(VENV)/bin/pip
 PYTHON_VENV := $(VENV)/bin/python
 AWS_PROFILE := acl-playground
 AWS_REGION := us-west-2
-APP_NAME := voice-agent-swarm
+APP_NAME := grc-agent-squad
 DOCKER_IMAGE := $(APP_NAME):latest
 
 # Default target
 help: ## Show this help message
-	@echo "Voice Agent Swarm - Make Commands"
-	@echo "================================="
+	@echo "GRC Agent Squad - Make Commands"
+	@echo "==============================="
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 # Environment setup
@@ -63,17 +68,17 @@ format: ## Format code
 	$(PYTHON_VENV) -m isort src/ tests/
 
 # Local development
-local-start: ## Start the application locally with aws-vault
-	@echo "Starting Voice Agent Swarm locally..."
-	aws-vault exec $(AWS_PROFILE) -- $(PYTHON_VENV) -m src.main
+local-start: ## Start the application locally (uses programmatic credential extraction)
+	@echo "Starting GRC Agent Squad locally..."
+	$(PYTHON_VENV) -m src.main
 
 local-dev: ## Start the application locally without AWS validation
-	@echo "Starting Voice Agent Swarm in local development mode..."
+	@echo "Starting GRC Agent Squad in local development mode..."
 	SKIP_AWS_VALIDATION=true $(PYTHON_VENV) -m src.main
 
-local-api: ## Start FastAPI server locally with aws-vault
+local-api: ## Start FastAPI server locally (uses programmatic credential extraction)
 	@echo "Starting FastAPI server locally..."
-	aws-vault exec $(AWS_PROFILE) -- $(PYTHON_VENV) -m uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
+	$(PYTHON_VENV) -m uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
 
 # Docker operations
 docker-build: ## Build Docker image
@@ -139,8 +144,9 @@ dev-setup: dev-install ## Complete development environment setup
 	$(PYTHON_VENV) -m pip install pre-commit
 	$(PYTHON_VENV) -m pre_commit install
 
-validate-aws: ## Validate AWS credentials and permissions
+validate-aws: ## Validate AWS credentials and permissions (for infrastructure operations)
 	@echo "Validating AWS credentials for profile: $(AWS_PROFILE)"
+	@echo "Note: Application uses programmatic credential extraction, but this validates CLI access"
 	aws-vault exec $(AWS_PROFILE) -- aws sts get-caller-identity
 	aws-vault exec $(AWS_PROFILE) -- aws bedrock list-foundation-models --region $(AWS_REGION) --query 'modelSummaries[0:3].[modelId,modelName]' --output table
 
@@ -149,4 +155,6 @@ deploy-full: test lint build push cdk-deploy ## Run full deployment pipeline
 
 # Quick start for new developers
 quick-start: dev-install validate-aws ## Quick start for new developers
-	@echo "Quick start complete! Run 'make local-start' to begin development." 
+	@echo "Quick start complete!"
+	@echo "• The application uses programmatic credential extraction (no aws-vault needed for app startup)"
+	@echo "• Run 'make local-start' or 'make local-api' to begin development" 

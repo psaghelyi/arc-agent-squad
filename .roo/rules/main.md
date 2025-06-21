@@ -29,7 +29,7 @@ This project implements an AI agent squad specifically designed for the **Govern
 - **Natural Language Understanding**: [Amazon Lex V2](mdc:https:/aws.amazon.com/lex) for dialog management
 - **Text-to-Speech**: [Amazon Polly Neural TTS](mdc:https:/docs.aws.amazon.com/polly/latest/dg/neural-voices.html) for natural voice output
 - **Real-time Audio**: WebRTC for browser-based voice interactions
-- **Memory Management**: Redis-based conversation memory with fallback support
+- **Memory Management**: Bedrock built-in conversation memory with automatic persistence
 
 ### Supporting Services
 - **Workflow Orchestration**: Amazon Step Functions (triggered by Bedrock Agents)
@@ -125,7 +125,7 @@ This project implements an AI agent squad specifically designed for the **Govern
 ### Infrastructure Requirements
 - **Container Orchestration**: ECS Fargate for scalable, serverless containers
 - **Networking**: VPC with private subnets for secure AWS service communication
-- **Storage**: Redis cluster for session/memory management
+- **Storage**: S3 for document storage, Bedrock handles conversation memory automatically
 - **Monitoring**: CloudWatch integration for logs, metrics, and alerting
 
 ## Voice Interview Capabilities

@@ -1,44 +1,43 @@
 """
-Health check endpoints for the Voice Agent Swarm API.
+Health check endpoints for the GRC Agent Squad API.
 """
 
-from fastapi import APIRouter
-from pydantic import BaseModel
+import asyncio
+import logging
+from datetime import datetime, timezone
 
+from fastapi import APIRouter, HTTPException
+
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-class HealthResponse(BaseModel):
-    """Health check response model."""
-    status: str
-    message: str
-    version: str = "0.1.0"
+@router.get("/")
+async def root():
+    """Root endpoint returning basic service information."""
+    return {
+        "service": "GRC Agent Squad",
+        "status": "running",
+        "message": "GRC Agent Squad is running",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
 
 
-@router.get("/", response_model=HealthResponse)
-async def health_check():
-    """Basic health check endpoint."""
-    return HealthResponse(
-        status="healthy",
-        message="Voice Agent Swarm is running"
-    )
-
-
-@router.get("/ready", response_model=HealthResponse)
+@router.get("/ready")
 async def readiness_check():
-    """Readiness check endpoint for Kubernetes/container orchestration."""
-    # Add more sophisticated checks here if needed
-    # e.g., database connectivity, external service availability
-    return HealthResponse(
-        status="ready",
-        message="Voice Agent Swarm is ready to serve requests"
-    )
+    """Readiness check endpoint."""
+    return {
+        "status": "ready",
+        "message": "GRC Agent Squad is ready to serve requests",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
 
 
-@router.get("/live", response_model=HealthResponse)
+@router.get("/live")
 async def liveness_check():
-    """Liveness check endpoint for Kubernetes/container orchestration."""
-    return HealthResponse(
-        status="alive",
-        message="Voice Agent Swarm is alive"
-    ) 
+    """Liveness check endpoint."""
+    return {
+        "status": "alive",
+        "message": "GRC Agent Squad is alive",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    } 

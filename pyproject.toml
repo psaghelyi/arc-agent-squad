@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "voice-agent-swarm"
+name = "grc-agent-squad"
 version = "0.1.0"
-description = "Voice-enabled AI agent swarm using AWS services and agent-squad framework"
+description = "GRC Agent Squad - AI agents specialized for Governance, Risk Management, and Compliance using AWS services and agent-squad framework"
 authors = [
     {name = "Your Name", email = "your.email@example.com"}
 ]
@@ -30,23 +30,11 @@ dependencies = [
     "aws-cdk-lib>=2.120.0",
     "constructs>=10.3.0",
     
-    # Audio processing and streaming
-    "pydub>=0.25.1",
-    "pyaudio>=0.2.11",
-    "websockets>=12.0",
-    "aiortc>=1.6.0",
-    
-    # Voice and transcription
-    "speech-recognition>=3.10.0",
-    
     # Web framework for API
     "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
     "python-multipart>=0.0.6",
     "jinja2>=3.1.0",
-    
-    # Memory and state management
-    "redis>=5.0.0",
     
     # Environment management
     "python-dotenv>=1.0.0",
@@ -55,14 +43,13 @@ dependencies = [
     "structlog>=23.0.0",
     "python-json-logger>=2.0.0",
     
-    # WebRTC and real-time communication
-    "aioice>=0.9.0",
-    "aiodns>=3.1.0",
-    
     # Additional utilities
     "pydantic>=2.5.0",
+    "pydantic-settings>=2.0.0",
     "httpx>=0.25.0",
-    "asyncio-mqtt>=0.16.0",
+    
+    # MCP (Model Context Protocol) client
+    "mcp>=1.0.0",
 ]
 
 [project.optional-dependencies]

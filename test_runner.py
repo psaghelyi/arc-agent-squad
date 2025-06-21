@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test runner for the Voice Agent Swarm project.
+Test runner for the GRC Agent Squad project.
 
 This script provides an easy way to run different test suites.
 """
@@ -9,6 +9,8 @@ import sys
 import subprocess
 import argparse
 from pathlib import Path
+from typing import Dict, List, Optional
+import os
 
 
 def run_command(command, description):
@@ -96,8 +98,8 @@ def run_quick_tests():
         "Health Check Tests"
     )
     success &= run_command(
-        "python -m pytest tests/unit/test_agent_orchestrator.py::TestAgentOrchestrator::test_create_agent -v --tb=short",
-        "Agent Creation Test"
+        "python -m pytest tests/unit/test_agent_orchestrator.py::TestGRCAgentSquad::test_list_agents -v --tb=short",
+        "GRC Agent Squad Test"
     )
     success &= run_command(
         "python -m pytest tests/integration/test_chat_integration.py::TestChatIntegration::test_simple_chat_flow -v --tb=short",
@@ -107,14 +109,11 @@ def run_quick_tests():
 
 
 def main():
-    """Main test runner function."""
-    parser = argparse.ArgumentParser(description="Voice Agent Swarm Test Runner")
+    """Main entry point for the test runner."""
+    parser = argparse.ArgumentParser(description="GRC Agent Squad Test Runner")
     parser.add_argument(
         "test_type",
-        choices=[
-            "unit", "integration", "all", "coverage", 
-            "orchestrator", "chat", "api", "quick"
-        ],
+        choices=["quick", "unit", "integration", "orchestrator", "chat", "api", "all", "coverage"],
         help="Type of tests to run"
     )
     parser.add_argument(
@@ -122,41 +121,39 @@ def main():
         action="store_true",
         help="Enable verbose output"
     )
+    parser.add_argument(
+        "--fail-fast", "-x",
+        action="store_true", 
+        help="Stop on first failure"
+    )
     
     args = parser.parse_args()
     
-    # Check if we're in the right directory
-    if not Path("src").exists() or not Path("tests").exists():
-        print("❌ Error: Please run this script from the project root directory")
-        sys.exit(1)
+    # Change to project root directory
+    project_root = Path(__file__).parent
+    os.chdir(project_root)
     
-    # Check if virtual environment is activated
-    if not hasattr(sys, 'real_prefix') and not (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
-        print("⚠️  Warning: Virtual environment may not be activated")
-        print("   Consider running: source venv/bin/activate")
-    
-    print("🚀 Voice Agent Swarm Test Runner")
-    print(f"Running: {args.test_type} tests")
+    print("🚀 GRC Agent Squad Test Runner")
     
     # Map test types to functions
     test_functions = {
+        "quick": run_quick_tests,
         "unit": run_unit_tests,
         "integration": run_integration_tests,
-        "all": run_all_tests,
-        "coverage": run_tests_with_coverage,
         "orchestrator": run_orchestrator_tests,
         "chat": run_chat_tests,
         "api": run_api_tests,
-        "quick": run_quick_tests
+        "all": run_all_tests,
+        "coverage": run_tests_with_coverage
     }
     
     success = test_functions[args.test_type]()
     
     if success:
-        print(f"\n🎉 All {args.test_type} tests completed successfully!")
+        print("\n🎉 All tests completed successfully!")
         sys.exit(0)
     else:
-        print(f"\n💥 Some {args.test_type} tests failed!")
+        print("\n❌ Some tests failed!")
         sys.exit(1)
 
 

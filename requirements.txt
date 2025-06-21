@@ -9,23 +9,11 @@ botocore>=1.35.0
 aws-cdk-lib>=2.120.0
 constructs>=10.3.0
 
-# Audio processing and streaming
-pydub>=0.25.1
-websockets>=12.0
-aiortc>=1.6.0
-# pyaudio>=0.2.11  # Optional: requires portaudio system library
-
-# Voice and transcription
-SpeechRecognition>=3.10.0
-
 # Web framework for API
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
 python-multipart>=0.0.6
 jinja2>=3.1.0
-
-# Memory and state management
-redis>=5.0.0
 
 # Environment management
 python-dotenv>=1.0.0
@@ -34,15 +22,10 @@ python-dotenv>=1.0.0
 structlog>=23.0.0
 python-json-logger>=2.0.0
 
-# WebRTC and real-time communication
-aioice>=0.9.0
-aiodns>=3.1.0
-
 # Additional utilities
 pydantic>=2.5.0
 pydantic-settings>=2.0.0
 httpx>=0.25.0
-asyncio-mqtt>=0.16.0
 
 # Development and testing
 pytest>=7.4.0

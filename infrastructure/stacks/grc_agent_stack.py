@@ -1,65 +1,66 @@
 """
-AWS CDK Stack for Voice Agent Swarm infrastructure.
+AWS CDK stack for GRC Agent Squad infrastructure.
 
-This stack creates all the necessary AWS resources for hosting
-a voice-enabled agent swarm including:
-- ECS Fargate for containerized agents
-- ALB for load balancing
-- ECR for container registry
-- Bedrock permissions
-- Transcribe and Polly services setup
-- CloudWatch logging
-- VPC with proper security groups
+This stack creates:
+- VPC with public and private subnets
+- ECS Fargate cluster and service
+- Application Load Balancer
+- ECR repository
+- CloudWatch log groups
+- Security groups and IAM roles
 """
 
-from typing import Dict
+from typing import Dict, Any
 
 import aws_cdk as cdk
-import aws_cdk.aws_ec2 as ec2
-import aws_cdk.aws_ecr as ecr
-import aws_cdk.aws_ecs as ecs
-import aws_cdk.aws_elasticloadbalancingv2 as elbv2
-import aws_cdk.aws_iam as iam
-import aws_cdk.aws_logs as logs
+from aws_cdk import (
+    Stack,
+    aws_ec2 as ec2,
+    aws_ecs as ecs,
+    aws_ecr as ecr,
+    aws_iam as iam,
+    aws_logs as logs,
+    aws_elasticloadbalancingv2 as elbv2,
+)
 from constructs import Construct
 
 
-class VoiceAgentStack(cdk.Stack):
-    """Main stack for Voice Agent Swarm infrastructure."""
-    
+class GRCAgentStack(Stack):
+    """CDK Stack for GRC Agent Squad infrastructure."""
+
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
-        
+
         # Create VPC
         self.vpc = self._create_vpc()
         
         # Create ECR repository
-        self.ecr_repository = self._create_ecr_repository()
+        self.repository = self._create_ecr_repository()
         
         # Create ECS cluster
-        self.ecs_cluster = self._create_ecs_cluster()
+        self.cluster = self._create_ecs_cluster()
         
         # Create IAM roles
         self.task_role, self.execution_role = self._create_iam_roles()
         
-        # Create ECS service
-        self.ecs_service = self._create_ecs_service()
+        # Create CloudWatch log group
+        self.log_group = self._create_log_group()
         
-        # Create load balancer
+        # Create security groups
+        self.security_group = self._create_security_groups()
+        
+        # Create ECS service and task definition
+        self.service = self._create_ecs_service()
+        
+        # Create Application Load Balancer
         self.load_balancer = self._create_load_balancer()
-        
-        # Create CloudWatch log groups
-        self._create_log_groups()
-        
-        # Output important values
-        self._create_outputs()
-    
+
     def _create_vpc(self) -> ec2.Vpc:
         """Create VPC with public and private subnets."""
-        vpc = ec2.Vpc(
-            self, "VoiceAgentVPC",
-            ip_addresses=ec2.IpAddresses.cidr("10.0.0.0/16"),
+        return ec2.Vpc(
+            self, "GRCAgentVPC",
             max_azs=2,
+            ip_addresses=ec2.IpAddresses.cidr("10.0.0.0/16"),
             subnet_configuration=[
                 ec2.SubnetConfiguration(
                     name="PublicSubnet",
@@ -67,7 +68,7 @@ class VoiceAgentStack(cdk.Stack):
                     cidr_mask=24
                 ),
                 ec2.SubnetConfiguration(
-                    name="PrivateSubnet",
+                    name="PrivateSubnet", 
                     subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS,
                     cidr_mask=24
                 )
@@ -75,55 +76,31 @@ class VoiceAgentStack(cdk.Stack):
             enable_dns_hostnames=True,
             enable_dns_support=True
         )
-        
-        # Add VPC endpoint for ECR
-        vpc.add_interface_endpoint(
-            "ECREndpoint",
-            service=ec2.InterfaceVpcEndpointAwsService.ECR
-        )
-        
-        # Add VPC endpoint for ECR Docker registry
-        vpc.add_interface_endpoint(
-            "ECRDockerEndpoint", 
-            service=ec2.InterfaceVpcEndpointAwsService.ECR_DOCKER
-        )
-        
-        # Add VPC endpoint for CloudWatch Logs
-        vpc.add_interface_endpoint(
-            "CloudWatchLogsEndpoint",
-            service=ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS
-        )
-        
-        return vpc
-    
+
     def _create_ecr_repository(self) -> ecr.Repository:
         """Create ECR repository for container images."""
-        repository = ecr.Repository(
-            self, "VoiceAgentRepository",
-            repository_name="voice-agent-swarm",
+        return ecr.Repository(
+            self, "GRCAgentRepository",
+            repository_name="grc-agent-squad",
+            image_scan_on_push=True,
             lifecycle_rules=[
                 ecr.LifecycleRule(
                     max_image_count=10,
                     rule_priority=1,
-                    description="Keep only 10 latest images"
+                    description="Keep only 10 most recent images"
                 )
-            ],
-            removal_policy=cdk.RemovalPolicy.DESTROY
+            ]
         )
-        
-        return repository
-    
+
     def _create_ecs_cluster(self) -> ecs.Cluster:
-        """Create ECS cluster for running containers."""
-        cluster = ecs.Cluster(
-            self, "VoiceAgentCluster",
-            cluster_name="voice-agent-swarm",
+        """Create ECS Fargate cluster."""
+        return ecs.Cluster(
+            self, "GRCAgentCluster",
             vpc=self.vpc,
-            container_insights=True
+            cluster_name="grc-agent-squad-cluster",
+            enable_fargate_capacity_providers=True
         )
-        
-        return cluster
-    
+
     def _create_iam_roles(self) -> tuple[iam.Role, iam.Role]:
         """Create IAM roles for ECS tasks."""
         
@@ -211,13 +188,13 @@ class VoiceAgentStack(cdk.Stack):
         )
         
         return task_role, execution_role
-    
+
     def _create_ecs_service(self) -> ecs.FargateService:
         """Create ECS Fargate service."""
         
         # Create task definition
         task_definition = ecs.FargateTaskDefinition(
-            self, "VoiceAgentTaskDefinition",
+            self, "GRCAgentTaskDefinition",
             memory_limit_mib=2048,
             cpu=1024,
             task_role=self.task_role,
@@ -226,17 +203,17 @@ class VoiceAgentStack(cdk.Stack):
         
         # Add container
         container = task_definition.add_container(
-            "VoiceAgentContainer",
+            "GRCAgentContainer",
             image=ecs.ContainerImage.from_ecr_repository(
-                self.ecr_repository, "latest"
+                self.repository, "latest"
             ),
             memory_limit_mib=2048,
             cpu=1024,
             logging=ecs.LogDrivers.aws_logs(
-                stream_prefix="voice-agent",
+                stream_prefix="grc-agent",
                 log_group=logs.LogGroup(
-                    self, "VoiceAgentLogGroup",
-                    log_group_name="/aws/ecs/voice-agent-swarm",
+                    self, "GRCAgentLogGroup",
+                    log_group_name="/aws/ecs/grc-agent-squad",
                     retention=logs.RetentionDays.ONE_WEEK,
                     removal_policy=cdk.RemovalPolicy.DESTROY
                 )
@@ -257,9 +234,9 @@ class VoiceAgentStack(cdk.Stack):
         
         # Create security group
         security_group = ec2.SecurityGroup(
-            self, "VoiceAgentSecurityGroup",
+            self, "GRCAgentSecurityGroup",
             vpc=self.vpc,
-            description="Security group for Voice Agent containers",
+            description="Security group for GRC Agent containers",
             allow_all_outbound=True
         )
         
@@ -271,8 +248,8 @@ class VoiceAgentStack(cdk.Stack):
         
         # Create ECS service
         service = ecs.FargateService(
-            self, "VoiceAgentService",
-            cluster=self.ecs_cluster,
+            self, "GRCAgentService",
+            cluster=self.cluster,
             task_definition=task_definition,
             desired_count=2,
             security_groups=[security_group],
@@ -283,21 +260,21 @@ class VoiceAgentStack(cdk.Stack):
         )
         
         return service
-    
+
     def _create_load_balancer(self) -> elbv2.ApplicationLoadBalancer:
         """Create Application Load Balancer."""
         
         # Create ALB
         alb = elbv2.ApplicationLoadBalancer(
-            self, "VoiceAgentALB",
+            self, "GRCAgentALB",
             vpc=self.vpc,
             internet_facing=True,
-            load_balancer_name="voice-agent-swarm-alb"
+            load_balancer_name="grc-agent-squad-alb"
         )
         
         # Create target group
         target_group = elbv2.ApplicationTargetGroup(
-            self, "VoiceAgentTargetGroup",
+            self, "GRCAgentTargetGroup",
             vpc=self.vpc,
             port=8000,
             protocol=elbv2.ApplicationProtocol.HTTP,
@@ -314,29 +291,29 @@ class VoiceAgentStack(cdk.Stack):
         
         # Add targets
         target_group.add_target(
-            self.ecs_service.load_balancer_target(
-                container_name="VoiceAgentContainer",
+            self.service.load_balancer_target(
+                container_name="GRCAgentContainer",
                 container_port=8000
             )
         )
         
         # Add listener
         alb.add_listener(
-            "VoiceAgentListener",
+            "GRCAgentListener",
             port=80,
             protocol=elbv2.ApplicationProtocol.HTTP,
             default_target_groups=[target_group]
         )
         
         return alb
-    
-    def _create_log_groups(self) -> None:
-        """Create CloudWatch log groups."""
+
+    def _create_log_group(self) -> logs.LogGroup:
+        """Create CloudWatch log group."""
         
         # API Gateway logs
         logs.LogGroup(
             self, "APILogGroup",
-            log_group_name="/aws/apigateway/voice-agent-swarm",
+            log_group_name="/aws/apigateway/grc-agent-squad",
             retention=logs.RetentionDays.ONE_WEEK,
             removal_policy=cdk.RemovalPolicy.DESTROY
         )
@@ -344,18 +321,42 @@ class VoiceAgentStack(cdk.Stack):
         # Application logs
         logs.LogGroup(
             self, "ApplicationLogGroup", 
-            log_group_name="/aws/application/voice-agent-swarm",
+            log_group_name="/aws/application/grc-agent-squad",
             retention=logs.RetentionDays.TWO_WEEKS,
             removal_policy=cdk.RemovalPolicy.DESTROY
         )
-    
+        
+        return logs.LogGroup(
+            self, "GRCAgentLogGroup",
+            log_group_name="/aws/ecs/grc-agent-squad",
+            retention=logs.RetentionDays.ONE_WEEK,
+            removal_policy=cdk.RemovalPolicy.DESTROY
+        )
+
+    def _create_security_groups(self) -> ec2.SecurityGroup:
+        """Create security groups for GRC Agent containers."""
+        security_group = ec2.SecurityGroup(
+            self, "GRCAgentSecurityGroup",
+            vpc=self.vpc,
+            description="Security group for GRC Agent containers",
+            allow_all_outbound=True
+        )
+        
+        security_group.add_ingress_rule(
+            peer=ec2.Peer.any_ipv4(),
+            connection=ec2.Port.tcp(8000),
+            description="HTTP traffic"
+        )
+        
+        return security_group
+
     def _create_outputs(self) -> None:
         """Create CloudFormation outputs."""
         
         cdk.CfnOutput(
             self, "ECRRepositoryURI",
-            value=self.ecr_repository.repository_uri,
-            description="ECR Repository URI for voice agent images"
+            value=self.repository.repository_uri,
+            description="ECR Repository URI for GRC Agent images"
         )
         
         cdk.CfnOutput(
@@ -366,6 +367,6 @@ class VoiceAgentStack(cdk.Stack):
         
         cdk.CfnOutput(
             self, "ECSClusterName",
-            value=self.ecs_cluster.cluster_name,
+            value=self.cluster.cluster_name,
             description="Name of the ECS cluster"
         ) 

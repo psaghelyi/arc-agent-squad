@@ -1,7 +1,7 @@
 """
-Unit tests for the Agent Orchestrator.
+Unit tests for the GRC Agent Squad.
 
-Tests agent manipulation, selection logic, and orchestration capabilities.
+Tests GRC agent functionality, selection logic, and orchestration capabilities.
 """
 
 import pytest
@@ -10,357 +10,279 @@ from datetime import datetime
 from unittest.mock import Mock, AsyncMock, patch
 from typing import List, Dict, Any
 
-from src.services.agent_orchestrator import AgentOrchestrator
-from src.services.memory_service import MemoryService
-from src.models.agent_models import (
-    AgentConfiguration,
-    AgentPersonality,
-    AgentCapability,
-    AgentStatus,
-    OrchestratorRequest,
-    PERSONALITY_PRESETS
-)
+from src.services.grc_agent_squad import GRCAgentSquad
+from src.tools.tool_registry import ToolRegistry
+from src.models.agent_models import AgentCapability
 
 
-class TestAgentOrchestrator:
-    """Test suite for AgentOrchestrator functionality."""
-
-    @pytest.fixture
-    async def memory_service(self):
-        """Create a mock memory service."""
-        memory_service = Mock(spec=MemoryService)
-        memory_service.connect = AsyncMock()
-        memory_service.get_conversation = AsyncMock(return_value=None)
-        memory_service.save_message = AsyncMock()
-        memory_service.get_agent_sessions = AsyncMock(return_value=[])
-        memory_service.get_memory_stats = AsyncMock(return_value={
-            "total_conversations": 0,
-            "total_messages": 0,
-            "active_sessions": 0
-        })
-        return memory_service
+class TestGRCAgentSquad:
+    """Test suite for GRCAgentSquad functionality."""
+    
+    def create_mock_response(self, response_text: str, agent_name: str = "GRC Agent Squad") -> Mock:
+        """Create a mock response that matches agent-squad response structure."""
+        mock_response = Mock()
+        mock_response.output = response_text
+        mock_response.streaming = False
+        mock_response.metadata = Mock()
+        mock_response.metadata.agent_name = agent_name
+        return mock_response
 
     @pytest.fixture
-    async def orchestrator(self, memory_service):
-        """Create an orchestrator instance."""
-        orchestrator = AgentOrchestrator(memory_service)
-        return orchestrator
+    async def tool_registry(self):
+        """Create a mock tool registry."""
+        registry = Mock(spec=ToolRegistry)
+        registry.get_tools = Mock(return_value=[])
+        registry.list_tools = Mock(return_value=[])
+        registry.tools = {}  # Add tools attribute for get_available_tools test
+        return registry
+
+    @pytest.fixture
+    async def grc_squad(self, tool_registry):
+        """Create a GRC Agent Squad instance."""
+        squad = GRCAgentSquad(tool_registry=tool_registry)
+        return squad
 
     @pytest.mark.asyncio
-    async def test_create_agent(self, orchestrator):
-        """Test creating a new agent."""
-        agent_id = await orchestrator.create_agent(
-            name="Test Agent",
-            description="A test agent",
-            personality_type=AgentPersonality.KIND_HELPFUL,
-            capabilities=[AgentCapability.TEXT_CHAT, AgentCapability.QUESTION_ANSWERING]
-        )
+    async def test_list_agents(self, grc_squad):
+        """Test listing all GRC agents."""
+        agents = await grc_squad.list_agents()
         
-        assert agent_id is not None
-        assert len(agent_id) > 0
+        assert isinstance(agents, list)
+        assert len(agents) == 4  # Should have 4 GRC agents
         
-        # Verify agent exists in the orchestrator
-        agents = await orchestrator.list_agents()
-        agent_names = [agent["name"] for agent in agents]
-        assert "Test Agent" in agent_names
+        # Verify all expected agents are present
+        agent_personalities = [agent["personality"] for agent in agents]
+        expected_personalities = [
+            "empathetic_interviewer",
+            "authoritative_compliance", 
+            "analytical_risk_expert",
+            "strategic_governance"
+        ]
+        
+        for personality in expected_personalities:
+            assert personality in agent_personalities
 
     @pytest.mark.asyncio
-    async def test_create_agent_with_custom_params(self, orchestrator):
-        """Test creating an agent with custom parameters."""
-        agent_id = await orchestrator.create_agent(
-            name="Custom Agent",
-            description="Custom test agent",
-            personality_type=AgentPersonality.PROFESSIONAL,
-            capabilities=[AgentCapability.TECHNICAL_SUPPORT],
-            memory_enabled=False,
-            voice_enabled=True,
-            max_concurrent_sessions=5
-        )
+    async def test_agent_names_and_descriptions(self, grc_squad):
+        """Test that agents have proper names and descriptions."""
+        agents = await grc_squad.list_agents()
         
-        agent_info = await orchestrator.get_agent_info(agent_id)
-        assert agent_info["name"] == "Custom Agent"
-        # Note: These fields might not be directly exposed in agent_info
-        # The test verifies the agent was created with custom parameters
+        # Check Emma - Information Collector
+        emma = next((a for a in agents if a["personality"] == "empathetic_interviewer"), None)
+        assert emma is not None
+        assert "Emma" in emma["name"]
+        assert "Information Collector" in emma["name"]
+        assert "empathetic" in emma["description"].lower() or "interview" in emma["description"].lower()
+
+        # Check Dr. Morgan - Compliance Authority
+        morgan = next((a for a in agents if a["personality"] == "authoritative_compliance"), None)
+        assert morgan is not None
+        assert "Morgan" in morgan["name"]
+        assert "Compliance Authority" in morgan["name"]
+        assert "compliance" in morgan["description"].lower() or "authority" in morgan["description"].lower()
+
+        # Check Alex - Risk Expert
+        alex = next((a for a in agents if a["personality"] == "analytical_risk_expert"), None)
+        assert alex is not None
+        assert "Alex" in alex["name"]
+        assert "Risk" in alex["name"]
+        assert "risk" in alex["description"].lower() or "analytical" in alex["description"].lower()
+
+        # Check Sam - Governance Strategist
+        sam = next((a for a in agents if a["personality"] == "strategic_governance"), None)
+        assert sam is not None
+        assert "Sam" in sam["name"]
+        assert "Governance" in sam["name"]
+        assert "governance" in sam["description"].lower() or "strategic" in sam["description"].lower()
 
     @pytest.mark.asyncio
-    async def test_delete_agent(self, orchestrator):
-        """Test deleting an agent."""
-        # Create an agent first
-        agent_id = await orchestrator.create_agent(
-            name="Agent to Delete",
-            description="This agent will be deleted",
-            personality_type=AgentPersonality.CASUAL_FRIENDLY,
-            capabilities=[AgentCapability.TEXT_CHAT]
-        )
+    async def test_get_agent_info(self, grc_squad):
+        """Test getting information about a specific agent."""
+        # Test with empathetic interviewer
+        agent_info = await grc_squad.get_agent_info("empathetic_interviewer")
         
-        # Verify it exists
-        agent_info = await orchestrator.get_agent_info(agent_id)
         assert agent_info is not None
-        
-        # Delete the agent
-        success = await orchestrator.delete_agent(agent_id)
-        assert success is True
-        
-        # Verify it's gone
-        agent_info = await orchestrator.get_agent_info(agent_id)
+        assert agent_info["id"] == "empathetic_interviewer"
+        assert "Emma" in agent_info["name"]
+        assert agent_info["personality"] == "empathetic_interviewer"
+        assert isinstance(agent_info["capabilities"], list)
+
+    @pytest.mark.asyncio
+    async def test_get_nonexistent_agent_info(self, grc_squad):
+        """Test getting info for a non-existent agent."""
+        agent_info = await grc_squad.get_agent_info("non-existent-agent")
         assert agent_info is None
 
     @pytest.mark.asyncio
-    async def test_delete_nonexistent_agent(self, orchestrator):
-        """Test deleting a non-existent agent."""
-        success = await orchestrator.delete_agent("non-existent-id")
-        assert success is False
-
-    @pytest.mark.asyncio
-    async def test_list_agents_empty(self, orchestrator):
-        """Test listing agents when none exist."""
-        agents = await orchestrator.list_agents()
-        assert isinstance(agents, list)
-        assert len(agents) == 0
-
-    @pytest.mark.asyncio
-    async def test_list_agents_with_data(self, orchestrator):
-        """Test listing agents with data."""
-        # Create multiple agents
-        agent_ids = []
-        for i in range(3):
-            agent_id = await orchestrator.create_agent(
-                name=f"Agent {i}",
-                description=f"Test agent {i}",
-                personality_type=AgentPersonality.KIND_HELPFUL,
-                capabilities=[AgentCapability.TEXT_CHAT]
-            )
-            agent_ids.append(agent_id)
-        
-        agents = await orchestrator.list_agents()
-        assert len(agents) == 3
-        
-        # Verify all agents are present
-        agent_names = [agent["name"] for agent in agents]
-        for i in range(3):
-            assert f"Agent {i}" in agent_names
-
-    @pytest.mark.asyncio
-    async def test_initialize_default_agents(self, orchestrator):
-        """Test initializing default agents."""
-        await orchestrator.initialize_default_agents()
-        
-        agents = await orchestrator.list_agents()
-        assert len(agents) == 4  # Should have 4 default agents
-        
-        # Verify specific agents exist
-        agent_names = [agent["name"] for agent in agents]
-        assert "Emma the Helper" in agent_names
-        assert "Alex the Direct" in agent_names
-        assert "Dr. Morgan" in agent_names
-        assert "Sam the Buddy" in agent_names
-
-    @pytest.mark.asyncio
-    async def test_agent_selection_empathetic_request(self, orchestrator):
-        """Test agent selection for empathetic requests."""
-        await orchestrator.initialize_default_agents()
-        
-        request = OrchestratorRequest(
-            user_input="I'm feeling sad and need help with something",
-            session_id="test-session",
-            context={}
-        )
-        
-        response = await orchestrator.select_agent(request)
-        
-        assert response.selected_agent_id is not None
-        assert response.agent_name == "Emma the Helper"  # Should select the kind_helpful agent
-        assert response.confidence_score > 0.5
-        assert "empathetic" in response.reasoning.lower() or "kind" in response.reasoning.lower()
-
-    @pytest.mark.asyncio
-    async def test_agent_selection_urgent_request(self, orchestrator):
-        """Test agent selection for urgent requests."""
-        await orchestrator.initialize_default_agents()
-        
-        request = OrchestratorRequest(
-            user_input="I need a quick answer ASAP!",
-            session_id="test-session",
-            context={}
-        )
-        
-        response = await orchestrator.select_agent(request)
-        
-        assert response.selected_agent_id is not None
-        assert response.agent_name == "Alex the Direct"  # Should select the to_the_point agent
-        assert response.confidence_score > 0.5
-        assert "direct" in response.reasoning.lower() or "urgent" in response.reasoning.lower()
-
-    @pytest.mark.asyncio
-    async def test_agent_selection_technical_request(self, orchestrator):
-        """Test agent selection for technical requests."""
-        await orchestrator.initialize_default_agents()
-        
-        request = OrchestratorRequest(
-            user_input="Can you help me debug this API error in my code?",
-            session_id="test-session",
-            context={}
-        )
-        
-        response = await orchestrator.select_agent(request)
-        
-        assert response.selected_agent_id is not None
-        # Note: Agent selection is based on scoring algorithm, so we verify it's a reasonable choice
-        assert response.agent_name in ["Dr. Morgan", "Emma the Helper"]  # Both could be reasonable for technical requests
-        assert response.confidence_score > 0.3  # Lower threshold since selection may vary
-        # The reasoning should mention the selected agent's personality
-        assert response.agent_name.lower() in response.reasoning.lower()
-
-    @pytest.mark.asyncio
-    async def test_agent_selection_creative_request(self, orchestrator):
-        """Test agent selection for creative requests."""
-        await orchestrator.initialize_default_agents()
-        
-        request = OrchestratorRequest(
-            user_input="Can you help me write a creative story?",
-            session_id="test-session",
-            context={}
-        )
-        
-        response = await orchestrator.select_agent(request)
-        
-        assert response.selected_agent_id is not None
-        assert response.agent_name == "Sam the Buddy"  # Should select the casual_friendly agent
-        assert response.confidence_score > 0.5
-        assert "creative" in response.reasoning.lower() or "friendly" in response.reasoning.lower()
-
-    @pytest.mark.asyncio
-    async def test_agent_selection_with_no_agents(self, orchestrator):
-        """Test agent selection when no agents are available."""
-        request = OrchestratorRequest(
-            user_input="Hello",
-            session_id="test-session",
-            context={}
-        )
-        
-        with pytest.raises(Exception, match="No.*agents available"):
-            await orchestrator.select_agent(request)
-
-    @pytest.mark.asyncio
-    async def test_process_request_success(self, orchestrator):
-        """Test successful request processing."""
-        await orchestrator.initialize_default_agents()
-        
-        # Mock the agent's process_request method
-        with patch('src.agents.personality_agent.PersonalityAgent.process_request') as mock_process:
-            mock_response = Mock()
-            mock_response.content = [{"text": "Hello! I'm happy to help you."}]
-            mock_process.return_value = mock_response
-            
-            request = OrchestratorRequest(
-                user_input="Hello, can you help me?",
-                session_id="test-session",
-                context={}
+    async def test_process_request_interview_scenario(self, grc_squad):
+        """Test processing a request that should go to the empathetic interviewer."""
+        with patch.object(grc_squad.squad, 'route_request', new_callable=AsyncMock) as mock_route:
+            mock_route.return_value = self.create_mock_response(
+                "I'd be happy to help you with your compliance interview. Let's start with some basic questions about your current processes.",
+                "Emma - Information Collector"
             )
             
-            result = await orchestrator.process_request(request)
-            
-            assert result["success"] is True
-            assert "agent_selection" in result
-            assert "agent_response" in result
-            assert result["agent_response"]["response"] == "Hello! I'm happy to help you."
-
-    @pytest.mark.asyncio
-    async def test_process_request_agent_error(self, orchestrator):
-        """Test request processing when agent fails."""
-        await orchestrator.initialize_default_agents()
-        
-        # Mock the agent's process_request method to raise an exception
-        with patch('src.agents.personality_agent.PersonalityAgent.process_request') as mock_process:
-            mock_process.side_effect = Exception("Agent processing failed")
-            
-            request = OrchestratorRequest(
-                user_input="Hello",
-                session_id="test-session",
-                context={}
+            response = await grc_squad.process_request(
+                user_input="I need help preparing for a compliance audit interview",
+                session_id="test-session"
             )
             
-            result = await orchestrator.process_request(request)
+            assert response["success"] is True
+            assert "agent_response" in response
+            assert "agent_selection" in response
+            assert response["session_id"] == "test-session"
             
-            assert result["success"] is False
-            assert "error" in result
-            assert "Agent processing failed" in result["error"]
+            # Verify the route_request was called with correct parameters
+            mock_route.assert_called_once()
+            call_args = mock_route.call_args[1]
+            assert call_args["user_input"] == "I need help preparing for a compliance audit interview"
+            assert call_args["session_id"] == "test-session"
 
     @pytest.mark.asyncio
-    async def test_get_orchestrator_stats(self, orchestrator):
-        """Test getting orchestrator statistics."""
-        await orchestrator.initialize_default_agents()
+    async def test_process_request_compliance_scenario(self, grc_squad):
+        """Test processing a request that should go to the compliance authority."""
+        with patch.object(grc_squad.squad, 'route_request', new_callable=AsyncMock) as mock_route:
+            mock_route.return_value = self.create_mock_response(
+                "According to GDPR Article 32, you must implement appropriate technical and organizational measures...",
+                "Dr. Morgan - Compliance Authority"
+            )
+            
+            response = await grc_squad.process_request(
+                user_input="What are the GDPR requirements for data security?",
+                session_id="test-session"
+            )
+            
+            assert response["success"] is True
+            assert "GDPR" in response["agent_response"]["response"]
+
+    @pytest.mark.asyncio
+    async def test_process_request_risk_scenario(self, grc_squad):
+        """Test processing a request that should go to the risk expert."""
+        with patch.object(grc_squad.squad, 'route_request', new_callable=AsyncMock) as mock_route:
+            mock_route.return_value = self.create_mock_response(
+                "Let me analyze the risk factors in your scenario. First, we need to assess the likelihood and impact...",
+                "Alex - Risk Analysis Expert"
+            )
+            
+            response = await grc_squad.process_request(
+                user_input="Can you help me assess the risks of implementing a new payment system?",
+                session_id="test-session"
+            )
+            
+            assert response["success"] is True
+            assert "risk" in response["agent_response"]["response"].lower()
+
+    @pytest.mark.asyncio
+    async def test_process_request_governance_scenario(self, grc_squad):
+        """Test processing a request that should go to the governance strategist."""
+        with patch.object(grc_squad.squad, 'route_request', new_callable=AsyncMock) as mock_route:
+            mock_route.return_value = self.create_mock_response(
+                "For effective board governance, I recommend establishing clear committee structures...",
+                "Sam - Governance Strategist"
+            )
+            
+            response = await grc_squad.process_request(
+                user_input="How should we structure our board committees for better governance?",
+                session_id="test-session"
+            )
+            
+            assert response["success"] is True
+            assert "governance" in response["agent_response"]["response"].lower()
+
+    @pytest.mark.asyncio
+    async def test_get_squad_stats(self, grc_squad):
+        """Test getting squad statistics."""
+        stats = await grc_squad.get_squad_stats()
         
-        stats = await orchestrator.get_orchestrator_stats()
-        
+        assert isinstance(stats, dict)
         assert "total_agents" in stats
-        assert "active_agents" in stats
-        assert "total_conversations" in stats
-        assert "memory_stats" in stats
-        assert "selection_weights" in stats
-        
         assert stats["total_agents"] == 4
-        assert stats["active_agents"] == 4
-        assert stats["total_conversations"] == 0
+        assert "agent_types" in stats
+        assert len(stats["agent_types"]) == 4
 
     @pytest.mark.asyncio
-    async def test_agent_session_tracking(self, orchestrator):
-        """Test that agent sessions are properly tracked."""
-        await orchestrator.initialize_default_agents()
+    async def test_get_available_tools(self, grc_squad):
+        """Test getting available tools."""
+        tools = grc_squad.get_available_tools()
         
-        with patch('src.agents.personality_agent.PersonalityAgent.process_request') as mock_process:
-            mock_response = Mock()
-            mock_response.content = [{"text": "Response"}]
-            mock_process.return_value = mock_response
-            
-            request = OrchestratorRequest(
-                user_input="Hello",
-                session_id="test-session-123",
-                context={}
-            )
-            
-            # Process the request
-            result = await orchestrator.process_request(request)
-            
-            # Check that the session is tracked
-            agent_id = result["agent_selection"]["agent_id"]
-            agent_instance = orchestrator.agents[agent_id]
-            
-            assert "test-session-123" in agent_instance.current_sessions
-            assert agent_instance.total_conversations == 1
-            assert agent_instance.last_interaction is not None
+        assert isinstance(tools, list)
+        # Tools list might be empty in test environment, but should be a list
 
     @pytest.mark.asyncio
-    async def test_agent_configuration_validation(self, orchestrator):
-        """Test that agent configurations are properly validated."""
-        # Test with invalid personality type
-        with pytest.raises(Exception):
-            await orchestrator.create_agent(
-                name="Invalid Agent",
-                description="Invalid",
-                personality_type="invalid_personality",  # Invalid type
-                capabilities=[AgentCapability.TEXT_CHAT]
+    async def test_process_request_error_handling(self, grc_squad):
+        """Test error handling in request processing."""
+        with patch.object(grc_squad.squad, 'route_request', new_callable=AsyncMock) as mock_route:
+            mock_route.side_effect = Exception("Test error")
+            
+            response = await grc_squad.process_request(
+                user_input="Test message",
+                session_id="test-session"
             )
+            
+            assert response["success"] is False
+            assert "error" in response
 
     @pytest.mark.asyncio
-    async def test_concurrent_agent_operations(self, orchestrator):
-        """Test concurrent agent operations."""
-        # Create multiple agents concurrently
-        tasks = []
-        for i in range(5):
-            task = orchestrator.create_agent(
-                name=f"Concurrent Agent {i}",
-                description=f"Agent {i}",
-                personality_type=AgentPersonality.KIND_HELPFUL,
-                capabilities=[AgentCapability.TEXT_CHAT]
+    async def test_agent_capabilities(self, grc_squad):
+        """Test that agents have appropriate capabilities."""
+        agents = await grc_squad.list_agents()
+        
+        for agent in agents:
+            assert "capabilities" in agent
+            assert isinstance(agent["capabilities"], list)
+            assert len(agent["capabilities"]) > 0
+            
+            # All GRC agents should have these basic capabilities
+            capabilities = agent["capabilities"]
+            assert "question_answering" in capabilities
+
+    @pytest.mark.asyncio
+    async def test_session_id_handling(self, grc_squad):
+        """Test session ID handling in requests."""
+        with patch.object(grc_squad.squad, 'route_request', new_callable=AsyncMock) as mock_route:
+            mock_route.return_value = self.create_mock_response(
+                "Test response",
+                "Emma - Information Collector"
             )
-            tasks.append(task)
-        
-        agent_ids = await asyncio.gather(*tasks)
-        
-        # Verify all agents were created
-        assert len(agent_ids) == 5
-        assert all(agent_id is not None for agent_id in agent_ids)
-        
-        agents = await orchestrator.list_agents()
-        assert len(agents) == 5 
+            
+            # Test with explicit session ID
+            response1 = await grc_squad.process_request(
+                user_input="Test message",
+                session_id="custom-session-123"
+            )
+            
+            assert response1["session_id"] == "custom-session-123"
+            
+            # Test with default session ID
+            response2 = await grc_squad.process_request(
+                user_input="Test message"
+            )
+            
+            assert "session_id" in response2
+            assert response2["session_id"] == "default"
+
+    @pytest.mark.asyncio
+    async def test_context_handling(self, grc_squad):
+        """Test context handling in requests."""
+        with patch.object(grc_squad.squad, 'route_request', new_callable=AsyncMock) as mock_route:
+            mock_route.return_value = self.create_mock_response(
+                "Test response with context",
+                "Emma - Information Collector"
+            )
+            
+            test_context = {"company": "ACME Corp", "industry": "Financial Services"}
+            
+            response = await grc_squad.process_request(
+                user_input="Test message",
+                session_id="test-session",
+                context=test_context
+            )
+            
+            assert response["success"] is True
+            
+            # Verify route_request was called with user_input and session_id
+            # Note: Our current implementation doesn't pass context to agent-squad
+            mock_route.assert_called_once()
+            call_args = mock_route.call_args[1]
+            assert call_args["user_input"] == "Test message"
+            assert call_args["session_id"] == "test-session" 

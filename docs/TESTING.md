@@ -1,6 +1,6 @@
-# Voice Agent Swarm - Testing Guide
+# GRC Agent Squad - Testing Guide
 
-This document provides comprehensive information about testing the Voice Agent Swarm project.
+This document provides comprehensive information about testing the GRC Agent Squad project.
 
 ## Test Structure
 
@@ -142,7 +142,6 @@ pytest tests/unit/test_agent_orchestrator.py::TestAgentOrchestrator::test_create
 
 ### Mock Strategy
 - **Agent Responses:** LLM responses are mocked to ensure consistent test results
-- **Memory Service:** Redis operations are mocked for unit tests, graceful fallback for integration
 - **AWS Services:** Not yet implemented, will be mocked when added
 
 ### Test Data
@@ -231,7 +230,7 @@ The test suite is designed to:
 
 ### Test Improvements
 - **Better Agent Selection Tuning:** More precise scoring algorithm tests
-- **Memory Persistence Tests:** Redis integration testing
+- **Memory Persistence Tests:** Bedrock built-in memory integration testing
 - **AWS Service Integration:** Real AWS service testing (with mocking for CI)
 
 ## Troubleshooting Tests
@@ -244,9 +243,9 @@ The test suite is designed to:
    - Check confidence scores and reasoning for debugging
 
 2. **Memory Service Tests**
-   - Tests gracefully handle Redis unavailability
-   - In-memory fallback mode is used for testing
-   - No Redis dependency required for test execution
+   - Tests gracefully handle Bedrock memory unavailability
+   - AWS service mocking ensures reliable test execution
+   - No external dependencies required for test execution
 
 3. **Async Test Issues**
    - All async tests use proper pytest-asyncio fixtures
@@ -267,7 +266,7 @@ pytest tests/unit/test_agent_orchestrator.py::TestAgentOrchestrator::test_create
 ### Adding New Tests
 1. Follow the existing test structure and naming conventions
 2. Use appropriate fixtures for setup and teardown
-3. Mock external dependencies (AWS services, Redis, etc.)
+3. Mock external dependencies (AWS services, Bedrock memory, etc.)
 4. Include both positive and negative test cases
 5. Add comprehensive docstrings explaining test purpose
 

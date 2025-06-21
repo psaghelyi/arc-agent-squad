@@ -327,9 +327,6 @@ docs/build/
 *.prof
 *.pstats
 
-# Redis dump
-dump.rdb
-
 # SQLite databases
 *.sqlite
 *.sqlite3

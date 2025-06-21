@@ -1,172 +1,144 @@
 """
-Voice processing endpoints for the Voice Agent Swarm API.
+Voice processing endpoints for the GRC Agent Squad API.
 """
 
-from typing import Dict, List, Optional
+import asyncio
+import logging
+from typing import Dict, Any, Optional
 
-import structlog
-from fastapi import APIRouter, File, HTTPException, UploadFile
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 
+from src.services.grc_agent_squad import GRCAgentSquad
+from src.utils.config import settings
+
+logger = logging.getLogger(__name__)
 router = APIRouter()
-logger = structlog.get_logger(__name__)
+
+# Initialize configuration
+config = settings
+
+# Global GRC Agent Squad instance
+grc_squad: Optional[GRCAgentSquad] = None
 
 
-class VoiceProcessingRequest(BaseModel):
+async def get_grc_squad() -> GRCAgentSquad:
+    """Get or create GRC Agent Squad instance."""
+    global grc_squad
+    if grc_squad is None:
+        grc_squad = GRCAgentSquad(config)
+    return grc_squad
+
+
+class VoiceRequest(BaseModel):
     """Voice processing request model."""
     session_id: str
-    language_code: Optional[str] = "en-US"
-    voice_id: Optional[str] = "Joanna"
-    streaming: bool = True
+    text: Optional[str] = None
+    audio_format: str = "wav"
+    language: str = "en-US"
 
 
-class VoiceProcessingResponse(BaseModel):
+class VoiceResponse(BaseModel):
     """Voice processing response model."""
     session_id: str
-    transcript: str
-    response_text: str
-    audio_url: Optional[str] = None
-    processing_time_ms: int
-
-
-class TranscriptionResponse(BaseModel):
-    """Transcription response model."""
-    transcript: str
-    confidence: float
-    language_code: str
-    processing_time_ms: int
-
-
-class TTSRequest(BaseModel):
-    """Text-to-speech request model."""
     text: str
-    voice_id: Optional[str] = "Joanna"
-    language_code: Optional[str] = "en-US"
-    format: Optional[str] = "mp3"
+    audio_url: Optional[str] = None
+    agent_id: str
+    processing_time: float
 
 
-@router.post("/transcribe", response_model=TranscriptionResponse)
-async def transcribe_audio(
-    audio: UploadFile = File(...),
-    language_code: str = "en-US"
-):
-    """Transcribe audio to text using Amazon Transcribe."""
+@router.post("/process", response_model=VoiceResponse)
+async def process_voice(request: VoiceRequest) -> VoiceResponse:
+    """
+    Process voice input (text or audio) and return agent response.
+    
+    This endpoint handles both text and audio input, processes it through
+    the appropriate GRC agent, and returns a text response with optional
+    audio output.
+    """
     try:
-        # Read audio file
+        squad = await get_grc_squad()
+        
+        # For now, process as text input
+        if not request.text:
+            raise HTTPException(
+                status_code=400,
+                detail="Text input is required for voice processing"
+            )
+        
+        # Process through GRC Agent Squad
+        start_time = asyncio.get_event_loop().time()
+        response = await squad.route_request(request.text, request.session_id)
+        processing_time = asyncio.get_event_loop().time() - start_time
+        
+        return VoiceResponse(
+            session_id=request.session_id,
+            text=response.output,
+            agent_id=response.agent_id or "auto_selected",
+            processing_time=processing_time
+        )
+        
+    except Exception as e:
+        logger.error(f"Voice processing error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/upload-audio")
+async def upload_audio(
+    session_id: str = Form(...),
+    audio: UploadFile = File(...),
+    language: str = Form("en-US")
+) -> Dict[str, Any]:
+    """
+    Upload audio file for voice processing.
+    
+    This endpoint accepts audio files, transcribes them, and processes
+    the transcription through the GRC Agent Squad.
+    """
+    try:
+        # Validate audio file
+        if not audio.content_type or not audio.content_type.startswith("audio/"):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid audio file format"
+            )
+        
+        # Read audio content
         audio_content = await audio.read()
         
-        # Mock transcription - replace with actual Amazon Transcribe integration
-        mock_transcript = "Hello, this is a transcribed message from the audio file."
+        # TODO: Implement actual audio transcription using Amazon Transcribe
+        # For now, return a mock response
+        return {
+            "session_id": session_id,
+            "status": "uploaded",
+            "message": "Audio uploaded successfully. Transcription coming soon!",
+            "file_size": len(audio_content),
+            "content_type": audio.content_type
+        }
         
-        logger.info("Audio transcribed", 
-                   filename=audio.filename, 
-                   size=len(audio_content),
-                   language=language_code)
-        
-        return TranscriptionResponse(
-            transcript=mock_transcript,
-            confidence=0.95,
-            language_code=language_code,
-            processing_time_ms=250
-        )
-    
     except Exception as e:
-        logger.error("Transcription failed", error=str(e))
-        raise HTTPException(status_code=500, detail="Transcription failed")
+        logger.error(f"Audio upload error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/synthesize")
-async def synthesize_speech(request: TTSRequest):
-    """Convert text to speech using Amazon Polly."""
+@router.get("/test")
+async def test_voice_endpoint() -> Dict[str, Any]:
+    """Test endpoint for voice functionality."""
     try:
-        # Mock TTS - replace with actual Amazon Polly integration
-        logger.info("Synthesizing speech", 
-                   text_length=len(request.text),
-                   voice_id=request.voice_id,
-                   language=request.language_code)
+        squad = await get_grc_squad()
         
-        # In a real implementation, this would return audio content
-        return JSONResponse({
-            "message": "Speech synthesis completed",
-            "audio_url": f"/audio/synthesis/{hash(request.text)}.{request.format}",
-            "duration_ms": len(request.text) * 50  # Rough estimate
-        })
-    
+        # Test message
+        test_message = "Hello, I need help with compliance requirements."
+        response = await squad.route_request(test_message, "test_session")
+        
+        return {
+            "status": "success",
+            "test_input": test_message,
+            "agent_response": response.output,
+            "agent_id": response.agent_id,
+            "message": "I'm here to help! What would you like to know about our GRC Agent Squad?"
+        }
+        
     except Exception as e:
-        logger.error("Speech synthesis failed", error=str(e))
-        raise HTTPException(status_code=500, detail="Speech synthesis failed")
-
-
-@router.post("/process", response_model=VoiceProcessingResponse)
-async def process_voice_interaction(
-    audio: UploadFile = File(...),
-    session_id: str = "default",
-    language_code: str = "en-US",
-    voice_id: str = "Joanna"
-):
-    """Complete voice processing pipeline: transcribe -> process -> synthesize."""
-    try:
-        # Step 1: Transcribe audio
-        audio_content = await audio.read()
-        transcript = "Hello, how can I help you today?"  # Mock transcription
-        
-        # Step 2: Process with agent swarm (mock response)
-        response_text = "I'm here to help! What would you like to know about our voice agent swarm?"
-        
-        # Step 3: Generate speech (mock URL)
-        audio_url = f"/audio/response/{session_id}/{hash(response_text)}.mp3"
-        
-        logger.info("Voice interaction processed",
-                   session_id=session_id,
-                   transcript=transcript,
-                   response_length=len(response_text))
-        
-        return VoiceProcessingResponse(
-            session_id=session_id,
-            transcript=transcript,
-            response_text=response_text,
-            audio_url=audio_url,
-            processing_time_ms=500
-        )
-    
-    except Exception as e:
-        logger.error("Voice processing failed", error=str(e))
-        raise HTTPException(status_code=500, detail="Voice processing failed")
-
-
-@router.get("/webrtc/config")
-async def get_webrtc_config():
-    """Get WebRTC configuration for voice communication."""
-    return {
-        "ice_servers": [
-            {"urls": "stun:stun.l.google.com:19302"},
-            {"urls": "stun:stun1.l.google.com:19302"}
-        ],
-        "audio_constraints": {
-            "echoCancellation": True,
-            "noiseSuppression": True,
-            "autoGainControl": True
-        },
-        "supported_codecs": ["opus", "pcm"]
-    }
-
-
-@router.get("/sessions/{session_id}/status")
-async def get_session_status(session_id: str):
-    """Get the status of a voice session."""
-    # Mock session status
-    return {
-        "session_id": session_id,
-        "status": "active",
-        "duration_seconds": 120,
-        "messages_exchanged": 5,
-        "last_activity": "2025-01-10T09:30:00Z"
-    }
-
-
-@router.delete("/sessions/{session_id}")
-async def end_session(session_id: str):
-    """End a voice session and cleanup resources."""
-    logger.info("Ending voice session", session_id=session_id)
-    return {"message": f"Session {session_id} ended successfully"} 
+        logger.error(f"Voice test error: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) 

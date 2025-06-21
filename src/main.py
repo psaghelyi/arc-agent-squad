@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Voice Agent Swarm - Main Application Entry Point
+GRC Agent Squad - Main Application Entry Point
 
-This is the main entry point for the voice-enabled AI agent swarm application.
-It initializes the application, sets up logging, and starts the appropriate services.
+This is the main entry point for the GRC Agent Squad application specialized
+for Governance, Risk Management, and Compliance using AWS services and the agent-squad framework.
 """
 
 import asyncio
@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 # Add the src directory to the Python path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from src.api.main import create_app
+from src.api.main import app
 from src.services.aws_config import AWSConfig
 from src.services.logger import setup_logging
 from src.utils.config import settings
@@ -57,8 +57,8 @@ def main() -> None:
         else:
             logger.info("Skipping AWS validation for local development")
         
-        # Create and configure the application
-        app = create_app()
+        # Use the configured application
+        # app is already imported and configured
         
         # Start the application based on mode
         if settings.development_mode:

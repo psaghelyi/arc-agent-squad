@@ -2,7 +2,7 @@
 Data models for agent management and configuration.
 """
 
-from datetime import datetime
+from datetime import datetime, UTC
 from enum import Enum
 from typing import Dict, List, Optional, Any
 from uuid import UUID, uuid4
@@ -50,7 +50,7 @@ class ChatMessage(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     role: str  # "user", "assistant", "system"
     content: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -59,8 +59,8 @@ class ConversationHistory(BaseModel):
     session_id: str
     agent_id: str
     messages: List[ChatMessage] = Field(default_factory=list)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     metadata: Dict[str, Any] = Field(default_factory=dict)
     
     def add_message(self, role: str, content: str, metadata: Dict[str, Any] = None) -> ChatMessage:
@@ -71,7 +71,7 @@ class ConversationHistory(BaseModel):
             metadata=metadata or {}
         )
         self.messages.append(message)
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(UTC)
         return message
     
     def get_recent_messages(self, limit: int = 10) -> List[ChatMessage]:
@@ -123,8 +123,8 @@ class AgentConfiguration(BaseModel):
     
     # Status and metadata
     is_active: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     created_by: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
