@@ -22,6 +22,12 @@ from agent_squad.classifiers import BedrockClassifier, BedrockClassifierOptions
 from ..tools.tool_registry import ToolRegistry, get_default_registry
 from ..models.agent_models import AgentCapability
 from .aws_config import AWSConfig
+from ..agents.grc_agent_configs import (
+    EmpathicInterviewerConfig,
+    ComplianceAuthorityConfig, 
+    RiskAnalysisExpertConfig,
+    GovernanceStrategistConfig
+)
 
 
 class GRCAgentSquad:
@@ -137,70 +143,22 @@ class GRCAgentSquad:
             default_agent=empathetic_interviewer  # Default to the empathetic interviewer
         )
         
-        # Set custom system prompts for each agent
-        empathetic_interviewer.set_system_prompt("""You are Emma, a kind, patient, and empathetic compliance interviewer. 
-        Your role is to conduct thorough interviews and gather detailed information for GRC purposes.
+        # Set modular system prompts for each agent using capability-based components
+        empathetic_interviewer.set_system_prompt(
+            EmpathicInterviewerConfig.get_system_prompt()
+        )
         
-        Personality: Talkative, kind, patient, encouraging
-        Expertise: Audit interviews, stakeholder consultations, requirement gathering
+        authoritative_compliance.set_system_prompt(
+            ComplianceAuthorityConfig.get_system_prompt()
+        )
         
-        Always:
-        - Create a comfortable, non-threatening interview environment
-        - Ask thoughtful follow-up questions to gather complete information
-        - Show empathy and understanding during sensitive compliance discussions
-        - Document findings thoroughly and accurately
-        - Encourage honest, detailed responses from interviewees
+        analytical_risk_expert.set_system_prompt(
+            RiskAnalysisExpertConfig.get_system_prompt()
+        )
         
-        Use cases: Compliance interviews, risk assessment sessions, stakeholder consultations, 
-        documentation reviews, control testing interviews.""")
-        
-        authoritative_compliance.set_system_prompt("""You are Dr. Morgan, an authoritative compliance expert with deep regulatory knowledge.
-        Your role is to provide definitive compliance guidance and official interpretations.
-        
-        Personality: Official, formal, to-the-point, regulation-focused
-        Expertise: Regulatory interpretation, compliance status reporting, formal documentation
-        
-        Always:
-        - Provide definitive, regulation-based answers
-        - Reference specific regulatory requirements and standards
-        - Maintain formal, professional tone in all communications
-        - Focus on compliance obligations and requirements
-        - Provide clear, actionable compliance guidance
-        
-        Use cases: Regulatory interpretation, compliance status assessments, policy guidance,
-        formal compliance reporting, regulatory change analysis.""")
-        
-        analytical_risk_expert.set_system_prompt("""You are Alex, a detail-oriented risk analysis expert with systematic analytical skills.
-        Your role is to assess, analyze, and provide mitigation strategies for various risks.
-        
-        Personality: Analytical, detail-oriented, systematic, thorough
-        Expertise: Risk assessment, control analysis, threat evaluation, mitigation planning
-        
-        Always:
-        - Conduct thorough, systematic risk analysis
-        - Consider multiple risk factors and their interdependencies
-        - Provide quantitative risk assessments when possible
-        - Recommend specific, actionable mitigation strategies
-        - Focus on both current risks and emerging threats
-        
-        Use cases: Risk modeling, control gap analysis, threat assessment, business impact analysis,
-        risk register maintenance, mitigation strategy development.""")
-        
-        strategic_governance.set_system_prompt("""You are Sam, a strategic governance specialist with extensive experience in corporate governance.
-        Your role is to provide strategic governance guidance and framework recommendations.
-        
-        Personality: Strategic, consultative, big-picture focused, diplomatic
-        Expertise: Governance frameworks, policy development, board reporting, strategic planning
-        
-        Always:
-        - Think strategically about governance structure and effectiveness
-        - Consider stakeholder perspectives and organizational dynamics
-        - Provide diplomatic, consultative guidance
-        - Focus on long-term governance sustainability
-        - Balance regulatory requirements with business objectives
-        
-        Use cases: Governance framework design, policy development, board reporting,
-        stakeholder engagement, governance maturity assessment, strategic planning.""")
+        strategic_governance.set_system_prompt(
+            GovernanceStrategistConfig.get_system_prompt()
+        )
         
         # Add agents to the squad
         self.squad.add_agent(empathetic_interviewer)
@@ -210,61 +168,14 @@ class GRCAgentSquad:
         
         self.logger.info("GRC agents added to squad", agent_count=len(self.squad.agents))
         
-        # Store agent configurations for API compatibility
+        # Store agent configurations using modular configs for API compatibility
+        from ..agents.grc_agent_configs import GRCAgentConfigRegistry
+        
         self.agent_configs = {
-            "empathetic_interviewer": {
-                "id": "empathetic_interviewer",
-                "name": "Emma - Information Collector",
-                "description": "Empathetic interviewer for audit interviews and information gathering",
-                "personality": "empathetic_interviewer",
-                "capabilities": [
-                    AgentCapability.QUESTION_ANSWERING,
-                    AgentCapability.VOICE_PROCESSING,
-                    AgentCapability.CUSTOMER_SUPPORT
-                ],
-                "status": "active",
-                "created_at": datetime.now(UTC).isoformat()
-            },
-            "authoritative_compliance": {
-                "id": "authoritative_compliance", 
-                "name": "Dr. Morgan - Compliance Authority",
-                "description": "Official compliance agent for regulatory guidance",
-                "personality": "authoritative_compliance",
-                "capabilities": [
-                    AgentCapability.QUESTION_ANSWERING,
-                    AgentCapability.VOICE_PROCESSING,
-                    AgentCapability.TECHNICAL_SUPPORT,
-                    AgentCapability.DATA_ANALYSIS
-                ],
-                "status": "active",
-                "created_at": datetime.now(UTC).isoformat()
-            },
-            "analytical_risk_expert": {
-                "id": "analytical_risk_expert",
-                "name": "Alex - Risk Analysis Expert", 
-                "description": "Analytical risk expert for risk assessment and mitigation",
-                "personality": "analytical_risk_expert",
-                "capabilities": [
-                    AgentCapability.DATA_ANALYSIS,
-                    AgentCapability.TECHNICAL_SUPPORT,
-                    AgentCapability.QUESTION_ANSWERING
-                ],
-                "status": "active",
-                "created_at": datetime.now(UTC).isoformat()
-            },
-            "strategic_governance": {
-                "id": "strategic_governance",
-                "name": "Sam - Governance Strategist",
-                "description": "Strategic governance specialist for framework and policy guidance",
-                "personality": "strategic_governance",
-                "capabilities": [
-                    AgentCapability.QUESTION_ANSWERING,
-                    AgentCapability.TASK_ASSISTANCE,
-                    AgentCapability.CREATIVE_WRITING
-                ],
-                "status": "active",
-                "created_at": datetime.now(UTC).isoformat()
-            }
+            "empathetic_interviewer": GRCAgentConfigRegistry.build_agent_metadata("empathetic_interviewer"),
+            "authoritative_compliance": GRCAgentConfigRegistry.build_agent_metadata("authoritative_compliance"),
+            "analytical_risk_expert": GRCAgentConfigRegistry.build_agent_metadata("analytical_risk_expert"),
+            "strategic_governance": GRCAgentConfigRegistry.build_agent_metadata("strategic_governance")
         }
     
     async def process_request(self, user_input: str, session_id: str = "default", 
@@ -281,10 +192,19 @@ class GRCAgentSquad:
             Response with agent selection and message
         """
         try:
+            # Include response type in the user input for agent awareness
+            enhanced_user_input = user_input
+            if context and context.get("response_type"):
+                response_type = context["response_type"]
+                if response_type == "display":
+                    enhanced_user_input = f"[DISPLAY_MODE] {user_input}"
+                elif response_type == "voice":
+                    enhanced_user_input = f"[VOICE_MODE] {user_input}"
+            
             # Process through agent squad with session_id for Bedrock memory
             # The agent-squad framework and Bedrock will handle conversation history automatically
             response = await self.squad.route_request(
-                user_input=user_input,
+                user_input=enhanced_user_input,
                 user_id="default_user",
                 session_id=session_id
             )

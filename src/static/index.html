@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agent Swarm Management</title>
+    <!-- Markdown parsing library -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+    <!-- Syntax highlighting for code blocks -->
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -235,6 +241,166 @@
             margin-bottom: 5px;
         }
 
+        /* Markdown content styling */
+        .message-content h1,
+        .message-content h2,
+        .message-content h3,
+        .message-content h4,
+        .message-content h5,
+        .message-content h6 {
+            margin: 1em 0 0.5em 0;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        .message-content h1 { font-size: 1.5em; }
+        .message-content h2 { font-size: 1.3em; }
+        .message-content h3 { font-size: 1.1em; }
+        .message-content h4 { font-size: 1em; }
+
+        .message-content p {
+            margin: 0.5em 0;
+            line-height: 1.4;
+        }
+
+        .message-content ul,
+        .message-content ol {
+            margin: 0.5em 0;
+            padding-left: 1.5em;
+        }
+
+        .message-content li {
+            margin: 0.25em 0;
+        }
+
+        .message-content blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 1em;
+            margin: 1em 0;
+            font-style: italic;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 0 4px 4px 0;
+        }
+
+        .message-content code {
+            background: rgba(0, 0, 0, 0.1);
+            padding: 0.2em 0.4em;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .message-content pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 1em;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1em 0;
+            position: relative;
+        }
+
+        .message-content pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+            font-size: 0.9em;
+        }
+
+        .message-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1em 0;
+        }
+
+        .message-content th,
+        .message-content td {
+            border: 1px solid #e2e8f0;
+            padding: 0.5em;
+            text-align: left;
+        }
+
+        .message-content th {
+            background: #f7fafc;
+            font-weight: 600;
+        }
+
+        .message-content a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .message-content a:hover {
+            text-decoration: underline;
+        }
+
+        .message-content hr {
+            border: none;
+            border-top: 2px solid #e2e8f0;
+            margin: 1.5em 0;
+        }
+
+        .message-content .task-list-item {
+            list-style: none;
+            margin-left: -1.5em;
+        }
+
+        .message-content .task-list-item input {
+            margin-right: 0.5em;
+        }
+
+        /* User message markdown styling */
+        .user-message .message-content h1,
+        .user-message .message-content h2,
+        .user-message .message-content h3,
+        .user-message .message-content h4,
+        .user-message .message-content h5,
+        .user-message .message-content h6 {
+            color: #ffffff;
+        }
+
+        .user-message .message-content blockquote {
+            border-left-color: #ffffff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .user-message .message-content code {
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+        }
+
+        .user-message .message-content a {
+            color: #ffffff;
+        }
+
+        /* Copy button for code blocks */
+        .code-block-container {
+            position: relative;
+        }
+
+        .copy-button {
+            position: absolute;
+            top: 0.5em;
+            right: 0.5em;
+            background: #4a5568;
+            color: white;
+            border: none;
+            padding: 0.25em 0.5em;
+            border-radius: 4px;
+            font-size: 0.8em;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .copy-button:hover {
+            opacity: 1;
+        }
+
+        .copy-button:active {
+            background: #2d3748;
+        }
+
         .chat-input-container {
             display: flex;
             gap: 10px;
@@ -306,11 +472,7 @@
                     </div>
                 </div>
                 <div id="chat-messages" class="chat-messages">
-                    <div class="system-message">
-                        🤖 Welcome to the GRC Agent Squad! I'll connect you with the most suitable agent from our specialized team: Emma (Information Collector), Dr. Morgan (Compliance Authority), Alex (Risk Expert), or Sam (Governance Strategist).
-                        <br><br>
-                        <small>🎙️ Voice-enabled agents will automatically speak their responses when unmuted.</small>
-                    </div>
+                    <!-- Welcome message will be added by JavaScript -->
                 </div>
                 <div class="chat-input-container">
                     <input type="text" id="chat-input" placeholder="Type your message here..." />
@@ -328,6 +490,128 @@
     </div>
 
     <script>
+        // Wait for marked.js to load and then configure it
+        function configureMarked() {
+            if (typeof marked === 'undefined') {
+                setTimeout(configureMarked, 100);
+                return;
+            }
+            
+            // Configure marked.js for better security and features
+            marked.setOptions({
+                breaks: true,
+                gfm: true,
+                headerIds: false,
+                mangle: false,
+                sanitize: false, // We'll use DOMPurify for sanitization
+                smartLists: true,
+                smartypants: true,
+                xhtml: false
+            });
+
+            // Configure marked renderer for better code block handling
+            const renderer = new marked.Renderer();
+            renderer.code = function(code, language) {
+                const validLanguage = language && Prism.languages[language] ? language : 'markup';
+                const highlightedCode = Prism.highlight(code, Prism.languages[validLanguage], validLanguage);
+                
+                return `<div class="code-block-container">
+                    <pre class="language-${validLanguage}"><code class="language-${validLanguage}">${highlightedCode}</code></pre>
+                    <button class="copy-button" onclick="copyCodeToClipboard(this)">📋 Copy</button>
+                </div>`;
+            };
+
+            // Enable task lists
+            renderer.listitem = function(text) {
+                if (/^\s*\[[x ]\]\s*/.test(text)) {
+                    text = text
+                        .replace(/^\s*\[ \]\s*/, '<input type="checkbox" disabled> ')
+                        .replace(/^\s*\[x\]\s*/, '<input type="checkbox" checked disabled> ');
+                    return '<li class="task-list-item">' + text + '</li>';
+                }
+                return '<li>' + text + '</li>';
+            };
+
+            marked.use({ renderer });
+            console.log('✅ Markdown rendering configured successfully');
+        }
+        
+        // Start configuration when DOM is ready
+        configureMarked();
+
+        // Function to copy code to clipboard
+        function copyCodeToClipboard(button) {
+            const codeBlock = button.previousElementSibling.querySelector('code');
+            const text = codeBlock.textContent;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                const originalText = button.textContent;
+                button.textContent = '✅ Copied!';
+                button.style.background = '#38a169';
+                
+                setTimeout(function() {
+                    button.textContent = originalText;
+                    button.style.background = '#4a5568';
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Failed to copy code: ', err);
+                button.textContent = '❌ Failed';
+                setTimeout(function() {
+                    button.textContent = '📋 Copy';
+                }, 2000);
+            });
+        }
+
+        // Function to render markdown safely
+        function renderMarkdown(content) {
+            try {
+                // Check if marked is available
+                if (typeof marked === 'undefined') {
+                    console.error('marked.js not loaded');
+                    return content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                }
+                
+                // Parse markdown using the correct API for marked v12.x
+                let html;
+                if (typeof marked.parse === 'function') {
+                    html = marked.parse(content);
+                } else if (typeof marked === 'function') {
+                    html = marked(content);
+                } else {
+                    console.error('marked API not recognized, available methods:', Object.keys(marked || {}));
+                    return content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                }
+                
+                // Create a temporary div to hold the HTML
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                
+                // Basic XSS prevention (remove script tags and dangerous attributes)
+                const scripts = tempDiv.querySelectorAll('script');
+                scripts.forEach(script => script.remove());
+                
+                const dangerousAttrs = ['onload', 'onerror', 'onclick', 'onmouseover', 'onfocus', 'onblur', 'onkeydown', 'onkeyup'];
+                const allElements = tempDiv.querySelectorAll('*');
+                allElements.forEach(element => {
+                    dangerousAttrs.forEach(attr => {
+                        if (element.hasAttribute(attr)) {
+                            element.removeAttribute(attr);
+                        }
+                    });
+                });
+                
+                return tempDiv.innerHTML;
+            } catch (error) {
+                console.error('Markdown parsing error:', error);
+                console.error('Content that failed to parse:', content);
+                console.error('Error details:', error.message);
+                // Fallback to escaped HTML
+                return content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            }
+        }
+
+
+
         async function apiCall(endpoint, options = {}) {
             try {
                 const response = await fetch(`/api/agents${endpoint}`, {
@@ -554,37 +838,68 @@
             showTypingIndicator();
             
             try {
-                // Send message to GRC agent squad
-                const response = await fetch('/api/agents/chat', {
+                // Phase 1: Get display response (rich Markdown)
+                const displayResponse = await fetch('/api/agents/chat', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         message: message,
-                        session_id: currentSessionId
+                        session_id: currentSessionId,
+                        response_type: 'display'
                     })
                 });
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                if (!displayResponse.ok) {
+                    throw new Error(`HTTP error! status: ${displayResponse.status}`);
                 }
                 
-                const data = await response.json();
+                const displayData = await displayResponse.json();
                 
                 // Hide typing indicator
                 hideTypingIndicator();
                 
-                // Add agent response to chat
-                addMessage('agent', data.message, {
-                    agent_name: data.agent_name,
-                    confidence: data.confidence,
-                    reasoning: data.reasoning,
-                    has_voice: data.has_voice,
-                    audio_data: data.audio_data,
-                    audio_format: data.audio_format,
-                    voice_id: data.voice_id
-                });
+                // Add agent response to chat (display first)
+                const messageMetadata = {
+                    agent_name: displayData.agent_name,
+                    confidence: displayData.confidence,
+                    reasoning: displayData.reasoning,
+                    has_voice: displayData.has_voice
+                };
+                
+                addMessage('agent', displayData.message, messageMetadata);
+                
+                // Phase 2: Get voice response if agent has voice capabilities and not muted
+                if (displayData.has_voice && !isMuted) {
+                    try {
+                        const voiceResponse = await fetch('/api/agents/chat', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                message: message,
+                                session_id: currentSessionId,
+                                response_type: 'voice'
+                            })
+                        });
+                        
+                        if (voiceResponse.ok) {
+                            const voiceData = await voiceResponse.json();
+                            
+                            // Play the voice response
+                            if (voiceData.audio_data) {
+                                playAgentVoice(voiceData.audio_data, voiceData.audio_format, voiceData.voice_id);
+                            }
+                        } else {
+                            console.log('Voice response failed, continuing without voice');
+                        }
+                    } catch (voiceError) {
+                        console.log('Voice request failed:', voiceError.message);
+                        // Continue without voice - don't fail the main interaction
+                    }
+                }
                 
             } catch (error) {
                 hideTypingIndicator();
@@ -598,12 +913,19 @@
             
             if (type === 'user') {
                 messageDiv.className = 'message user-message';
-                messageDiv.innerHTML = content;
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                const renderedContent = renderMarkdown(content);
+                contentDiv.innerHTML = renderedContent;
+                messageDiv.appendChild(contentDiv);
             } else if (type === 'agent') {
                 messageDiv.className = 'message agent-message';
-                let agentInfo = '';
+                
+                // Add agent info header
                 if (metadata.agent_name) {
-                    agentInfo = `<div class="agent-info">🤖 ${metadata.agent_name}`;
+                    const agentInfoDiv = document.createElement('div');
+                    agentInfoDiv.className = 'agent-info';
+                    let agentInfo = `🤖 ${metadata.agent_name}`;
                     if (metadata.confidence) {
                         agentInfo += ` (Confidence: ${Math.round(metadata.confidence * 100)}%)`;
                     }
@@ -611,9 +933,16 @@
                     if (metadata.has_voice && metadata.voice_id) {
                         agentInfo += ` 🎙️ Voice: ${metadata.voice_id}`;
                     }
-                    agentInfo += `</div>`;
+                    agentInfoDiv.innerHTML = agentInfo;
+                    messageDiv.appendChild(agentInfoDiv);
                 }
-                messageDiv.innerHTML = agentInfo + content;
+                
+                // Add main content with markdown rendering
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                const renderedContent = renderMarkdown(content);
+                contentDiv.innerHTML = renderedContent;
+                messageDiv.appendChild(contentDiv);
                 
                 // Add reasoning if available
                 if (metadata.reasoning) {
@@ -624,13 +953,7 @@
                     messageDiv.appendChild(reasoningDiv);
                 }
                 
-                // Auto-play voice if available and not muted
-                if (metadata.has_voice && metadata.audio_data && !isMuted) {
-                    // Small delay to let the message appear first
-                    setTimeout(() => {
-                        playAgentVoice(metadata.audio_data, metadata.audio_format, metadata.voice_id);
-                    }, 100);
-                }
+                // Voice is now handled separately in the two-phase communication
             } else {
                 messageDiv.className = 'message system-message';
                 if (metadata.isError) {
@@ -638,7 +961,10 @@
                     messageDiv.style.color = '#742a2a';
                     messageDiv.style.borderLeft = '4px solid #f56565';
                 }
-                messageDiv.innerHTML = content;
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                contentDiv.innerHTML = renderMarkdown(content);
+                messageDiv.appendChild(contentDiv);
             }
             
             messagesContainer.appendChild(messageDiv);
@@ -663,6 +989,21 @@
             }
         }
 
+        // Initialize welcome message with Markdown rendering
+        function initializeWelcomeMessage() {
+            const welcomeText = `🤖 **Welcome to the GRC Agent Squad!** 
+
+I'll connect you with the most suitable agent from our specialized team:
+
+- 👥 **Emma** (Information Collector) - Empathetic interviewer
+- 📋 **Dr. Morgan** (Compliance Authority) - Official regulatory expert  
+- ⚠️ **Alex** (Risk Expert) - Analytical risk specialist
+- 🎯 **Sam** (Governance Strategist) - Strategic governance consultant
+`;
+
+            addMessage('system', welcomeText);
+        }
+
         // Allow Enter key to send message
         document.addEventListener('DOMContentLoaded', function() {
             const chatInput = document.getElementById('chat-input');
@@ -673,6 +1014,9 @@
                     }
                 });
             }
+            
+            // Initialize welcome message
+            initializeWelcomeMessage();
         });
     </script>
 </body>

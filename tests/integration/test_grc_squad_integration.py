@@ -39,7 +39,7 @@ class TestGRCSquadIntegration:
     @pytest.fixture
     async def grc_squad(self, tool_registry, mock_bedrock_client):
         """Create a GRC Agent Squad instance with mocked dependencies."""
-        with patch('src.services.grc_agent_squad.GRCAgentSquad._create_bedrock_client_with_aws_vault') as mock_bedrock:
+        with patch('src.services.aws_config.AWSConfig.create_aws_vault_client') as mock_bedrock:
             mock_bedrock.return_value = mock_bedrock_client
             
             squad = GRCAgentSquad(tool_registry=tool_registry)
@@ -59,7 +59,7 @@ class TestGRCSquadIntegration:
     @pytest.mark.asyncio
     async def test_grc_squad_initialization(self, tool_registry, mock_bedrock_client):
         """Test that GRC Agent Squad initializes correctly with all required agents."""
-        with patch('src.services.grc_agent_squad.GRCAgentSquad._create_bedrock_client_with_aws_vault') as mock_bedrock:
+        with patch('src.services.aws_config.AWSConfig.create_aws_vault_client') as mock_bedrock:
             mock_bedrock.return_value = mock_bedrock_client
             
             grc_squad = GRCAgentSquad(tool_registry=tool_registry)
@@ -297,16 +297,19 @@ class TestGRCSquadIntegration:
             ],
             "authoritative_compliance": [
                 AgentCapability.QUESTION_ANSWERING,
-                AgentCapability.TECHNICAL_SUPPORT,
+                AgentCapability.VOICE_PROCESSING,
+                AgentCapability.TASK_ASSISTANCE,
                 AgentCapability.DATA_ANALYSIS
             ],
             "analytical_risk_expert": [
-                AgentCapability.DATA_ANALYSIS,
-                AgentCapability.TECHNICAL_SUPPORT,
-                AgentCapability.QUESTION_ANSWERING
+                AgentCapability.QUESTION_ANSWERING,
+                AgentCapability.VOICE_PROCESSING,
+                AgentCapability.TASK_ASSISTANCE,
+                AgentCapability.DATA_ANALYSIS
             ],
             "strategic_governance": [
                 AgentCapability.QUESTION_ANSWERING,
+                AgentCapability.VOICE_PROCESSING,
                 AgentCapability.TASK_ASSISTANCE,
                 AgentCapability.CREATIVE_WRITING
             ]

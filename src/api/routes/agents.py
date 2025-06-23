@@ -4,6 +4,7 @@ Uses agent-squad framework with Bedrock built-in memory for conversation persist
 """
 
 import structlog
+import re
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 
@@ -15,20 +16,25 @@ from ...tools.tool_registry import get_default_registry
 from ...models.agent_models import AgentCapability
 
 
+
+
+
 # Request/Response Models
 class ChatRequest(BaseModel):
     message: str
     session_id: Optional[str] = "default"
     context: Optional[Dict[str, Any]] = None
+    response_type: Optional[str] = "display"  # "display" or "voice"
 
 
 class ChatResponse(BaseModel):
     message: str
     agent_name: str
     session_id: str
+    response_type: str  # "display" or "voice"
     confidence: Optional[float] = None
     reasoning: Optional[str] = None
-    audio_data: Optional[str] = None  # Base64 encoded audio
+    audio_data: Optional[str] = None  # Base64 encoded audio (only for voice responses)
     audio_format: Optional[str] = None
     voice_id: Optional[str] = None
     has_voice: Optional[bool] = False
@@ -164,15 +170,23 @@ async def chat_with_agents(
     request: ChatRequest,
     grc_squad: GRCAgentSquad = Depends(get_grc_squad)
 ) -> ChatResponse:
-    """Chat with the GRC Agent Squad. The system will automatically select the best agent."""
+    """
+    Chat with the GRC Agent Squad in two-phase communication:
+    - response_type='display': Get rich markdown for visual display
+    - response_type='voice': Get clean text for voice synthesis
+    """
     try:
         from src.services.voice_processor import VoiceProcessor
         from src.models.agent_models import AgentCapability
         
+        # Build context with response type for agent
+        enhanced_context = request.context or {}
+        enhanced_context["response_type"] = request.response_type
+        
         response = await grc_squad.process_request(
             user_input=request.message,
             session_id=request.session_id or "default",
-            context=request.context
+            context=enhanced_context
         )
         
         if not response.get("success"):
@@ -200,6 +214,9 @@ async def chat_with_agents(
         if not agent_id and agent_selection.get("agent_id") != "auto_selected":
             agent_id = agent_selection.get("agent_id")
         
+        # Get the response content
+        raw_response = agent_response.get("response", "")
+        
         # Check if agent has voice processing capability
         has_voice = False
         audio_data = None
@@ -217,30 +234,32 @@ async def chat_with_agents(
                     "VOICE_PROCESSING" in capabilities
                 )
                 
-                try:
-                    # Initialize voice processor and synthesize speech
-                    voice_processor = VoiceProcessor()
-                    tts_result = await voice_processor.synthesize_agent_response(
-                        text=agent_response.get("response", ""),
-                        agent_personality=agent_id,
-                        session_id=request.session_id or "default"
-                    )
-                    
-                    if tts_result.get('success'):
-                        audio_data = tts_result['audio_data']
-                        audio_format = tts_result['audio_format']
-                        voice_id = tts_result['voice_id']
-                    else:
-                        logger.warning(f"TTS failed for agent {agent_id}: {tts_result.get('error')}")
+                # Only synthesize voice for voice responses
+                if request.response_type == "voice" and has_voice:
+                    try:
+                        voice_processor = VoiceProcessor()
+                        tts_result = await voice_processor.synthesize_agent_response(
+                            text=raw_response,
+                            agent_personality=agent_id,
+                            session_id=request.session_id or "default"
+                        )
                         
-                except Exception as voice_error:
-                    logger.error(f"Voice synthesis error for agent {agent_id}: {voice_error}")
-                    # Continue without voice - don't fail the entire request
+                        if tts_result.get('success'):
+                            audio_data = tts_result['audio_data']
+                            audio_format = tts_result['audio_format']
+                            voice_id = tts_result['voice_id']
+                        else:
+                            logger.warning(f"TTS failed for agent {agent_id}: {tts_result.get('error')}")
+                            
+                    except Exception as voice_error:
+                        logger.error(f"Voice synthesis error for agent {agent_id}: {voice_error}")
+                        # Continue without voice - don't fail the entire request
         
         return ChatResponse(
-            message=agent_response.get("response", "No response generated"),
+            message=raw_response or "No response generated",
             agent_name=agent_selection.get("agent_name", "GRC Agent Squad"),
             session_id=response.get("session_id", request.session_id or "default"),
+            response_type=request.response_type,
             confidence=agent_selection.get("confidence"),
             reasoning=agent_selection.get("reasoning"),
             audio_data=audio_data,

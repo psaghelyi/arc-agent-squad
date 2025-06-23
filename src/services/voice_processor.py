@@ -34,6 +34,8 @@ class VoiceProcessor:
         
         logger.info(f"VoiceProcessor initialized with voice: {self.default_voice_id}")
 
+
+
     async def text_to_speech(
         self, 
         text: str, 
@@ -245,7 +247,7 @@ class VoiceProcessor:
         Synthesize speech for a specific agent personality.
         
         Args:
-            text: Text to synthesize
+            text: Clean text optimized for voice synthesis (no Markdown formatting)
             agent_personality: Agent personality type
             session_id: Optional session ID for logging
             
@@ -258,7 +260,7 @@ class VoiceProcessor:
             
             logger.info(f"Synthesizing for agent '{agent_personality}' using voice '{voice_config['voice_id']}'")
             
-            # Synthesize speech
+            # Synthesize speech directly with provided text (already clean for voice)
             result = await self.text_to_speech(
                 text=text,
                 voice_id=voice_config['voice_id'],
@@ -269,6 +271,7 @@ class VoiceProcessor:
             if result['success']:
                 result['agent_personality'] = agent_personality
                 result['session_id'] = session_id
+                result['text_length'] = len(text)
                 
             return result
             
