@@ -19,7 +19,7 @@ class TestGRCSquadIntegration:
     """Integration tests for GRC Agent Squad core functionality."""
 
     @pytest.fixture
-    async def tool_registry(self):
+    def tool_registry(self):
         """Create a mock tool registry for testing."""
         registry = Mock(spec=ToolRegistry)
         registry.get_tools = Mock(return_value=[])
@@ -28,7 +28,7 @@ class TestGRCSquadIntegration:
         return registry
 
     @pytest.fixture
-    async def mock_bedrock_client(self):
+    def mock_bedrock_client(self):
         """Create a mock Bedrock client for testing."""
         client = Mock()
         client.converse = Mock(return_value={
@@ -37,7 +37,7 @@ class TestGRCSquadIntegration:
         return client
 
     @pytest.fixture
-    async def grc_squad(self, tool_registry, mock_bedrock_client):
+    def grc_squad(self, tool_registry, mock_bedrock_client):
         """Create a GRC Agent Squad instance with mocked dependencies."""
         with patch('src.services.aws_config.AWSConfig.create_aws_vault_client') as mock_bedrock:
             mock_bedrock.return_value = mock_bedrock_client
@@ -70,10 +70,10 @@ class TestGRCSquadIntegration:
             
             # Verify all required GRC agents are present
             expected_agents = [
-                "empathetic_interviewer",
-                "authoritative_compliance", 
-                "analytical_risk_expert",
-                "strategic_governance"
+                "empathetic_interviewer_advanced",
+                "authoritative_compliance_advanced",
+                "analytical_risk_expert_advanced",
+                "strategic_governance_advanced"
             ]
             
             for agent_id in expected_agents:
@@ -82,7 +82,6 @@ class TestGRCSquadIntegration:
                 assert "name" in agent_config
                 assert "description" in agent_config
                 assert "capabilities" in agent_config
-                assert agent_config["status"] == "active"
 
     @pytest.mark.asyncio
     async def test_grc_agent_selection_scenarios(self, grc_squad):
@@ -152,27 +151,24 @@ class TestGRCSquadIntegration:
         
         # Verify each agent has required fields
         for agent in agents:
-            assert "id" in agent
+            assert "agent_id" in agent
             assert "name" in agent
             assert "description" in agent
-            assert "personality" in agent
             assert "capabilities" in agent
-            assert "status" in agent
-            assert "created_at" in agent
             
         # Test get_agent_info for each agent
         expected_agents = {
-            "empathetic_interviewer": "Emma - Information Collector",
-            "authoritative_compliance": "Dr. Morgan - Compliance Authority",
-            "analytical_risk_expert": "Alex - Risk Analysis Expert", 
-            "strategic_governance": "Sam - Governance Strategist"
+            "empathetic_interviewer_advanced": "Emma - Senior Information Collector",
+            "authoritative_compliance_advanced": "Dr. Morgan - Chief Compliance Officer",
+            "analytical_risk_expert_advanced": "Alex - Chief Risk Officer", 
+            "strategic_governance_advanced": "Sam - Chief Governance Officer"
         }
         
         for agent_id, expected_name in expected_agents.items():
             agent_info = await grc_squad.get_agent_info(agent_id)
             assert agent_info is not None
             assert agent_info["name"] == expected_name
-            assert agent_info["id"] == agent_id
+            assert agent_info["agent_id"] == agent_id
 
     @pytest.mark.asyncio
     async def test_grc_squad_statistics(self, grc_squad):
@@ -186,10 +182,10 @@ class TestGRCSquadIntegration:
         assert len(stats["agent_types"]) == 4
         
         expected_agent_types = [
-            "empathetic_interviewer",
-            "authoritative_compliance",
-            "analytical_risk_expert", 
-            "strategic_governance"
+            "empathetic_interviewer_advanced",
+            "authoritative_compliance_advanced",
+            "analytical_risk_expert_advanced", 
+            "strategic_governance_advanced"
         ]
         
         for agent_type in expected_agent_types:
@@ -290,28 +286,28 @@ class TestGRCSquadIntegration:
     async def test_grc_agent_capabilities_mapping(self, grc_squad):
         """Test that GRC agents have appropriate capabilities mapped."""
         expected_capabilities = {
-            "empathetic_interviewer": [
-                AgentCapability.QUESTION_ANSWERING,
-                AgentCapability.VOICE_PROCESSING,
-                AgentCapability.CUSTOMER_SUPPORT
+            "empathetic_interviewer_advanced": [
+                "question_answering",
+                "voice_processing", 
+                "customer_support"
             ],
-            "authoritative_compliance": [
-                AgentCapability.QUESTION_ANSWERING,
-                AgentCapability.VOICE_PROCESSING,
-                AgentCapability.TASK_ASSISTANCE,
-                AgentCapability.DATA_ANALYSIS
+            "authoritative_compliance_advanced": [
+                "question_answering",
+                "voice_processing",
+                "task_assistance",
+                "data_analysis"
             ],
-            "analytical_risk_expert": [
-                AgentCapability.QUESTION_ANSWERING,
-                AgentCapability.VOICE_PROCESSING,
-                AgentCapability.TASK_ASSISTANCE,
-                AgentCapability.DATA_ANALYSIS
+            "analytical_risk_expert_advanced": [
+                "question_answering",
+                "voice_processing",
+                "data_analysis",
+                "task_assistance"
             ],
-            "strategic_governance": [
-                AgentCapability.QUESTION_ANSWERING,
-                AgentCapability.VOICE_PROCESSING,
-                AgentCapability.TASK_ASSISTANCE,
-                AgentCapability.CREATIVE_WRITING
+            "strategic_governance_advanced": [
+                "question_answering",
+                "voice_processing",
+                "task_assistance",
+                "data_analysis"
             ]
         }
         

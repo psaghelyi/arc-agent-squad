@@ -108,12 +108,34 @@ def run_quick_tests():
     return success
 
 
+def run_e2e_tests():
+    """Run end-to-end tests with real AWS services."""
+    print("🌐 Running end-to-end tests...")
+    print("⚠️  These tests require AWS SSO credentials and will make real API calls")
+    print("⚠️  Make sure you're logged in with: aws sso login --profile acl-playground")
+    return run_command(
+        "python -m pytest tests/e2e/ -v --tb=short -m e2e --timeout=300",
+        "End-to-End Tests"
+    )
+
+
+def run_watch_tests():
+    """Run tests in watch mode for development."""
+    print("👀 Running tests in watch mode...")
+    try:
+        cmd = [sys.executable, "-m", "pytest_watch", "tests/unit/", "tests/integration/"]
+        return subprocess.run(cmd).returncode
+    except FileNotFoundError:
+        print("❌ pytest-watch not installed. Install with: pip install pytest-watch")
+        return 1
+
+
 def main():
     """Main entry point for the test runner."""
-    parser = argparse.ArgumentParser(description="GRC Agent Squad Test Runner")
+    parser = argparse.ArgumentParser(description="Test runner for GRC Agent Squad")
     parser.add_argument(
         "test_type",
-        choices=["quick", "unit", "integration", "orchestrator", "chat", "api", "all", "coverage"],
+        choices=["all", "unit", "integration", "e2e", "coverage", "watch"],
         help="Type of tests to run"
     )
     parser.add_argument(
@@ -135,26 +157,27 @@ def main():
     
     print("🚀 GRC Agent Squad Test Runner")
     
-    # Map test types to functions
-    test_functions = {
-        "quick": run_quick_tests,
-        "unit": run_unit_tests,
-        "integration": run_integration_tests,
-        "orchestrator": run_orchestrator_tests,
-        "chat": run_chat_tests,
-        "api": run_api_tests,
-        "all": run_all_tests,
-        "coverage": run_tests_with_coverage
-    }
+    success = True
+    if args.test_type == "all":
+        success = run_all_tests()
+    elif args.test_type == "unit":
+        success = run_unit_tests()
+    elif args.test_type == "integration":
+        success = run_integration_tests()
+    elif args.test_type == "e2e":
+        success = run_e2e_tests()
+    elif args.test_type == "coverage":
+        success = run_tests_with_coverage()
+    elif args.test_type == "watch":
+        success = run_watch_tests()
     
-    success = test_functions[args.test_type]()
+    exit_code = 0 if success else 1
     
     if success:
         print("\n🎉 All tests completed successfully!")
-        sys.exit(0)
     else:
         print("\n❌ Some tests failed!")
-        sys.exit(1)
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":

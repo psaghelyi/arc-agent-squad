@@ -28,7 +28,7 @@ class TestGRCAgentSquad:
         return mock_response
 
     @pytest.fixture
-    async def tool_registry(self):
+    def tool_registry(self):
         """Create a mock tool registry."""
         registry = Mock(spec=ToolRegistry)
         registry.get_tools = Mock(return_value=[])
@@ -37,7 +37,7 @@ class TestGRCAgentSquad:
         return registry
 
     @pytest.fixture
-    async def grc_squad(self, tool_registry):
+    def grc_squad(self, tool_registry):
         """Create a GRC Agent Squad instance."""
         squad = GRCAgentSquad(tool_registry=tool_registry)
         return squad
@@ -51,12 +51,12 @@ class TestGRCAgentSquad:
         assert len(agents) == 4  # Should have 4 GRC agents
         
         # Verify all expected agents are present
-        agent_personalities = [agent["personality"] for agent in agents]
+        agent_personalities = [agent["agent_id"] for agent in agents]
         expected_personalities = [
-            "empathetic_interviewer",
-            "authoritative_compliance", 
-            "analytical_risk_expert",
-            "strategic_governance"
+            "empathetic_interviewer_advanced",
+            "authoritative_compliance_advanced", 
+            "analytical_risk_expert_advanced",
+            "strategic_governance_advanced"
         ]
         
         for personality in expected_personalities:
@@ -68,28 +68,28 @@ class TestGRCAgentSquad:
         agents = await grc_squad.list_agents()
         
         # Check Emma - Information Collector
-        emma = next((a for a in agents if a["personality"] == "empathetic_interviewer"), None)
+        emma = next((a for a in agents if a["agent_id"] == "empathetic_interviewer_advanced"), None)
         assert emma is not None
         assert "Emma" in emma["name"]
-        assert "Information Collector" in emma["name"]
+        assert "Information Collector" in emma["name"] or "Senior Information Collector" in emma["name"]
         assert "empathetic" in emma["description"].lower() or "interview" in emma["description"].lower()
 
         # Check Dr. Morgan - Compliance Authority
-        morgan = next((a for a in agents if a["personality"] == "authoritative_compliance"), None)
+        morgan = next((a for a in agents if a["agent_id"] == "authoritative_compliance_advanced"), None)
         assert morgan is not None
         assert "Morgan" in morgan["name"]
-        assert "Compliance Authority" in morgan["name"]
+        assert "Compliance" in morgan["name"]
         assert "compliance" in morgan["description"].lower() or "authority" in morgan["description"].lower()
 
         # Check Alex - Risk Expert
-        alex = next((a for a in agents if a["personality"] == "analytical_risk_expert"), None)
+        alex = next((a for a in agents if a["agent_id"] == "analytical_risk_expert_advanced"), None)
         assert alex is not None
         assert "Alex" in alex["name"]
         assert "Risk" in alex["name"]
         assert "risk" in alex["description"].lower() or "analytical" in alex["description"].lower()
 
         # Check Sam - Governance Strategist
-        sam = next((a for a in agents if a["personality"] == "strategic_governance"), None)
+        sam = next((a for a in agents if a["agent_id"] == "strategic_governance_advanced"), None)
         assert sam is not None
         assert "Sam" in sam["name"]
         assert "Governance" in sam["name"]
@@ -99,12 +99,12 @@ class TestGRCAgentSquad:
     async def test_get_agent_info(self, grc_squad):
         """Test getting information about a specific agent."""
         # Test with empathetic interviewer
-        agent_info = await grc_squad.get_agent_info("empathetic_interviewer")
+        agent_info = await grc_squad.get_agent_info("empathetic_interviewer_advanced")
         
         assert agent_info is not None
-        assert agent_info["id"] == "empathetic_interviewer"
+        assert agent_info["agent_id"] == "empathetic_interviewer_advanced"
         assert "Emma" in agent_info["name"]
-        assert agent_info["personality"] == "empathetic_interviewer"
+        assert agent_info["agent_id"] == "empathetic_interviewer_advanced"
         assert isinstance(agent_info["capabilities"], list)
 
     @pytest.mark.asyncio

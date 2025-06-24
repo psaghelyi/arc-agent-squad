@@ -22,6 +22,22 @@ class Settings(BaseSettings):
     aws_secret_access_key: Optional[str] = Field(default=None, description="AWS secret access key")
     aws_session_token: Optional[str] = Field(default=None, description="AWS Session Token")
     
+    # Agent Configuration - Dynamic Squad Composition
+    agent_config_directory: str = Field(
+        default="config/agents", 
+        description="Directory containing individual agent configuration files"
+    )
+    active_agents: str = Field(
+        default="empathetic_interviewer_advanced,authoritative_compliance_advanced,analytical_risk_expert_advanced,strategic_governance_advanced",
+        description="Comma-separated list of agent IDs to include in the squad"
+    )
+    default_agent: str = Field(
+        default="empathetic_interviewer",
+        description="Default agent to use when no specific agent is selected"
+    )
+    
+
+    
     # Voice Services Configuration - Speech processing
     transcribe_language_code: str = Field(default="en-US", description="Language code for transcription")
     polly_voice_id: str = Field(default="Joanna", description="Polly voice ID for TTS")
@@ -80,6 +96,13 @@ class Settings(BaseSettings):
         return []
     
     @property
+    def active_agents_list(self) -> List[str]:
+        """Convert active agents string to list."""
+        return [agent.strip() for agent in str(self.active_agents).split(",") if agent.strip()]
+    
+
+    
+    @property
     def is_production(self) -> bool:
         """Check if running in production mode."""
         # Explicitly check for production environment variables
@@ -128,7 +151,7 @@ if settings.should_validate_production():
 
 
 # Usage example:
-# from src.utils.config import settings
+# from src.utils.settings import settings
 # 
 # print(f"API running on {settings.api_host}:{settings.api_port}")
 # print(f"Using AWS region: {settings.aws_region}")

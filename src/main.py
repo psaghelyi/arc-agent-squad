@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from src.api.main import app
 from src.services.aws_config import AWSConfig
 from src.services.logger import setup_logging
-from src.utils.config import settings
+from src.utils.settings import settings
 
 
 def main() -> None:

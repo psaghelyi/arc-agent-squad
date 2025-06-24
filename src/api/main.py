@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from .routes import agents, health, voice
-from ..utils.config import settings
+from ..utils.settings import settings
 
 
 # Configure structured logging
@@ -119,6 +119,13 @@ async def get_api_info() -> Dict[str, Any]:
 app.include_router(agents.router, prefix="/api/agents", tags=["agents"])
 app.include_router(health.router, prefix="/health", tags=["health"])
 app.include_router(voice.router, prefix="/api/voice", tags=["voice"])
+
+# Add direct health endpoint for convenience (without trailing slash)
+@app.get("/health")
+async def health_redirect():
+    """Direct health check endpoint (redirects to /health/)."""
+    from .routes.health import root
+    return await root()
 
 # Mount static files (must come last to avoid overriding API routes)
 try:

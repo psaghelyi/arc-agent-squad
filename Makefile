@@ -33,29 +33,32 @@ dev-install: install ## Install development dependencies
 	$(PIP) install pytest-cov
 
 # Code quality
-test: ## Run all tests
-	$(PYTHON_VENV) test_runner.py all
+test: test-unit
+	@echo "✅ Running unit tests (fast)"
 
-test-unit: ## Run unit tests
+test-unit:
+	@echo "🧪 Running unit tests..."
 	$(PYTHON_VENV) test_runner.py unit
 
-test-integration: ## Run integration tests  
+test-integration:
+	@echo "🔗 Running integration tests..."
 	$(PYTHON_VENV) test_runner.py integration
 
-test-orchestrator: ## Run orchestrator tests
-	$(PYTHON_VENV) test_runner.py orchestrator
+test-e2e:
+	@echo "🌐 Running end-to-end tests (requires AWS credentials, 5min timeout)..."
+	$(PYTHON_VENV) test_runner.py e2e
 
-test-chat: ## Run chat integration tests
-	$(PYTHON_VENV) test_runner.py chat
+test-all:
+	@echo "🧪 Running all tests..."
+	$(PYTHON_VENV) test_runner.py all
 
-test-api: ## Run API integration tests
-	$(PYTHON_VENV) test_runner.py api
-
-test-quick: ## Run quick test suite
-	$(PYTHON_VENV) test_runner.py quick
-
-test-coverage: ## Run tests with coverage
+test-coverage:
+	@echo "📊 Running tests with coverage..."
 	$(PYTHON_VENV) test_runner.py coverage
+
+test-watch:
+	@echo "👀 Running tests in watch mode..."
+	$(PYTHON_VENV) test_runner.py watch
 
 lint: ## Run linting
 	$(PYTHON_VENV) -m flake8 src/ tests/

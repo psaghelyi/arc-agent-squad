@@ -428,6 +428,84 @@
             color: #64748b;
         }
 
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            max-width: 90%;
+            max-height: 90%;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 25px;
+            border-bottom: 2px solid #e2e8f0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            color: white;
+            padding: 0;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .close-modal:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 25px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 2rem;
@@ -439,6 +517,19 @@
             
             .chat-input-container {
                 flex-direction: column;
+            }
+
+            .modal-content {
+                max-width: 95%;
+                max-height: 95%;
+            }
+
+            .modal-header {
+                padding: 20px;
+            }
+
+            .modal-body {
+                padding: 20px;
             }
         }
     </style>
@@ -452,7 +543,8 @@
 
         <div class="card">
             <h2>Quick Actions</h2>
-            <button class="btn btn-primary" onclick="loadAgents()">Load Agents</button>
+            <button class="btn btn-primary" onclick="showAgentsModal()">Show Agents</button>
+            <a href="/config.html" class="btn btn-primary" style="text-decoration: none; display: inline-block;">⚙️ Agent Configuration</a>
             <button class="btn btn-primary" onclick="testAPI()">Test API</button>
         </div>
 
@@ -481,10 +573,20 @@
             </div>
         </div>
 
-        <div class="card">
-            <h2>Your Agent Squad</h2>
-            <div id="agents-container" class="loading">
-                Click "Load Agents" to see your agents...
+
+    </div>
+
+    <!-- Agents Modal -->
+    <div id="agents-modal" class="modal-overlay" onclick="closeAgentsModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2>🤖 Your Agent Squad</h2>
+                <button class="close-modal" onclick="closeAgentsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="agents-container" class="loading">
+                    Loading agents...
+                </div>
             </div>
         </div>
     </div>
@@ -633,6 +735,20 @@
             }
         }
 
+        // Modal functions
+        function showAgentsModal() {
+            const modal = document.getElementById('agents-modal');
+            modal.style.display = 'flex';
+            loadAgents(); // Load agents when modal opens
+        }
+
+        function closeAgentsModal(event) {
+            if (!event || event.target.id === 'agents-modal' || event.target.classList.contains('close-modal')) {
+                const modal = document.getElementById('agents-modal');
+                modal.style.display = 'none';
+            }
+        }
+
         async function loadAgents() {
             const container = document.getElementById('agents-container');
             container.innerHTML = '<div class="loading">Loading agents...</div>';
@@ -698,9 +814,21 @@
             try {
                 const response = await fetch('/health');
                 const data = await response.json();
-                alert('API is working! Status: ' + data.status);
+                
+                // Create a more informative message
+                let message = `✅ API Test Successful!\n\n`;
+                message += `Service: ${data.service || 'GRC Agent Squad'}\n`;
+                message += `Status: ${data.status || 'Unknown'}\n`;
+                message += `Message: ${data.message || 'No message'}\n`;
+                
+                if (data.timestamp) {
+                    const timestamp = new Date(data.timestamp);
+                    message += `Server Time: ${timestamp.toLocaleString()}`;
+                }
+                
+                alert(message);
             } catch (error) {
-                alert('API test failed: ' + error.message);
+                alert(`❌ API Test Failed!\n\nError: ${error.message}\n\nPlease check if the server is running on the correct port.`);
             }
         }
 
@@ -1017,6 +1145,13 @@ I'll connect you with the most suitable agent from our specialized team:
             
             // Initialize welcome message
             initializeWelcomeMessage();
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeAgentsModal();
+            }
         });
     </script>
 </body>

@@ -10,7 +10,7 @@ import base64
 from typing import Dict, Any, Optional, Union, BinaryIO
 from botocore.exceptions import ClientError, BotoCoreError
 
-from src.utils.config import settings
+from src.utils.settings import settings
 from src.services.aws_config import AWSConfig
 
 logger = logging.getLogger(__name__)

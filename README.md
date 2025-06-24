@@ -17,6 +17,10 @@ A specialized AI agent squad for Governance, Risk Management, and Compliance (GR
 - 🐳 **Enterprise Ready**: Docker support for secure enterprise deployment
 - 🚀 **Infrastructure as Code**: AWS CDK for compliant infrastructure management
 - 🌐 **Compliance Dashboard**: Web interface for GRC agent management and audit documentation
+- **File-based Agent Configuration** for easy customization and deployment
+- **Bedrock Built-in Memory** for seamless conversation continuity
+- **Real-time WebRTC** for browser-based voice interactions
+- **Tool Registry Integration** for extensible functionality
 
 ## Architecture
 
@@ -180,6 +184,8 @@ docker-compose down
 - `POST /api/agents/chat` - Chat with agents (intelligent agent selection)
 - `GET /api/agents/personalities/presets` - Get available personality presets
 - `GET /api/agents/capabilities/list` - Get available agent capabilities
+- `GET /api/agents/config/details` - Get detailed agent configurations
+- `GET /api/agents/grc/agent-types` - Get GRC agent type information
 
 ### Available GRC Agents
 The system includes 4 specialized GRC agents with distinct expertise:
@@ -501,3 +507,270 @@ Please read our contributing guidelines and ensure all tests pass before submitt
 ## License
 
 [License information] 
+
+### Dynamic Agent Squad Configuration
+
+The system supports flexible, dynamic agent configuration through **individual YAML files** with **JSON schema validation** for maximum customization and deployment flexibility.
+
+#### Configuration Structure
+
+Each agent is defined in a separate YAML file for maximum flexibility:
+
+```
+config/agents/
+├── empathetic_interviewer.yaml
+├── empathetic_interviewer_advanced.yaml
+├── authoritative_compliance.yaml
+├── authoritative_compliance_advanced.yaml
+├── analytical_risk_expert.yaml
+├── analytical_risk_expert_advanced.yaml
+├── strategic_governance.yaml
+└── strategic_governance_advanced.yaml
+```
+
+#### Dynamic Squad Composition
+
+Control which agents are active in your squad by modifying `src/utils/config.py`:
+
+```python
+# Configuration in src/utils/config.py
+active_agents: str = Field(
+    default="empathetic_interviewer_advanced,authoritative_compliance_advanced,analytical_risk_expert_advanced,strategic_governance_advanced",
+    description="Comma-separated list of agent IDs to include in the squad"
+)
+
+# Or via environment variable
+export ACTIVE_AGENTS="authoritative_compliance,analytical_risk_expert"
+
+# Custom agent directory (optional)
+export AGENT_CONFIG_DIRECTORY="config/custom-agents"
+
+# Default agent for fallback
+export DEFAULT_AGENT="authoritative_compliance"
+```
+
+**Example Squad Configurations:**
+
+```bash
+# Minimal compliance-focused squad
+ACTIVE_AGENTS="authoritative_compliance_advanced,analytical_risk_expert_advanced"
+
+# Interview-focused squad  
+ACTIVE_AGENTS="empathetic_interviewer_advanced"
+
+# Executive-level squad (default)
+ACTIVE_AGENTS="empathetic_interviewer_advanced,authoritative_compliance_advanced,analytical_risk_expert_advanced,strategic_governance_advanced"
+
+# Standard operational squad
+ACTIVE_AGENTS="empathetic_interviewer,authoritative_compliance,analytical_risk_expert,strategic_governance"
+```
+
+#### Individual Agent Configuration Structure
+
+Each agent file defines all properties using YAML's readable format:
+
+```yaml
+# config/agents/empathetic_interviewer.yaml
+id: empathetic_interviewer
+name: "Emma - Information Collector"
+description: >-
+  Empathetic interviewer specialized in conducting thorough audit interviews,
+  stakeholder consultations, and gathering detailed compliance information.
+
+capabilities:
+  - question_answering
+  - voice_processing
+  - customer_support
+
+use_cases:
+  - "Compliance interviews"
+  - "Risk assessment sessions"
+  - "Stakeholder consultations"
+
+specialized_tools:
+  - "Interview Template Generator"
+  - "Stakeholder Communication Tool"
+
+voice_settings:
+  voice_id: "Joanna"
+  style: "conversational"
+  speed: "medium"
+  pitch: "medium"
+
+personality:
+  tone: "warm"
+  approach: "empathetic"
+  communication_style: "patient and encouraging"
+  traits:
+    - "talkative"
+    - "kind"
+    - "patient"
+    - "encouraging"
+
+model_settings:
+  model_id: "anthropic.claude-3-5-sonnet-20241022-v2:0"
+  model_provider: "AWS Bedrock"
+  inference_config:
+    maxTokens: 4096
+    temperature: 0.7
+    topP: 0.9
+  memory_enabled: true
+  streaming: false
+  framework: "agent-squad"
+  llm_framework: "BedrockLLMAgent"
+
+system_prompt_template: |
+  You are Emma, an empathetic and patient information collector for GRC processes.
+  
+  **Your Core Identity:**
+  - You are warm, encouraging, and create safe spaces for open communication
+  - You excel at conducting interviews and gathering detailed information
+  
+  **Your Specializations:**
+  - Conducting compliance audit interviews with stakeholders
+  - Facilitating risk assessment sessions and consultations
+```
+
+#### Schema Validation
+
+Individual agent files are validated against **`config/agent-schema.json`** which ensures:
+
+- **Required fields**: All mandatory configuration properties are present
+- **Data types**: String, number, boolean, and array types are correct
+- **Enum values**: Capabilities, voice settings, and personality traits use valid options
+- **Structure**: Nested objects and array contents are properly formatted
+- **Flexible model settings**: Supports additional properties for advanced configurations
+
+#### Benefits of Dynamic Configuration
+
+- **Individual agent files** enable independent agent development and deployment
+- **Dynamic squad composition** via environment variables for different use cases
+- **Modular development** - teams can work on different agents simultaneously
+- **Environment-specific squads** - different agents for dev/staging/production
+- **A/B testing** - easily swap agent configurations for testing
+- **Scalability** - add new agents without touching existing configurations
+- **Readability** - YAML's clean syntax with multiline strings using `|` and `>-` syntax
+- **Comments** - Document configuration choices within files
+- **Schema validation** - Prevents configuration errors at startup
+- **Version control** - Track changes to individual agents separately
+- **Hot reloading** - Update specific agents without full redeployment
+
+## Specialized Agents
+
+### 1. Emma - Information Collector (empathetic_interviewer)
+- **Personality**: Talkative, kind, patient, encouraging  
+- **Specialization**: Audit interviews, stakeholder consultations
+- **Voice Capability**: ✅ Enabled with conversational style
+
+### 2. Dr. Morgan - Compliance Authority (authoritative_compliance)
+- **Personality**: Official, formal, regulation-focused
+- **Specialization**: Regulatory interpretation, compliance guidance
+- **Voice Capability**: ✅ Enabled with authoritative tone
+
+### 3. Alex - Risk Analysis Expert (analytical_risk_expert)
+- **Personality**: Analytical, detail-oriented, systematic
+- **Specialization**: Risk assessment, threat analysis, mitigation strategies
+- **Voice Capability**: ✅ Enabled with analytical presentation
+
+### 4. Sam - Governance Strategist (strategic_governance)
+- **Personality**: Strategic, consultative, diplomatic
+- **Specialization**: Governance frameworks, policy development
+- **Voice Capability**: ✅ Enabled with executive briefing style
+
+## API Endpoints
+
+- `GET /api/agents/` - List all available agents
+- `POST /api/agents/chat` - Chat with the agent squad
+- `GET /api/agents/config/details` - Get detailed agent configurations
+- `GET /api/agents/grc/agent-types` - Get GRC agent type information
+
+## Development
+
+### Testing
+
+```bash
+# Run all tests
+make test-all
+
+# Run specific test types
+make test-unit
+make test-integration
+make test-e2e
+```
+
+### Configuration Management
+
+```bash
+# Test current dynamic configuration
+python3 -c "from src.agents.agent_config_loader import AgentConfigLoader; loader = AgentConfigLoader(); print(f'✅ Loaded {len(loader.list_agent_ids())} agents: {loader.list_agent_ids()}')"
+
+# Test with different agent combination
+python3 -c "from src.agents.agent_config_loader import AgentConfigLoader; loader = AgentConfigLoader(active_agents=['empathetic_interviewer', 'authoritative_compliance']); print(f'✅ Loaded {len(loader.list_agent_ids())} agents: {loader.list_agent_ids()}')"
+
+# Validate individual agent files
+python3 -c "from src.agents.agent_config_loader import FileBasedGRCAgentConfigRegistry; registry = FileBasedGRCAgentConfigRegistry(); print('✅ All agent configurations valid')"
+
+# View agent metadata
+python3 -c "from src.agents.agent_config_loader import FileBasedGRCAgentConfigRegistry; registry = FileBasedGRCAgentConfigRegistry(); print(registry.build_agent_metadata('empathetic_interviewer_advanced'))"
+
+# Test specific agent combination
+python3 -c "
+from src.agents.agent_config_loader import AgentConfigLoader
+loader = AgentConfigLoader(active_agents=['empathetic_interviewer', 'analytical_risk_expert'])
+print(f'Active agents: {loader.list_agent_ids()}')
+"
+
+# Validate configuration schemas
+python3 -c "
+from src.agents.agent_config_loader import AgentConfigLoader
+try:
+    AgentConfigLoader()
+    print('✅ Configuration validation passed')
+except Exception as e:
+    print(f'❌ Configuration validation failed: {e}')
+"
+
+# Test different squad compositions
+ACTIVE_AGENTS="empathetic_interviewer,authoritative_compliance" python3 -c "
+from src.agents.agent_config_loader import AgentConfigLoader
+loader = AgentConfigLoader()
+print(f'Compliance squad: {loader.list_agent_ids()}')
+"
+
+# Legacy single-file mode
+AGENT_CONFIG_FILE="config/agent-config.yaml" python3 -c "
+from src.agents.agent_config_loader import AgentConfigLoader
+loader = AgentConfigLoader()
+print(f'Legacy mode agents: {loader.list_agent_ids()}')
+"
+```
+
+## Deployment
+
+### Docker
+
+```bash
+# Build and run
+make docker-build
+make docker-run
+```
+
+### AWS CDK
+
+```bash
+# Deploy to AWS
+make cdk-deploy
+```
+
+## Architecture
+
+- **AWS Labs agent-squad**: Framework for agent orchestration
+- **Amazon Bedrock**: LLM platform with built-in session memory
+- **Amazon Transcribe**: Real-time speech-to-text
+- **Amazon Lex V2**: Dialog management and NLU
+- **Amazon Polly Neural TTS**: Natural voice synthesis
+- **WebRTC**: Real-time audio communication
+
+## License
+
+[Add your license information here] 

@@ -22,12 +22,7 @@ from agent_squad.classifiers import BedrockClassifier, BedrockClassifierOptions
 from ..tools.tool_registry import ToolRegistry, get_default_registry
 from ..models.agent_models import AgentCapability
 from .aws_config import AWSConfig
-from ..agents.grc_agent_configs import (
-    EmpathicInterviewerConfig,
-    ComplianceAuthorityConfig, 
-    RiskAnalysisExpertConfig,
-    GovernanceStrategistConfig
-)
+from ..agents.agent_config_loader import get_default_config_registry
 
 
 class GRCAgentSquad:
@@ -143,22 +138,25 @@ class GRCAgentSquad:
             default_agent=empathetic_interviewer  # Default to the empathetic interviewer
         )
         
-        # Set modular system prompts for each agent using capability-based components
-        empathetic_interviewer.set_system_prompt(
-            EmpathicInterviewerConfig.get_system_prompt()
-        )
+        # Get file-based configuration registry
+        config_registry = get_default_config_registry()
         
-        authoritative_compliance.set_system_prompt(
-            ComplianceAuthorityConfig.get_system_prompt()
-        )
+        # Set system prompts for each agent using file-based configurations
+        empathetic_config = config_registry.get_config("empathetic_interviewer_advanced")
+        if empathetic_config:
+            empathetic_interviewer.set_system_prompt(empathetic_config.get_system_prompt())
         
-        analytical_risk_expert.set_system_prompt(
-            RiskAnalysisExpertConfig.get_system_prompt()
-        )
+        compliance_config = config_registry.get_config("authoritative_compliance_advanced")
+        if compliance_config:
+            authoritative_compliance.set_system_prompt(compliance_config.get_system_prompt())
         
-        strategic_governance.set_system_prompt(
-            GovernanceStrategistConfig.get_system_prompt()
-        )
+        risk_config = config_registry.get_config("analytical_risk_expert_advanced")
+        if risk_config:
+            analytical_risk_expert.set_system_prompt(risk_config.get_system_prompt())
+        
+        governance_config = config_registry.get_config("strategic_governance_advanced")
+        if governance_config:
+            strategic_governance.set_system_prompt(governance_config.get_system_prompt())
         
         # Add agents to the squad
         self.squad.add_agent(empathetic_interviewer)
@@ -168,15 +166,10 @@ class GRCAgentSquad:
         
         self.logger.info("GRC agents added to squad", agent_count=len(self.squad.agents))
         
-        # Store agent configurations using modular configs for API compatibility
-        from ..agents.grc_agent_configs import GRCAgentConfigRegistry
-        
-        self.agent_configs = {
-            "empathetic_interviewer": GRCAgentConfigRegistry.build_agent_metadata("empathetic_interviewer"),
-            "authoritative_compliance": GRCAgentConfigRegistry.build_agent_metadata("authoritative_compliance"),
-            "analytical_risk_expert": GRCAgentConfigRegistry.build_agent_metadata("analytical_risk_expert"),
-            "strategic_governance": GRCAgentConfigRegistry.build_agent_metadata("strategic_governance")
-        }
+        # Store agent configurations using file-based configs for API compatibility
+        self.agent_configs = {}
+        for agent_id in config_registry.loader.list_agent_ids():
+            self.agent_configs[agent_id] = config_registry.build_agent_metadata(agent_id)
     
     async def process_request(self, user_input: str, session_id: str = "default", 
                             context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -286,7 +279,7 @@ class GRCAgentSquad:
         """Get statistics about the agent squad."""
         return {
             "total_agents": len(self.agent_configs),
-            "active_agents": len([a for a in self.agent_configs.values() if a["status"] == "active"]),
+            "active_agents": len(self.agent_configs),  # All loaded agents are considered active
             "memory_type": "bedrock_built_in",
             "available_tools": len(self.tool_registry.list_tools()),
             "agent_types": list(self.agent_configs.keys())

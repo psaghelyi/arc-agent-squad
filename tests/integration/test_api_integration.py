@@ -5,17 +5,20 @@ Tests the complete API flow including agent management and chat functionality.
 """
 
 import pytest
+import pytest_asyncio
 import asyncio
 from httpx import AsyncClient
 from unittest.mock import patch, Mock
 
 from src.api.main import app
 
+pytestmark = pytest.mark.integration
+
 
 class TestAPIIntegration:
     """Integration tests for the API endpoints."""
 
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def client(self):
         """Create an async HTTP client for testing."""
         from httpx import ASGITransport
@@ -51,12 +54,9 @@ class TestAPIIntegration:
         
         # Verify agent structure
         for agent in data["agents"]:
-            assert "id" in agent
+            assert "agent_id" in agent
             assert "name" in agent
             assert "description" in agent
-            # Note: 'type' field is not present in the actual response
-            assert "status" in agent
-            assert "created_at" in agent
             assert "capabilities" in agent
 
     @pytest.mark.asyncio
@@ -67,7 +67,7 @@ class TestAPIIntegration:
         agents = response.json()["agents"]
         
         # Get the first agent's details
-        agent_id = agents[0]["id"]
+        agent_id = agents[0]["agent_id"]
         response = await client.get(f"/api/agents/{agent_id}")
         assert response.status_code == 200
         
@@ -75,7 +75,7 @@ class TestAPIIntegration:
         # The response has an 'agent' wrapper
         assert "agent" in agent_data
         assert "success" in agent_data
-        assert "id" in agent_data["agent"]
+        assert "agent_id" in agent_data["agent"]
         assert "name" in agent_data["agent"]
         assert "description" in agent_data["agent"]
         assert "capabilities" in agent_data["agent"]

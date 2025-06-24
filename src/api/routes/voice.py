@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from src.services.grc_agent_squad import GRCAgentSquad
 from src.services.voice_processor import VoiceProcessor
-from src.utils.config import settings
+from src.utils.settings import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

@@ -16,7 +16,7 @@ class TestChatIntegration:
     """Integration tests for GRC Agent Squad chat functionality."""
 
     @pytest.fixture
-    async def tool_registry(self):
+    def tool_registry(self):
         """Create a tool registry for testing."""
         registry = Mock(spec=ToolRegistry)
         registry.get_tools = Mock(return_value=[])
@@ -24,7 +24,7 @@ class TestChatIntegration:
         return registry
 
     @pytest.fixture
-    async def grc_squad(self, tool_registry):
+    def grc_squad(self, tool_registry):
         """Create a GRC Agent Squad instance."""
         squad = GRCAgentSquad(tool_registry=tool_registry)
         return squad

@@ -86,17 +86,25 @@ async def list_agents(grc_squad: GRCAgentSquad = Depends(get_grc_squad)):
 async def get_grc_agent_types(grc_squad: GRCAgentSquad = Depends(get_grc_squad)):
     """Get information about GRC agent types and their specializations."""
     try:
+        from ...agents.agent_config_loader import get_default_config_registry
+        
         agents = await grc_squad.list_agents()
         agent_types = []
         
+        # Get file-based configuration registry
+        config_registry = get_default_config_registry()
+        
         for agent in agents:
+            agent_id = agent.get("personality", "")
+            config_class = config_registry.get_config(agent_id)
+            
             agent_types.append({
                 "id": agent["id"],
                 "name": agent["name"], 
                 "personality": agent["personality"],
                 "description": agent["description"],
                 "capabilities": agent["capabilities"],
-                "use_cases": _get_agent_use_cases(agent["personality"])
+                "use_cases": config_class.get_use_cases() if config_class else _get_agent_use_cases(agent["personality"])
             })
         
         return {
@@ -376,6 +384,107 @@ async def get_personality_presets():
         "presets": presets,
         "total": len(presets)
     }
+
+
+@router.get("/config/details")
+async def get_detailed_agent_config(grc_squad: GRCAgentSquad = Depends(get_grc_squad)):
+    """Get detailed configuration information for all agents including model IDs, prompts, and settings."""
+    try:
+        from ...agents.agent_config_loader import get_default_config_registry
+        
+        agents = await grc_squad.list_agents()
+        detailed_configs = []
+        
+        # Get file-based configuration registry
+        config_registry = get_default_config_registry()
+        
+        # Get detailed configuration for each agent
+        for agent in agents:
+            agent_id = agent.get("personality", "")
+            config_class = config_registry.get_config(agent_id)
+            
+            if config_class:
+                # Get system prompt
+                system_prompt = config_class.get_system_prompt()
+                
+                # Get voice settings
+                voice_settings = config_class.get_voice_settings()
+                
+                # Get specialized tools
+                specialized_tools = config_class.get_specialized_tools()
+                
+                # Get model settings
+                model_settings = config_class.get_model_settings()
+                
+                detailed_config = {
+                    "id": agent["id"],
+                    "name": agent["name"],
+                    "description": agent["description"],
+                    "personality": agent["personality"], 
+                    "capabilities": agent["capabilities"],
+                    "status": agent["status"],
+                    "created_at": agent.get("created_at", ""),
+                    
+                    # Detailed configuration from file
+                    "model_id": model_settings.get("model_id", "anthropic.claude-3-5-sonnet-20241022-v2:0"),
+                    "model_provider": model_settings.get("model_provider", "AWS Bedrock"),
+                    "inference_config": model_settings.get("inference_config", {
+                        "maxTokens": 4096,
+                        "temperature": 0.7,
+                        "topP": 0.9
+                    }),
+                    "memory_enabled": model_settings.get("memory_enabled", True),
+                    "streaming": model_settings.get("streaming", False),
+                    
+                    # Voice configuration
+                    "voice_settings": voice_settings,
+                    "voice_enabled": (
+                        "VOICE_PROCESSING" in agent["capabilities"] or 
+                        "voice_processing" in agent["capabilities"]
+                    ),
+                    
+                    # System prompt and role
+                    "system_prompt": system_prompt,
+                    "system_prompt_length": len(system_prompt),
+                    
+                    # Tools and capabilities
+                    "specialized_tools": specialized_tools,
+                    "tool_count": len(specialized_tools),
+                    
+                    # Role-specific information from config file
+                    "use_cases": config_class.get_use_cases(),
+                    "primary_role": _get_agent_primary_role(agent["personality"]),
+                    
+                    # Technical details
+                    "conversation_memory": True,
+                    "session_persistence": True,
+                    "framework": model_settings.get("framework", "agent-squad"),
+                    "llm_framework": model_settings.get("llm_framework", "BedrockLLMAgent")
+                }
+                
+                detailed_configs.append(detailed_config)
+        
+        return {
+            "success": True,
+            "detailed_configs": detailed_configs,
+            "total": len(detailed_configs),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error("Failed to get detailed agent config", error=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to get detailed agent config: {str(e)}")
+
+
+def _get_agent_primary_role(personality: str) -> str:
+    """Get the primary role description for each agent personality."""
+    role_map = {
+        "empathetic_interviewer": "Information Collection & Interview Specialist",
+        "authoritative_compliance": "Regulatory Compliance Authority",
+        "analytical_risk_expert": "Risk Assessment & Analysis Expert", 
+        "strategic_governance": "Governance Strategy & Policy Specialist"
+    }
+    return role_map.get(personality, "General GRC Assistant")
 
 
  
