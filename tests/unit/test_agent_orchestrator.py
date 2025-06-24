@@ -53,10 +53,10 @@ class TestGRCAgentSquad:
         # Verify all expected agents are present
         agent_personalities = [agent["agent_id"] for agent in agents]
         expected_personalities = [
-            "empathetic_interviewer_advanced",
-            "authoritative_compliance_advanced", 
-            "analytical_risk_expert_advanced",
-            "strategic_governance_advanced"
+                    "empathetic_interviewer_executive",
+        "authoritative_compliance_executive",
+        "analytical_risk_expert_executive",
+        "strategic_governance_executive"
         ]
         
         for personality in expected_personalities:
@@ -68,28 +68,28 @@ class TestGRCAgentSquad:
         agents = await grc_squad.list_agents()
         
         # Check Emma - Information Collector
-        emma = next((a for a in agents if a["agent_id"] == "empathetic_interviewer_advanced"), None)
+        emma = next((a for a in agents if a["agent_id"] == "empathetic_interviewer_executive"), None)
         assert emma is not None
         assert "Emma" in emma["name"]
         assert "Information Collector" in emma["name"] or "Senior Information Collector" in emma["name"]
         assert "empathetic" in emma["description"].lower() or "interview" in emma["description"].lower()
 
         # Check Dr. Morgan - Compliance Authority
-        morgan = next((a for a in agents if a["agent_id"] == "authoritative_compliance_advanced"), None)
+        morgan = next((a for a in agents if a["agent_id"] == "authoritative_compliance_executive"), None)
         assert morgan is not None
         assert "Morgan" in morgan["name"]
         assert "Compliance" in morgan["name"]
         assert "compliance" in morgan["description"].lower() or "authority" in morgan["description"].lower()
 
         # Check Alex - Risk Expert
-        alex = next((a for a in agents if a["agent_id"] == "analytical_risk_expert_advanced"), None)
+        alex = next((a for a in agents if a["agent_id"] == "analytical_risk_expert_executive"), None)
         assert alex is not None
         assert "Alex" in alex["name"]
         assert "Risk" in alex["name"]
         assert "risk" in alex["description"].lower() or "analytical" in alex["description"].lower()
 
         # Check Sam - Governance Strategist
-        sam = next((a for a in agents if a["agent_id"] == "strategic_governance_advanced"), None)
+        sam = next((a for a in agents if a["agent_id"] == "strategic_governance_executive"), None)
         assert sam is not None
         assert "Sam" in sam["name"]
         assert "Governance" in sam["name"]
@@ -99,12 +99,12 @@ class TestGRCAgentSquad:
     async def test_get_agent_info(self, grc_squad):
         """Test getting information about a specific agent."""
         # Test with empathetic interviewer
-        agent_info = await grc_squad.get_agent_info("empathetic_interviewer_advanced")
+        agent_info = await grc_squad.get_agent_info("empathetic_interviewer_executive")
         
         assert agent_info is not None
-        assert agent_info["agent_id"] == "empathetic_interviewer_advanced"
+        assert agent_info["agent_id"] == "empathetic_interviewer_executive"
         assert "Emma" in agent_info["name"]
-        assert agent_info["agent_id"] == "empathetic_interviewer_advanced"
+        assert agent_info["agent_id"] == "empathetic_interviewer_executive"
         assert isinstance(agent_info["capabilities"], list)
 
     @pytest.mark.asyncio

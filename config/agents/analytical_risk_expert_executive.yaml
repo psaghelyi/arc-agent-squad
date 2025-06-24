@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=../agent-schema.json
-id: analytical_risk_expert_advanced
+id: analytical_risk_expert_executive
 name: "Alex - Chief Risk Officer"
 description: >-
   Executive-level risk analysis expert specializing in strategic risk assessment, 

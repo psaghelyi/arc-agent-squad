@@ -62,14 +62,7 @@ class GRCAgentSquad:
                         available_tools=len(self.tool_registry.list_tools()))
     
     def _initialize_grc_agents(self):
-        """Initialize the four specialized GRC agents with Bedrock memory configuration."""
-        
-        # Configure memory settings via inference_config for Bedrock agents
-        memory_inference_config = {
-            "maxTokens": 4096,
-            "temperature": 0.7,
-            "topP": 0.9
-        }
+        """Initialize the four specialized GRC agents using YAML configurations."""
         
         # Configure AWS session using shared AWSConfig implementation
         try:
@@ -79,90 +72,75 @@ class GRCAgentSquad:
             self.logger.error(f"Failed to configure AWS session or Bedrock client: {e}")
             raise
         
+        # Get file-based configuration registry
+        config_registry = get_default_config_registry()
+        
         # Create classifier first (needed for orchestrator)
+        # Use default agent's model settings for classifier
+        default_config = config_registry.get_config("empathetic_interviewer_executive")
+        default_model_settings = default_config.get_model_settings() if default_config else {}
+        classifier_model_id = default_model_settings.get('model_id', "anthropic.claude-3-5-sonnet-20241022-v2:0")
+        
         self.logger.info("Creating Bedrock classifier...")
         classifier = BedrockClassifier(BedrockClassifierOptions(
-            model_id="anthropic.claude-3-5-sonnet-20241022-v2:0",
+            model_id=classifier_model_id,
             client=bedrock_client,
             inference_config={'maxTokens': 100, 'temperature': 0.1}
         ))
         
-        # 1. Information Collector Agent (Empathetic Interviewer)
-        empathetic_interviewer = BedrockLLMAgent(BedrockLLMAgentOptions(
-            name="Emma - Information Collector",
-            description="Empathetic interviewer specialized in conducting thorough audit interviews, stakeholder consultations, and gathering detailed compliance information. I help with interviews, data collection, and creating comfortable environments for information gathering.",
-            model_id="anthropic.claude-3-5-sonnet-20241022-v2:0",
-            streaming=False,
-            inference_config=memory_inference_config,
-            save_chat=True,  # Enables built-in conversation history
-            client=bedrock_client  # Use programmatically extracted credentials
-        ))
+        # Create agents using their YAML configurations
+        agents = {}
+        agent_configs = [
+            ("empathetic_interviewer_executive", "empathetic_interviewer"),
+            ("authoritative_compliance_executive", "authoritative_compliance"), 
+            ("analytical_risk_expert_executive", "analytical_risk_expert"),
+            ("strategic_governance_executive", "strategic_governance")
+        ]
         
-        # 2. Official Compliance Agent (Authoritative Compliance)
-        authoritative_compliance = BedrockLLMAgent(BedrockLLMAgentOptions(
-            name="Dr. Morgan - Compliance Authority",
-            description="Official compliance agent providing definitive regulatory guidance, compliance interpretations, and formal documentation. I specialize in regulatory requirements, compliance standards, and official policy interpretations.",
-            model_id="anthropic.claude-3-5-sonnet-20241022-v2:0",
-            streaming=False,
-            inference_config=memory_inference_config,
-            save_chat=True,
-            client=bedrock_client  # Use programmatically extracted credentials
-        ))
-        
-        # 3. Risk Expert Agent (Analytical Risk Expert)
-        analytical_risk_expert = BedrockLLMAgent(BedrockLLMAgentOptions(
-            name="Alex - Risk Analysis Expert",
-            description="Analytical risk expert specializing in risk assessment, analysis, and mitigation strategies. I focus on risk modeling, threat analysis, control evaluation, and developing comprehensive risk management strategies.",
-            model_id="anthropic.claude-3-5-sonnet-20241022-v2:0",
-            streaming=False,
-            inference_config=memory_inference_config,
-            save_chat=True,
-            client=bedrock_client  # Use programmatically extracted credentials
-        ))
-        
-        # 4. Governance Specialist Agent (Strategic Governance)
-        strategic_governance = BedrockLLMAgent(BedrockLLMAgentOptions(
-            name="Sam - Governance Strategist",
-            description="Strategic governance specialist focused on governance frameworks, policy development, and board-level guidance. I provide strategic advice on governance structures, policy creation, and organizational governance best practices.",
-            model_id="anthropic.claude-3-5-sonnet-20241022-v2:0",
-            streaming=False,
-            inference_config=memory_inference_config,
-            save_chat=True,
-            client=bedrock_client  # Use programmatically extracted credentials
-        ))
+        for config_id, agent_key in agent_configs:
+            config = config_registry.get_config(config_id)
+            if not config:
+                self.logger.error(f"No configuration found for agent: {config_id}")
+                continue
+                
+            # Extract model settings from YAML configuration
+            model_settings = config.get_model_settings()
+            model_id = model_settings.get('model_id', "anthropic.claude-3-5-sonnet-20241022-v2:0")
+            inference_config = model_settings.get('inference_config', {
+                "maxTokens": 4096,
+                "temperature": 0.7,
+                "topP": 0.9
+            })
+            streaming = model_settings.get('streaming', False)
+            memory_enabled = model_settings.get('memory_enabled', True)
+            
+            # Create agent using configuration from YAML
+            agent = BedrockLLMAgent(BedrockLLMAgentOptions(
+                name=config.config_data.get('name', config_id),
+                description=config.config_data.get('description', ''),
+                model_id=model_id,
+                streaming=streaming,
+                inference_config=inference_config,
+                save_chat=memory_enabled,  # Use memory_enabled from config
+                client=bedrock_client
+            ))
+            
+            # Set system prompt from configuration
+            agent.set_system_prompt(config.get_system_prompt())
+            
+            agents[agent_key] = agent
+            self.logger.info(f"Created agent '{config_id}' with model '{model_id}'")
         
         # Create orchestrator with classifier and default agent
         self.logger.info("Creating agent squad orchestrator...")
         self.squad = AgentSquad(
             classifier=classifier,
-            default_agent=empathetic_interviewer  # Default to the empathetic interviewer
+            default_agent=agents.get("empathetic_interviewer")  # Default to the empathetic interviewer
         )
         
-        # Get file-based configuration registry
-        config_registry = get_default_config_registry()
-        
-        # Set system prompts for each agent using file-based configurations
-        empathetic_config = config_registry.get_config("empathetic_interviewer_advanced")
-        if empathetic_config:
-            empathetic_interviewer.set_system_prompt(empathetic_config.get_system_prompt())
-        
-        compliance_config = config_registry.get_config("authoritative_compliance_advanced")
-        if compliance_config:
-            authoritative_compliance.set_system_prompt(compliance_config.get_system_prompt())
-        
-        risk_config = config_registry.get_config("analytical_risk_expert_advanced")
-        if risk_config:
-            analytical_risk_expert.set_system_prompt(risk_config.get_system_prompt())
-        
-        governance_config = config_registry.get_config("strategic_governance_advanced")
-        if governance_config:
-            strategic_governance.set_system_prompt(governance_config.get_system_prompt())
-        
         # Add agents to the squad
-        self.squad.add_agent(empathetic_interviewer)
-        self.squad.add_agent(authoritative_compliance)
-        self.squad.add_agent(analytical_risk_expert)
-        self.squad.add_agent(strategic_governance)
+        for agent in agents.values():
+            self.squad.add_agent(agent)
         
         self.logger.info("GRC agents added to squad", agent_count=len(self.squad.agents))
         

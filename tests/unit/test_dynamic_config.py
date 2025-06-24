@@ -35,7 +35,7 @@ class TestSettings:
         
         # Test agent configuration defaults
         assert test_settings.agent_config_directory == "config/agents"
-        assert "empathetic_interviewer_advanced" in test_settings.active_agents
+        assert "empathetic_interviewer_executive" in test_settings.active_agents
         assert test_settings.default_agent == "empathetic_interviewer"
         
         # Test API defaults
@@ -54,10 +54,10 @@ class TestSettings:
         
         assert isinstance(agents_list, list)
         assert len(agents_list) == 4
-        assert "empathetic_interviewer_advanced" in agents_list
-        assert "authoritative_compliance_advanced" in agents_list
-        assert "analytical_risk_expert_advanced" in agents_list
-        assert "strategic_governance_advanced" in agents_list
+        assert "empathetic_interviewer_executive" in agents_list
+        assert "authoritative_compliance_executive" in agents_list
+        assert "analytical_risk_expert_executive" in agents_list
+        assert "strategic_governance_executive" in agents_list
     
     def test_cors_origins_list_property(self):
         """Test the cors_origins_list property conversion."""

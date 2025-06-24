@@ -400,7 +400,7 @@ async def get_detailed_agent_config(grc_squad: GRCAgentSquad = Depends(get_grc_s
         
         # Get detailed configuration for each agent
         for agent in agents:
-            agent_id = agent.get("personality", "")
+            agent_id = agent.get("agent_id", "")
             config_class = config_registry.get_config(agent_id)
             
             if config_class:
@@ -417,12 +417,12 @@ async def get_detailed_agent_config(grc_squad: GRCAgentSquad = Depends(get_grc_s
                 model_settings = config_class.get_model_settings()
                 
                 detailed_config = {
-                    "id": agent["id"],
+                    "id": agent.get("agent_id", ""),
                     "name": agent["name"],
                     "description": agent["description"],
-                    "personality": agent["personality"], 
+                    "personality": agent.get("personality", {}), 
                     "capabilities": agent["capabilities"],
-                    "status": agent["status"],
+                    "status": agent.get("status", "active"),
                     "created_at": agent.get("created_at", ""),
                     
                     # Detailed configuration from file
@@ -453,7 +453,7 @@ async def get_detailed_agent_config(grc_squad: GRCAgentSquad = Depends(get_grc_s
                     
                     # Role-specific information from config file
                     "use_cases": config_class.get_use_cases(),
-                    "primary_role": _get_agent_primary_role(agent["personality"]),
+                    "primary_role": _get_agent_primary_role(agent_id),
                     
                     # Technical details
                     "conversation_memory": True,
@@ -480,9 +480,13 @@ def _get_agent_primary_role(personality: str) -> str:
     """Get the primary role description for each agent personality."""
     role_map = {
         "empathetic_interviewer": "Information Collection & Interview Specialist",
+        "empathetic_interviewer_executive": "Senior Information Collection & Executive Interview Specialist",
         "authoritative_compliance": "Regulatory Compliance Authority",
-        "analytical_risk_expert": "Risk Assessment & Analysis Expert", 
-        "strategic_governance": "Governance Strategy & Policy Specialist"
+        "authoritative_compliance_executive": "Chief Compliance Officer & Regulatory Authority",
+        "analytical_risk_expert": "Risk Assessment & Analysis Expert",
+        "analytical_risk_expert_executive": "Chief Risk Officer & Strategic Risk Management Expert", 
+        "strategic_governance": "Governance Strategy & Policy Specialist",
+        "strategic_governance_executive": "Chief Governance Officer & Strategic Governance Authority"
     }
     return role_map.get(personality, "General GRC Assistant")
 

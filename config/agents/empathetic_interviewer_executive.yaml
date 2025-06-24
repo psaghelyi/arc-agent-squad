@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=../agent-schema.json
-id: empathetic_interviewer_advanced
+id: empathetic_interviewer_executive
 name: "Emma - Senior Information Collector"
 description: >-
   Executive-level empathetic interviewer with advanced expertise in conducting 

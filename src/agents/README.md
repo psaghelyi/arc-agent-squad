@@ -4,12 +4,12 @@ This module contains agent-specific configurations, templates, and utilities tha
 
 ## Overview
 
-The GRC Agent Squad uses the agent-squad framework for core orchestration and agent management, but this `src/agents/` module provides specialized configurations and tools for the four GRC agents:
+The GRC Agent Squad uses the agent-squad framework for core orchestration and agent management. Agent configurations are managed through YAML files in the `/config/agents/` directory and loaded via the file-based configuration system:
 
-- **Emma** - Information Collector (empathetic_interviewer)
-- **Dr. Morgan** - Compliance Authority (authoritative_compliance)
-- **Alex** - Risk Analysis Expert (analytical_risk_expert)
-- **Sam** - Governance Strategist (strategic_governance)
+- **Emma** - Information Collector (empathetic_interviewer / empathetic_interviewer_executive)
+- **Dr. Morgan** - Compliance Authority (authoritative_compliance / authoritative_compliance_executive)
+- **Alex** - Risk Analysis Expert (analytical_risk_expert / analytical_risk_expert_executive)
+- **Sam** - Governance Strategist (strategic_governance / strategic_governance_executive)
 
 ## Module Structure
 
@@ -17,33 +17,39 @@ The GRC Agent Squad uses the agent-squad framework for core orchestration and ag
 src/agents/
 ├── README.md                    # This file
 ├── __init__.py                  # Module initialization
-├── grc_agent_configs.py         # Agent configuration classes
+├── agent_config_loader.py       # File-based YAML configuration loader
 └── interview_templates.py       # Interview templates for GRC scenarios
 ```
 
 ## Components
 
-### Agent Configuration Classes (`grc_agent_configs.py`)
+### Agent Configuration System (`agent_config_loader.py`)
 
-Centralized configuration classes for each GRC agent that provide:
+File-based configuration system that loads agent configurations from YAML files in `/config/agents/`:
 
-- **System Prompts**: Personality and behavior definitions
-- **Capabilities**: List of agent capabilities (voice, text, analysis, etc.)
-- **Specialized Tools**: Agent-specific tool requirements
-- **Metadata**: Agent identification and description
+- **System Prompts**: Complete prompt templates defined in YAML
+- **Capabilities**: Agent capability lists
+- **Voice Settings**: Voice synthesis configuration
+- **Model Settings**: Complete LLM inference configuration
+- **Specialized Tools**: Agent-specific tool lists
+- **Personality Traits**: Behavioral characteristics
 
 **Usage Example:**
 ```python
-from src.agents.grc_agent_configs import EmpathicInterviewerConfig, GRCAgentConfigRegistry
+from src.agents.agent_config_loader import get_default_config_registry
 
-# Get system prompt for Emma
-prompt = EmpathicInterviewerConfig.get_system_prompt()
+# Get the configuration registry
+registry = get_default_config_registry()
+
+# Get configuration for a specific agent
+config = registry.get_config("empathetic_interviewer_executive")
+system_prompt = config.get_system_prompt()
 
 # Get all agent configurations
-all_configs = GRCAgentConfigRegistry.get_all_configs()
+all_configs = registry.get_all_configs()
 
 # Build metadata for API responses
-metadata = GRCAgentConfigRegistry.build_agent_metadata("empathetic_interviewer")
+metadata = registry.build_agent_metadata("empathetic_interviewer_executive")
 ```
 
 ### Interview Templates (`interview_templates.py`)
@@ -72,9 +78,9 @@ questions = guide.get_questions_for_section("opening_questions")
 
 This module **complements** rather than replaces the agent-squad framework:
 
-1. **Configuration**: Provides centralized agent configurations that can be used when initializing BedrockLLMAgent instances
+1. **Configuration**: File-based YAML configurations are automatically loaded when initializing BedrockLLMAgent instances
 2. **Templates**: Offers structured interview templates that agents can reference during conversations
-3. **Utilities**: Supplies helper functions for agent-specific operations
+3. **Validation**: JSON schema validation ensures configuration integrity
 
 The actual agent orchestration, routing, and conversation management is handled by the agent-squad framework in `src/services/grc_agent_squad.py`.
 

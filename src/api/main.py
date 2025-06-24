@@ -106,10 +106,10 @@ async def get_api_info() -> Dict[str, Any]:
             "Tool integration support"
         ],
         "endpoints": {
-            "agents": "/api/agents",
+            "agents": "/api/agents/",
             "chat": "/api/agents/chat", 
-            "voice": "/api/voice",
-            "health": "/health",
+            "voice": "/api/voice/",
+            "health": "/health/",
             "docs": "/docs"
         }
     }
@@ -120,12 +120,29 @@ app.include_router(agents.router, prefix="/api/agents", tags=["agents"])
 app.include_router(health.router, prefix="/health", tags=["health"])
 app.include_router(voice.router, prefix="/api/voice", tags=["voice"])
 
-# Add direct health endpoint for convenience (without trailing slash)
+# Add convenience endpoints (without trailing slash) that redirect to canonical versions
+@app.get("/api/agents")
+async def agents_redirect():
+    """Redirect to canonical agents endpoint with trailing slash."""
+    from fastapi import Response
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/api/agents/", status_code=301)
+
 @app.get("/health")
 async def health_redirect():
-    """Direct health check endpoint (redirects to /health/)."""
-    from .routes.health import root
-    return await root()
+    """Redirect to canonical health endpoint with trailing slash."""
+    from fastapi import Response
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/health/", status_code=301)
+
+@app.get("/api/voice")
+async def voice_redirect():
+    """Redirect to canonical voice endpoint with trailing slash."""
+    from fastapi import Response
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/api/voice/", status_code=301)
+
+
 
 # Mount static files (must come last to avoid overriding API routes)
 try:
