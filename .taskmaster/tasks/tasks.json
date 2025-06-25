@@ -254,11 +254,106 @@
         ],
         "status": "pending",
         "subtasks": []
+      },
+      {
+        "id": 20,
+        "title": "File-Based Agent Configuration System",
+        "description": "Implement YAML-based agent configuration system to replace legacy modular prompt system.",
+        "details": "✅ COMPLETED: Successfully implemented a comprehensive file-based agent configuration system using YAML files. Key achievements: Created JSON schema validation for agent configurations, implemented FileBasedAgentConfig loader with hot reloading capabilities, migrated all agents from *_advanced to *_executive naming for clarity, removed legacy prompt_components.py and grc_agent_configs.py (864 lines of technical debt), made agent initialization fully configuration-driven by extracting model settings from YAML, updated all agent references across codebase to use new system. System now supports complete agent definitions including personalities, model settings, voice configurations, specialized tools, and use cases.",
+        "testStrategy": "Verify all agents load correctly from YAML configurations and validate schema compliance.",
+        "priority": "high",
+        "dependencies": [
+          3
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 21,
+        "title": "Organization-Specific RAG Knowledge Base",
+        "description": "Build separate RAG knowledge bases for each organization using Diligent HighBond API data traversal.",
+        "details": "Implement a secure, organization-isolated RAG system that systematically traverses the Diligent HighBond API (https://docs-apis.highbond.com/public.html) to build knowledge bases. Key requirements: separate vector databases per organization to prevent data leakage, systematic API traversal to collect board documents, meeting minutes, compliance reports, and governance data, embedding generation for all collected documents, secure data handling with encryption at rest and in transit, organization-specific access controls and authentication, incremental updates to keep knowledge bases current, integration with GRC agents for contextual responses. This enables agents to provide organization-specific insights while maintaining strict data isolation.",
+        "testStrategy": "Test with multiple mock organizations to verify data isolation, validate API traversal completeness, and ensure knowledge retrieval accuracy.",
+        "priority": "high",
+        "dependencies": [
+          13
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 22,
+        "title": "Streaming Chat Response Implementation",
+        "description": "Implement real-time streaming for chat responses instead of displaying complete responses at once.",
+        "details": "Replace the current one-shot response display with streaming text output for better user experience. Implementation requirements: modify chat API endpoints to support Server-Sent Events (SSE) or WebSocket streaming, update agent response handling to stream tokens as they are generated, implement client-side streaming display with typewriter effect, add streaming controls (pause, resume, stop), ensure streaming works with all four GRC agents, maintain conversation context during streaming, handle streaming errors gracefully with fallback to complete response, optimize streaming performance for low latency. This will make conversations feel more natural and responsive.",
+        "testStrategy": "Test streaming performance across different network conditions and validate smooth text display without interruptions.",
+        "priority": "medium",
+        "dependencies": [
+          5,
+          20
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 23,
+        "title": "Parallel Streaming Voice and Text Processing",
+        "description": "Implement parallel streaming for voice synthesis and text display with minimal delay between them.",
+        "details": "Enable simultaneous streaming of text display and voice synthesis for optimal user experience. Key features: parallel processing pipeline where text streaming starts immediately while voice synthesis begins concurrently, minimal delay between text appearance and corresponding voice output, synchronized streaming with text-to-speech alignment, ability to run voice and text streams independently or in parallel, voice streaming using chunked audio delivery for continuous playback, adaptive streaming based on network conditions and device capabilities, seamless handoff between text-only and voice-enabled modes, buffering strategies to prevent audio dropouts during streaming. This creates a natural conversation flow where users see and hear responses simultaneously.",
+        "testStrategy": "Test parallel streaming performance, measure synchronization accuracy, and validate smooth audio playback during concurrent text streaming.",
+        "priority": "medium",
+        "dependencies": [
+          9,
+          22
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 24,
+        "title": "Implement Real-Time Synchronization and Automated Knowledge Extraction for RAG",
+        "description": "Extend the organization-specific RAG knowledge base system by adding a module for secure, real-time synchronization and automated knowledge extraction from the Diligent HighBond API.",
+        "details": "Develop a synchronization module that continuously traverses the HighBond API to automatically extract and update data in the corresponding organization-specific RAG instance. The module must handle secure data isolation by ensuring that vector databases remain separate for each organization, implement error handling and API rate-limit management, and utilize encryption for data at rest and in transit. Additionally, integrate logging and monitoring to track extraction progress, synchronization status, and any API communication issues. This module will bridge the gap between raw API data and the structured, secure knowledge bases established in the base system.",
+        "testStrategy": "Simulate multiple organizations with distinct data sets to verify that each RAG instance receives its correct data with no leakage. Test API traversal accuracy, real-time update functionality, and synchronization resilience under various network and load conditions. Validate encryption during data transfers and enforce isolation policies through penetration testing and monitoring logs for correct operational behavior.",
+        "status": "pending",
+        "dependencies": [
+          13,
+          21
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 25,
+        "title": "Enhance Chat Interface with Real-Time Streaming Text Responses",
+        "description": "Replace the existing one-shot text display in the chat interface with a real-time streaming output that progressively reveals AI-generated text.",
+        "details": "Implement front-end modifications to support real-time text streaming by integrating with the backend streaming endpoints. This includes updating the chat UI to progressively display text as it is received, using effects like typewriter animation or a fade-in mechanism. Collaborate with the backend team to ensure that the API endpoints correctly deliver streaming data packets, manage conversation context, and handle edge cases such as reconnections in the event of network interruptions. Ensure responsiveness and accessibility across different devices and browsers.",
+        "testStrategy": "Perform end-to-end testing by simulating real-world network conditions to verify that text is streamed smoothly without delays or data loss. Test UI responsiveness and the continuity of the streaming effect, including handling of user interactions (e.g., scrolling, pausing, or resuming the stream). Validate error handling by simulating network interruptions and ensuring that appropriate messages are displayed. Conduct cross-browser and device compatibility tests to guarantee a consistent user experience.",
+        "status": "pending",
+        "dependencies": [
+          22
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 26,
+        "title": "Implement Streaming Voice Output for Audio Responses",
+        "description": "Develop a real-time voice synthesis module that streams audio responses concurrently with text, ensuring minimal delay and a natural conversational experience.",
+        "details": "Integrate a robust text-to-speech (TTS) engine capable of generating audio in real-time and in small, streamable chunks. Architect the solution to synchronize the audio stream with the text output so that users can hear responses as they're generated. Leverage the existing WebRTC infrastructure (Task 10) for efficient audio delivery and coordinate with the parallel streaming framework (Task 23) to manage simultaneous voice and text processing. Include error handling for network fluctuations to ensure continuous, smooth audio playback, and configure buffering strategies to minimize delay between text and synthesized speech.",
+        "testStrategy": "Conduct integration tests to verify that voice synthesis starts concurrently with text streaming. Validate that audio chunks are delivered continuously without noticeable delay and that synchronization between text and voice remains intact across different network conditions. Use automated scripts to simulate various network scenarios, perform user acceptance testing for natural conversational experience, and include regression tests against the WebRTC module to ensure downstream impacts are managed.",
+        "status": "pending",
+        "dependencies": [
+          10,
+          23
+        ],
+        "priority": "medium",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-06-20T12:12:43.291Z",
-      "updated": "2025-06-21T21:16:12.370Z",
+      "updated": "2025-06-24T16:46:08.741Z",
       "description": "Tasks for master context"
     }
   }

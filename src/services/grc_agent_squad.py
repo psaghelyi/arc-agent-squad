@@ -22,7 +22,8 @@ from agent_squad.classifiers import BedrockClassifier, BedrockClassifierOptions
 from ..tools.tool_registry import ToolRegistry, get_default_registry
 from ..models.agent_models import AgentCapability
 from .aws_config import AWSConfig
-from ..agents.agent_config_loader import get_default_config_registry
+from src.agents.agent_config_loader import get_default_config_registry
+from src.utils.settings import settings
 
 
 class GRCAgentSquad:
@@ -75,37 +76,35 @@ class GRCAgentSquad:
         # Get file-based configuration registry
         config_registry = get_default_config_registry()
         
-        # Create classifier first (needed for orchestrator)
-        # Use default agent's model settings for classifier
-        default_config = config_registry.get_config("empathetic_interviewer_executive")
-        default_model_settings = default_config.get_model_settings() if default_config else {}
-        classifier_model_id = default_model_settings.get('model_id', "anthropic.claude-3-5-sonnet-20241022-v2:0")
-        
-        self.logger.info("Creating Bedrock classifier...")
+        # Create classifier using settings instead of hardcoded values
+        self.logger.info("Creating Bedrock classifier with settings...")
         classifier = BedrockClassifier(BedrockClassifierOptions(
-            model_id=classifier_model_id,
+            model_id=settings.classifier_model_id,
             client=bedrock_client,
-            inference_config={'maxTokens': 100, 'temperature': 0.1}
+            inference_config={
+                'maxTokens': settings.classifier_max_tokens,
+                'temperature': settings.classifier_temperature,
+                'topP': settings.classifier_top_p
+            }
         ))
         
         # Create agents using their YAML configurations
         agents = {}
-        agent_configs = [
-            ("empathetic_interviewer_executive", "empathetic_interviewer"),
-            ("authoritative_compliance_executive", "authoritative_compliance"), 
-            ("analytical_risk_expert_executive", "analytical_risk_expert"),
-            ("strategic_governance_executive", "strategic_governance")
-        ]
         
-        for config_id, agent_key in agent_configs:
-            config = config_registry.get_config(config_id)
+        # Get all available agent IDs from the config registry
+        all_agent_ids = config_registry.list_agent_ids()
+        self.logger.info(f"Found {len(all_agent_ids)} agent configurations: {all_agent_ids}")
+        
+        # Create an agent for each configuration
+        for agent_id in all_agent_ids:
+            config = config_registry.get_config(agent_id)
             if not config:
-                self.logger.error(f"No configuration found for agent: {config_id}")
+                self.logger.error(f"No configuration found for agent: {agent_id}")
                 continue
                 
             # Extract model settings from YAML configuration
             model_settings = config.get_model_settings()
-            model_id = model_settings.get('model_id', "anthropic.claude-3-5-sonnet-20241022-v2:0")
+            model_id = model_settings['model_id']
             inference_config = model_settings.get('inference_config', {
                 "maxTokens": 4096,
                 "temperature": 0.7,
@@ -116,7 +115,7 @@ class GRCAgentSquad:
             
             # Create agent using configuration from YAML
             agent = BedrockLLMAgent(BedrockLLMAgentOptions(
-                name=config.config_data.get('name', config_id),
+                name=config.config_data.get('name', agent_id),
                 description=config.config_data.get('description', ''),
                 model_id=model_id,
                 streaming=streaming,
@@ -125,17 +124,31 @@ class GRCAgentSquad:
                 client=bedrock_client
             ))
             
+            # Set the agent ID to the YAML config ID
+            agent.id = agent_id
+            
             # Set system prompt from configuration
             agent.set_system_prompt(config.get_system_prompt())
             
-            agents[agent_key] = agent
-            self.logger.info(f"Created agent '{config_id}' with model '{model_id}'")
+            agents[agent_id] = agent
+            self.logger.info(f"Created agent '{agent_id}' with model '{model_id}'")
         
         # Create orchestrator with classifier and default agent
         self.logger.info("Creating agent squad orchestrator...")
+        
+        # Use the first agent as default if available, or pick a specific one if needed
+        default_agent_id = next(iter(agents.keys())) if agents else None
+        default_agent = agents.get(default_agent_id) if default_agent_id else None
+        
+        if not default_agent:
+            self.logger.error("No agents created, cannot initialize squad")
+            raise ValueError("No agents available for GRC Agent Squad")
+            
+        self.logger.info(f"Using '{default_agent_id}' as default agent")
+        
         self.squad = AgentSquad(
             classifier=classifier,
-            default_agent=agents.get("empathetic_interviewer")  # Default to the empathetic interviewer
+            default_agent=default_agent
         )
         
         # Add agents to the squad
@@ -163,6 +176,12 @@ class GRCAgentSquad:
             Response with agent selection and message
         """
         try:
+            # Check if a direct agent_id is specified in the context
+            direct_agent_id = None
+            if context and "agent_id" in context:
+                direct_agent_id = context["agent_id"]
+                self.logger.info(f"Direct agent ID specified in context: {direct_agent_id}")
+            
             # Include response type in the user input for agent awareness
             enhanced_user_input = user_input
             if context and context.get("response_type"):
@@ -183,13 +202,20 @@ class GRCAgentSquad:
             # Extract response text based on agent-squad response format
             response_text = ""
             selected_agent_name = "No Agent"
+            selected_agent_id = direct_agent_id if direct_agent_id else "N/A"  # Use direct_agent_id if specified
             confidence = None  # Initialize as None for API compatibility
             
             # Get agent selection metadata
             if hasattr(response, 'metadata') and response.metadata:
                 selected_agent_name = getattr(response.metadata, 'agent_name', 'No Agent')
+                
+                # Use the agent ID directly from the metadata if available and not overridden by direct_agent_id
+                if not direct_agent_id and hasattr(response.metadata, 'agent_id'):
+                    selected_agent_id = getattr(response.metadata, 'agent_id', 'N/A')
+                    self.logger.info(f"Selected agent ID from metadata: {selected_agent_id}")
+                
                 # Convert confidence to float or None for API compatibility
-                raw_confidence = getattr(response.metadata, 'confidence', None)
+                raw_confidence = response.metadata.additional_params.get('confidence', None)
                 if isinstance(raw_confidence, (int, float)):
                     confidence = float(raw_confidence)
                 elif isinstance(raw_confidence, str) and raw_confidence.replace('.', '').isdigit():
@@ -219,10 +245,12 @@ class GRCAgentSquad:
             else:
                 response_text = "No response from agent"
             
+            self.logger.info(f"Processed request with agent ID: {selected_agent_id}, name: {selected_agent_name}")
+            
             return {
                 "success": True,
                 "agent_selection": {
-                    "agent_id": "auto_selected",
+                    "agent_id": selected_agent_id,
                     "agent_name": selected_agent_name,
                     "confidence": confidence,
                     "reasoning": "Selected by agent-squad orchestration with Bedrock memory"
@@ -233,7 +261,8 @@ class GRCAgentSquad:
             }
             
         except Exception as e:
-            self.logger.error("Failed to process request", 
+            error_msg = f"Failed to process request: {str(e)}"
+            self.logger.error(error_msg, 
                             error=str(e), 
                             session_id=session_id,
                             user_input=user_input[:100])
@@ -242,7 +271,7 @@ class GRCAgentSquad:
                 "agent_selection": None,
                 "agent_response": None,
                 "session_id": session_id,
-                "error": f"Failed to process request: {str(e)}"
+                "error": error_msg
             }
     
     async def list_agents(self) -> List[Dict[str, Any]]:

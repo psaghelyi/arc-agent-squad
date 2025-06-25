@@ -546,6 +546,7 @@
             <button class="btn btn-primary" onclick="showAgentsModal()">Show Agents</button>
             <a href="/config.html" class="btn btn-primary" style="text-decoration: none; display: inline-block;">⚙️ Agent Configuration</a>
             <button class="btn btn-primary" onclick="testAPI()">Test API</button>
+            <button class="btn btn-primary" onclick="testVoice()">🔊 Test Voice</button>
         </div>
 
         <div class="card">
@@ -832,6 +833,67 @@
             }
         }
 
+        async function testVoice() {
+            try {
+                const response = await fetch('/api/agents/debug/voice-test');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log("Voice test results:", data);
+                
+                // Create a message with the results
+                let message = `✅ Voice Test Results:\n\n`;
+                message += `Total agents tested: ${data.total_tested}\n`;
+                message += `Successful: ${data.successful}\n\n`;
+                
+                // Add details for each agent
+                data.results.forEach(result => {
+                    const status = result.success ? "✅" : "❌";
+                    message += `${status} Agent: ${result.agent_id}\n`;
+                    
+                    if (result.success) {
+                        message += `   Voice ID: ${result.voice_id}\n`;
+                        message += `   Audio size: ${result.audio_size} bytes\n`;
+                        
+                        // If successful, play the audio
+                        if (result.has_audio_data) {
+                            // Create an audio element to play the test
+                            const audioElement = document.createElement('audio');
+                            audioElement.controls = true;
+                            audioElement.style.display = 'block';
+                            audioElement.style.margin = '10px 0';
+                            
+                            // Set source to the audio endpoint
+                            audioElement.src = `/api/agents/debug/voice-test?agent_id=${result.agent_id}`;
+                            
+                            // Add to the page
+                            const messagesContainer = document.getElementById('chat-messages');
+                            const audioContainer = document.createElement('div');
+                            audioContainer.className = 'message system-message';
+                            audioContainer.innerHTML = `<div class="message-content">
+                                <p>🎙️ Voice test for ${result.agent_id}:</p>
+                            </div>`;
+                            audioContainer.querySelector('.message-content').appendChild(audioElement);
+                            messagesContainer.appendChild(audioContainer);
+                            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                        }
+                    } else {
+                        message += `   Error: ${result.error || "Unknown error"}\n`;
+                    }
+                    message += `\n`;
+                });
+                
+                // Add the message to the chat
+                addMessage('system', message);
+                
+            } catch (error) {
+                console.error("Voice test failed:", error);
+                addMessage('system', `❌ Voice test failed: ${error.message}`, { isError: true });
+            }
+        }
+
         // Chat functionality
         let currentSessionId = generateSessionId();
         let isMuted = false;
@@ -878,31 +940,50 @@
         }
 
         function playAgentVoice(audioData, audioFormat, voiceId) {
-            if (isMuted || !audioData) {
-                console.log('🔇 Voice playback skipped:', isMuted ? 'muted' : 'no audio data');
+            if (isMuted) {
+                console.log('🔇 Voice playback skipped: audio is muted');
+                return;
+            }
+            
+            if (!audioData) {
+                console.error('❌ Voice playback failed: No audio data provided');
                 return;
             }
             
             try {
                 // Stop any currently playing audio
                 if (currentAudio) {
+                    console.log('⏹️ Stopping current audio playback');
                     currentAudio.pause();
                     currentAudio = null;
                 }
                 
+                // Validate audio data format
+                if (typeof audioData !== 'string') {
+                    console.error('❌ Invalid audio data format:', typeof audioData);
+                    return;
+                }
+                
                 console.log(`🎙️ Setting up audio playback for voice: ${voiceId}, format: ${audioFormat}`);
+                console.log(`Audio data length: ${audioData.length} characters`);
                 
                 // Create audio from base64 data
                 const audioSrc = `data:audio/${audioFormat || 'mp3'};base64,${audioData}`;
-                currentAudio = new Audio(audioSrc);
                 
-                // Set up event handlers BEFORE calling play
+                // Create a new Audio element
+                currentAudio = new Audio();
+                
+                // Set up event handlers BEFORE setting the source
                 currentAudio.onloadstart = () => {
                     console.log('🎙️ Audio loading started');
                 };
                 
                 currentAudio.oncanplay = () => {
                     console.log('🎙️ Audio ready to play');
+                    // Attempt to play immediately when canplay event fires
+                    currentAudio.play()
+                        .then(() => console.log('🎙️ Audio playback started automatically on canplay event'))
+                        .catch(err => console.error('❌ Auto-play on canplay failed:', err));
                 };
                 
                 currentAudio.onplay = () => {
@@ -923,26 +1004,35 @@
                 
                 currentAudio.onerror = (error) => {
                     hideVoiceIndicator();
-                    currentAudio = null;
                     console.error('❌ Audio playback error:', error);
-                    console.error('Audio source length:', audioSrc.length);
+                    console.error('Audio error code:', currentAudio.error ? currentAudio.error.code : 'unknown');
+                    console.error('Audio error message:', currentAudio.error ? currentAudio.error.message : 'unknown');
+                    
+                    // Try an alternative approach if the first one fails
+                    tryAlternativePlayback(audioSrc, voiceId);
                 };
                 
+                // Set the source AFTER setting up event handlers
+                currentAudio.src = audioSrc;
+                
                 // Start playing the audio
+                console.log('▶️ Attempting to play audio...');
                 currentAudio.play()
                     .then(() => {
                         console.log('🎙️ Audio play() promise resolved');
                     })
                     .catch(error => {
-                        hideVoiceIndicator();
-                        currentAudio = null;
                         console.error('❌ Failed to play audio:', error);
                         
                         // Try to provide more specific error information
                         if (error.name === 'NotAllowedError') {
-                            console.error('🚫 Audio playback blocked by browser - user interaction may be required');
+                            handleAutoplayBlocked();
                         } else if (error.name === 'NotSupportedError') {
                             console.error('🚫 Audio format not supported');
+                            tryAlternativePlayback(audioSrc, voiceId);
+                        } else {
+                            // For other errors, try alternative playback
+                            tryAlternativePlayback(audioSrc, voiceId);
                         }
                     });
                 
@@ -950,6 +1040,74 @@
                 hideVoiceIndicator();
                 console.error('❌ Error setting up audio playback:', error);
             }
+        }
+        
+        function tryAlternativePlayback(audioSrc, voiceId) {
+            console.log('Trying alternative audio playback method...');
+            try {
+                const alternativeAudio = document.createElement('audio');
+                alternativeAudio.controls = false;
+                alternativeAudio.style.display = 'none';
+                
+                alternativeAudio.onplay = () => {
+                    showVoiceIndicator();
+                    console.log('🎙️ Alternative audio playback started');
+                };
+                
+                alternativeAudio.onended = () => {
+                    hideVoiceIndicator();
+                    document.body.removeChild(alternativeAudio);
+                    console.log('✅ Alternative audio playback completed');
+                };
+                
+                alternativeAudio.onerror = (altError) => {
+                    hideVoiceIndicator();
+                    console.error('❌ Alternative audio playback failed:', altError);
+                    if (document.body.contains(alternativeAudio)) {
+                        document.body.removeChild(alternativeAudio);
+                    }
+                };
+                
+                // Add to DOM before setting source
+                document.body.appendChild(alternativeAudio);
+                alternativeAudio.src = audioSrc;
+                
+                alternativeAudio.play()
+                    .catch(altPlayError => {
+                        console.error('❌ Alternative play method failed:', altPlayError);
+                        if (document.body.contains(alternativeAudio)) {
+                            document.body.removeChild(alternativeAudio);
+                        }
+                        handleAutoplayBlocked();
+                    });
+            } catch (altError) {
+                console.error('❌ Alternative audio method failed:', altError);
+            }
+        }
+        
+        function handleAutoplayBlocked() {
+            console.error('🚫 Audio playback blocked by browser - user interaction may be required');
+            // Show a message to the user
+            const messagesContainer = document.getElementById('chat-messages');
+            const systemMessage = document.createElement('div');
+            systemMessage.className = 'message system-message';
+            systemMessage.innerHTML = '<div class="message-content">🔊 Please click anywhere on the page to enable audio playback</div>';
+            messagesContainer.appendChild(systemMessage);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Add a one-time click handler to try playing again
+            const clickHandler = () => {
+                console.log('User clicked - attempting to re-enable audio');
+                // Create and play a silent audio to unlock audio
+                const unlockAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAACAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6urq6v////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAASDs90hvAAAAAAAAAAAAAAAAAAAA//MUZAAAAAGkAAAAAAAAA0gAAAAATEFN//MUZAMAAAGkAAAAAAAAA0gAAAAARTMu//MUZAYAAAGkAAAAAAAAA0gAAAAAOTku//MUZAkAAAGkAAAAAAAAA0gAAAAANVVV");
+                unlockAudio.play().then(() => {
+                    console.log('Audio context unlocked by user interaction');
+                }).catch(e => {
+                    console.error('Failed to unlock audio context:', e);
+                });
+                document.removeEventListener('click', clickHandler);
+            };
+            document.addEventListener('click', clickHandler, { once: true });
         }
 
         async function sendMessage() {
@@ -1001,6 +1159,7 @@
                 // Phase 2: Get voice response if agent has voice capabilities and not muted
                 if (displayData.has_voice && !isMuted) {
                     try {
+                        console.log("Requesting voice response for agent:", displayData.agent_id);
                         const voiceResponse = await fetch('/api/agents/chat', {
                             method: 'POST',
                             headers: {
@@ -1009,24 +1168,37 @@
                             body: JSON.stringify({
                                 message: message,
                                 session_id: currentSessionId,
-                                response_type: 'voice'
+                                response_type: "voice",
+                                // Use the same agent that responded to the display request
+                                context: {
+                                    agent_id: displayData.agent_id
+                                }
                             })
                         });
                         
                         if (voiceResponse.ok) {
                             const voiceData = await voiceResponse.json();
+                            console.log("Voice response received:", voiceData);
                             
-                            // Play the voice response
+                            // Play the voice response if audio data is available
                             if (voiceData.audio_data) {
+                                console.log("Playing voice audio with voice_id:", voiceData.voice_id);
                                 playAgentVoice(voiceData.audio_data, voiceData.audio_format, voiceData.voice_id);
+                            } else {
+                                console.error('No audio data in voice response:', voiceData);
                             }
                         } else {
-                            console.log('Voice response failed, continuing without voice');
+                            console.error('Voice response failed with status:', voiceResponse.status);
+                            const errorData = await voiceResponse.json().catch(() => ({}));
+                            console.error('Voice response error details:', errorData);
                         }
                     } catch (voiceError) {
-                        console.log('Voice request failed:', voiceError.message);
+                        console.error('Voice request failed:', voiceError);
                         // Continue without voice - don't fail the main interaction
                     }
+                } else {
+                    console.log("Skipping voice request:", 
+                               displayData.has_voice ? "Voice is muted" : "Agent doesn't have voice capability");
                 }
                 
             } catch (error) {

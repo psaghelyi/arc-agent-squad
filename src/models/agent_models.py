@@ -70,6 +70,9 @@ class ConversationHistory(BaseModel):
             content=content,
             metadata=metadata or {}
         )
+        # Make sure messages is initialized
+        if self.messages is None:
+            self.messages = []
         self.messages.append(message)
         self.updated_at = datetime.now(UTC)
         return message
@@ -106,10 +109,11 @@ class AgentConfiguration(BaseModel):
     personality: AgentPersonalityConfig
     capabilities: List[AgentCapability]
     
-    # Technical configuration
-    model_id: str = "anthropic.claude-3-haiku-20240307-v1:0"
-    max_tokens: int = 1000
-    temperature: float = Field(ge=0.0, le=2.0, default=0.7)
+    # Technical configuration - Updated to be configurable, not hardcoded
+    model_id: str = Field(default="")  # Will be loaded from config
+    max_tokens: Optional[int] = None  # Will be loaded from config
+    temperature: Optional[float] = None  # Will be loaded from config
+    top_p: Optional[float] = None  # Will be loaded from config
     
     # Memory and context
     memory_enabled: bool = True

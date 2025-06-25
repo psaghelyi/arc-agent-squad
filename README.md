@@ -361,7 +361,7 @@ Every response includes detailed orchestration metadata:
 {
   "success": true,
   "agent_selection": {
-    "agent_id": "auto_selected",
+    "agent_id": "authoritative_compliance",
     "agent_name": "Dr. Morgan - Chief Compliance Officer", 
     "confidence": 0.92,
     "reasoning": "Selected by agent-squad orchestration with Bedrock memory"

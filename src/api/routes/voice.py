@@ -102,7 +102,7 @@ async def process_voice(request: VoiceRequest) -> VoiceResponse:
         response_data = {
             "session_id": request.session_id,
             "text": response_text,
-            "agent_id": agent_selection.get("agent_id", "auto_selected"),
+            "agent_id": agent_selection["agent_id"],
             "agent_personality": agent_personality,
             "processing_time": processing_time
         }

@@ -7,14 +7,14 @@ import asyncio
 import logging
 import io
 import base64
+import re
 from typing import Dict, Any, Optional, Union, BinaryIO
 from botocore.exceptions import ClientError, BotoCoreError
 
 from src.utils.settings import settings
 from src.services.aws_config import AWSConfig
 
-logger = logging.getLogger(__name__)
-
+import structlog
 
 class VoiceProcessor:
     """Voice processing service using AWS Transcribe and Polly."""
@@ -32,7 +32,9 @@ class VoiceProcessor:
         self.default_engine = getattr(self.config, 'polly_engine', 'neural')
         self.default_language = getattr(self.config, 'transcribe_language_code', 'en-US')
         
-        logger.info(f"VoiceProcessor initialized with voice: {self.default_voice_id}")
+        # Initialize logger
+        self.logger = structlog.get_logger(__name__)
+        self.logger.info(f"VoiceProcessor initialized with voice: {self.default_voice_id}")
 
 
 
@@ -64,7 +66,7 @@ class VoiceProcessor:
             
             # Validate text length (Polly has limits)
             if len(text) > 3000:
-                logger.warning(f"Text length {len(text)} exceeds recommended limit")
+                self.logger.warning(f"Text length {len(text)} exceeds recommended limit")
                 text = text[:3000] + "..."
             
             # Prepare synthesis request
@@ -82,7 +84,7 @@ class VoiceProcessor:
                 synthesis_params['Text'] = f'<speak>{text}</speak>'
                 synthesis_params['TextType'] = 'ssml'
             
-            logger.info(f"Synthesizing speech with voice: {voice_id}, engine: {engine}")
+            self.logger.info(f"Synthesizing speech with voice: {voice_id}, engine: {engine}")
             
             # Call Polly API
             response = self.polly_client.synthesize_speech(**synthesis_params)
@@ -111,7 +113,7 @@ class VoiceProcessor:
         except ClientError as e:
             error_code = e.response['Error']['Code']
             error_message = e.response['Error']['Message']
-            logger.error(f"Polly ClientError: {error_code} - {error_message}")
+            self.logger.error(f"Polly ClientError: {error_code} - {error_message}")
             
             return {
                 'success': False,
@@ -120,14 +122,14 @@ class VoiceProcessor:
             }
             
         except BotoCoreError as e:
-            logger.error(f"Polly BotoCoreError: {e}")
+            self.logger.error(f"Polly BotoCoreError: {e}")
             return {
                 'success': False,
                 'error': f"AWS Connection Error: {str(e)}"
             }
             
         except Exception as e:
-            logger.error(f"Unexpected error in text_to_speech: {e}")
+            self.logger.error(f"Unexpected error in text_to_speech: {e}")
             return {
                 'success': False,
                 'error': f"Speech synthesis failed: {str(e)}"
@@ -168,7 +170,7 @@ class VoiceProcessor:
             }
             
         except Exception as e:
-            logger.error(f"Error getting available voices: {e}")
+            self.logger.error(f"Error getting available voices: {e}")
             return {
                 'success': False,
                 'error': str(e),
@@ -194,7 +196,7 @@ class VoiceProcessor:
             }
             
         except Exception as e:
-            logger.error(f"Error getting neural voices: {e}")
+            self.logger.error(f"Error getting neural voices: {e}")
             return {
                 'success': False,
                 'error': str(e),
@@ -206,81 +208,127 @@ class VoiceProcessor:
         Get appropriate voice configuration for different agent personalities.
         
         Args:
-            agent_personality: The agent personality type
+            agent_personality: The agent ID from the YAML configuration
             
         Returns:
             Dict with voice_id and engine settings
         """
-        # Voice mapping for different GRC agent personalities
-        voice_configs = {
-            'empathetic_interviewer': {
-                'voice_id': 'Joanna',  # Warm, professional female voice
-                'engine': 'neural'
-            },
-            'authoritative_compliance': {
-                'voice_id': 'Matthew',  # Authoritative male voice
-                'engine': 'neural'
-            },
-            'analytical_risk_expert': {
-                'voice_id': 'Amy',  # Clear, analytical female voice
-                'engine': 'neural'
-            },
-            'strategic_governance': {
-                'voice_id': 'Brian',  # Strategic, executive male voice
-                'engine': 'neural'
-            },
-            'default': {
+        try:
+            from ..agents.agent_config_loader import get_default_config_registry
+            
+            # Get agent configuration from registry
+            config_registry = get_default_config_registry()
+            agent_config = config_registry.get_config(agent_personality)
+            
+            if agent_config:
+                # Get voice settings directly from the agent's YAML configuration
+                voice_settings = agent_config.get_voice_settings()
+                if voice_settings and "voice_id" in voice_settings:
+                    self.logger.info(f"Using voice settings from agent config: {voice_settings}")
+                    return {
+                        'voice_id': voice_settings.get('voice_id'),
+                        'engine': voice_settings.get('engine', 'neural')
+                    }
+            
+            # If no config found or no voice settings in config, use default
+            self.logger.warning(f"No voice settings found for agent ID: {agent_personality}, using defaults")
+            return {
                 'voice_id': self.default_voice_id,
                 'engine': self.default_engine
             }
-        }
-        
-        return voice_configs.get(agent_personality, voice_configs['default'])
-
-    async def synthesize_agent_response(
-        self, 
-        text: str, 
-        agent_personality: str,
-        session_id: Optional[str] = None
-    ) -> Dict[str, Any]:
-        """
-        Synthesize speech for a specific agent personality.
-        
-        Args:
-            text: Clean text optimized for voice synthesis (no Markdown formatting)
-            agent_personality: Agent personality type
-            session_id: Optional session ID for logging
-            
-        Returns:
-            Dict containing synthesized audio and metadata
-        """
-        try:
-            # Get voice config for this agent
-            voice_config = await self.get_agent_voice_config(agent_personality)
-            
-            logger.info(f"Synthesizing for agent '{agent_personality}' using voice '{voice_config['voice_id']}'")
-            
-            # Synthesize speech directly with provided text (already clean for voice)
-            result = await self.text_to_speech(
-                text=text,
-                voice_id=voice_config['voice_id'],
-                engine=voice_config['engine']
-            )
-            
-            # Add agent context to result
-            if result['success']:
-                result['agent_personality'] = agent_personality
-                result['session_id'] = session_id
-                result['text_length'] = len(text)
-                
-            return result
             
         except Exception as e:
-            logger.error(f"Error synthesizing agent response: {e}")
+            self.logger.error(f"Error getting agent voice config: {e}")
+            # Return default voice settings
+            return {
+                'voice_id': self.default_voice_id,
+                'engine': self.default_engine
+            }
+
+    async def synthesize_agent_response(self, text: str, agent_id: str) -> Dict[str, Any]:
+        """
+        Synthesize speech for an agent response.
+        
+        Args:
+            text: The text to synthesize
+            agent_id: The agent ID to get voice settings
+            
+        Returns:
+            Dictionary with audio data and metadata
+        """
+        try:
+            from ..agents.agent_config_loader import get_default_config_registry
+            
+            self.logger.info(f"Synthesizing voice for agent: {agent_id}")
+            
+            # Get agent configuration
+            config_registry = get_default_config_registry()
+            agent_config = config_registry.get_config(agent_id)
+            
+            if not agent_config:
+                self.logger.error(f"Agent configuration not found for agent_id: {agent_id}")
+                self.logger.info(f"Available agent IDs: {config_registry.list_agent_ids()}")
+                return {
+                    'success': False,
+                    'error': f"Agent configuration not found for agent_id: {agent_id}",
+                    'agent_id': agent_id
+                }
+            
+            # Get voice settings from agent configuration
+            voice_settings = agent_config.get_voice_settings()
+            self.logger.info(f"Voice settings for agent {agent_id}: {voice_settings}")
+            
+            if not voice_settings or not voice_settings.get('voice_id'):
+                self.logger.error(f"Voice settings not found or missing voice_id for agent: {agent_id}")
+                return {
+                    'success': False,
+                    'error': f"Voice settings not found or missing voice_id for agent: {agent_id}",
+                    'agent_id': agent_id
+                }
+            
+            voice_id = voice_settings.get('voice_id')
+            self.logger.info(f"Using voice_id: {voice_id} for agent: {agent_id}")
+            
+            # Clean and prepare text for TTS
+            cleaned_text = self._clean_text_for_tts(text)
+            
+            # Generate audio
+            self.logger.info(f"Generating audio with voice_id: {voice_id}")
+            tts_result = await self.text_to_speech(cleaned_text, voice_id=voice_id)
+            
+            if not tts_result.get('success'):
+                self.logger.error(f"Failed to generate audio data: {tts_result.get('error', 'Unknown error')}")
+                return {
+                    'success': False,
+                    'error': tts_result.get('error', "Failed to generate audio data"),
+                    'agent_id': agent_id,
+                    'voice_id': voice_id
+                }
+            
+            # Extract the audio data from the TTS result
+            audio_data = tts_result.get('audio_data')
+            audio_size = tts_result.get('audio_size', 0)
+            
+            self.logger.info(f"Successfully generated audio for agent {agent_id}, size: {audio_size} bytes")
+            
+            # Return audio data and metadata
+            return {
+                'success': True,
+                'audio_data': audio_data,
+                'audio_format': 'mp3',
+                'voice_id': voice_id,
+                'agent_id': agent_id,
+                'audio_size': audio_size
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error synthesizing agent response: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return {
                 'success': False,
                 'error': str(e),
-                'agent_personality': agent_personality
+                'agent_id': agent_id
             }
 
     async def test_voice_synthesis(self) -> Dict[str, Any]:
@@ -291,7 +339,7 @@ class VoiceProcessor:
             result = await self.text_to_speech(test_text)
             
             if result['success']:
-                logger.info("Voice synthesis test successful")
+                self.logger.info("Voice synthesis test successful")
                 return {
                     'success': True,
                     'message': "Voice synthesis is working correctly",
@@ -308,9 +356,55 @@ class VoiceProcessor:
                 }
                 
         except Exception as e:
-            logger.error(f"Voice synthesis test error: {e}")
+            self.logger.error(f"Voice synthesis test error: {e}")
             return {
                 'success': False,
                 'message': "Voice synthesis test failed with exception",
                 'error': str(e)
-            } 
+            }
+
+    def _clean_text_for_tts(self, text: str) -> str:
+        """
+        Clean and prepare text for TTS.
+        
+        Args:
+            text: Raw text that may contain markdown or other formatting
+            
+        Returns:
+            Cleaned text suitable for TTS
+        """
+        try:
+            # Remove markdown formatting
+            cleaned = text
+            
+            # Remove markdown headers
+            cleaned = re.sub(r'#+\s+', '', cleaned)
+            
+            # Remove markdown bold/italic
+            cleaned = re.sub(r'\*\*(.*?)\*\*', r'\1', cleaned)
+            cleaned = re.sub(r'\*(.*?)\*', r'\1', cleaned)
+            
+            # Remove markdown links
+            cleaned = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', cleaned)
+            
+            # Remove code blocks
+            cleaned = re.sub(r'```.*?```', '', cleaned, flags=re.DOTALL)
+            cleaned = re.sub(r'`(.*?)`', r'\1', cleaned)
+            
+            # Remove bullet points and numbered lists
+            cleaned = re.sub(r'^\s*[-*+]\s+', '', cleaned, flags=re.MULTILINE)
+            cleaned = re.sub(r'^\s*\d+\.\s+', '', cleaned, flags=re.MULTILINE)
+            
+            # Remove horizontal rules
+            cleaned = re.sub(r'---+', '', cleaned)
+            
+            # Remove excessive whitespace
+            cleaned = re.sub(r'\n\s*\n', '\n\n', cleaned)
+            cleaned = cleaned.strip()
+            
+            return cleaned
+            
+        except Exception as e:
+            self.logger.error(f"Error cleaning text for TTS: {e}")
+            # Return original text if cleaning fails
+            return text 

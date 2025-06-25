@@ -7,9 +7,9 @@ from individual YAML files with JSON schema validation.
 
 import json
 import os
+import structlog
 from typing import Any, Dict, List, Optional
 
-import structlog
 import yaml
 
 try:
@@ -117,7 +117,7 @@ class AgentConfigLoader:
                         default_model_settings=agent_data.get('model_settings', {})
                     )
                     
-                    self.logger.info(f"Loaded agent configuration for '{agent_id}'", 
+                    self.logger.debug(f"Loaded agent configuration for '{agent_id}'", 
                                    config_file=agent_file_path)
                     
                 except Exception as e:
@@ -151,7 +151,7 @@ class AgentConfigLoader:
         
         try:
             validate(instance=agent_data, schema=self._individual_schema)
-            self.logger.info(f"Individual agent configuration validation passed for '{agent_id}'")
+            self.logger.debug(f"Individual agent configuration validation passed for '{agent_id}'")
         except ValidationError as e:
             self.logger.error(f"Individual agent configuration validation failed for '{agent_id}'", 
                             validation_error=str(e),
@@ -192,6 +192,9 @@ class FileBasedAgentConfig:
             config_data: Raw configuration data from YAML file
             default_model_settings: Default model settings to use if not specified
         """
+
+        self.logger = structlog.get_logger(__name__)
+
         self.agent_id = agent_id
         self.config_data = config_data
         self.default_model_settings = default_model_settings
@@ -210,19 +213,33 @@ class FileBasedAgentConfig:
         """Get the list of capabilities for the agent."""
         capabilities_data = self.config_data.get('capabilities', [])
         capabilities = []
+        
+        # Create a map of lowercase capability values to enum members for case-insensitive lookup
+        capability_map = {cap.value.lower(): cap for cap in AgentCapability}
+        
+        # Debug logging
+        self.logger.debug(f"Agent {self.agent_id} capabilities in YAML: {capabilities_data}")
+        self.logger.debug(f"Available capability map: {capability_map}")
+        
         for cap in capabilities_data:
             try:
                 # Try to convert string to enum
                 if isinstance(cap, str):
-                    # Handle different naming conventions
-                    cap_normalized = cap.upper().replace('-', '_').replace(' ', '_')
-                    capabilities.append(AgentCapability[cap_normalized])
+                    cap_lower = cap.lower()
+                    self.logger.debug(f"Processing capability '{cap}', lowercase: '{cap_lower}'")
+                    if cap_lower in capability_map:
+                        self.logger.debug(f"Found matching capability: {capability_map[cap_lower]}")
+                        capabilities.append(capability_map[cap_lower])
+                    else:
+                        self.logger.warning(f"Unknown capability '{cap}' for agent {self.agent_id}")
                 else:
                     capabilities.append(cap)
-            except (KeyError, ValueError):
-                # If conversion fails, skip this capability or handle gracefully
-                print(f"Warning: Unknown capability '{cap}' for agent {self.agent_id}")
+            except (KeyError, ValueError) as e:
+                # If conversion fails, log the error and skip this capability
+                self.logger.error(f"Error processing capability '{cap}' for agent {self.agent_id}: {e}")
                 continue
+        
+        self.logger.info(f"Final capabilities for {self.agent_id}: {[cap.value for cap in capabilities]}")
         return capabilities
 
     def get_specialized_tools(self) -> List[str]:

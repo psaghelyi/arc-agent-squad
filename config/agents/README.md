@@ -11,10 +11,10 @@ This directory contains YAML configuration files for the four specialized GRC (G
 - `strategic_governance.yaml` - Sam, Governance Strategist
 
 ### Advanced Agents (Executive-Level)
-- `empathetic_interviewer_advanced.yaml` - Emma, Senior Information Collector
-- `authoritative_compliance_advanced.yaml` - Dr. Morgan, Chief Compliance Officer
-- `analytical_risk_expert_advanced.yaml` - Alex, Chief Risk Officer
-- `strategic_governance_advanced.yaml` - Sam, Chief Governance Officer
+- `empathetic_interviewer_executive.yaml` - Emma, Senior Information Collector
+- `authoritative_compliance_executive.yaml` - Dr. Morgan, Chief Compliance Officer
+- `analytical_risk_expert_executive.yaml` - Alex, Chief Risk Officer
+- `strategic_governance_executive.yaml` - Sam, Chief Governance Officer
 
 ## Schema Validation
 

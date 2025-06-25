@@ -108,7 +108,7 @@ This project implements an AI agent squad specifically designed for the **Govern
 ## Development & Deployment Guidelines
 
 ### Authentication & Access
-- **AWS Authentication**: Use `aws-vault` for secure credential management
+- **AWS Authentication**: For local development, use `aws-vault exec acl-playground --` for secure credential management because I have federated SSO.
 - **Target Environment**: `acl-playground` account in `us-west-2` region
 - **Local Development**: Support for local testing with AWS service mocking where possible
 
@@ -118,6 +118,7 @@ This project implements an AI agent squad specifically designed for the **Govern
   - `make build` - Container image building
   - `make push` - Push to ECR registry
   - `make local-start` - Local development environment
+  - `make test` - Runs tests
   - `make cdk-deploy` - Infrastructure deployment
   - `make deploy` - Application deployment to ECS
 

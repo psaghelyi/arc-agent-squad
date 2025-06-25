@@ -1,9 +1,9 @@
 {
   "models": {
     "main": {
-      "provider": "openrouter",
-      "modelId": "openai/gpt-4.1",
-      "maxTokens": 120000,
+      "provider": "openai",
+      "modelId": "o3-mini",
+      "maxTokens": 100000,
       "temperature": 0.2
     },
     "research": {
@@ -13,10 +13,10 @@
       "temperature": 0.1
     },
     "fallback": {
-      "provider": "anthropic",
-      "modelId": "claude-3-5-sonnet-20240620",
-      "maxTokens": 8192,
-      "temperature": 0.1
+      "provider": "openai",
+      "modelId": "gpt-4o",
+      "maxTokens": 16384,
+      "temperature": 0.2
     }
   },
   "global": {

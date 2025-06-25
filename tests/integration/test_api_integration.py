@@ -102,7 +102,7 @@ class TestAPIIntegration:
                     "response": "Hello! I'm happy to help you with that."
                 },
                 "agent_selection": {
-                    "agent_id": "auto_selected",
+                    "agent_id": "interviewer",
                     "agent_name": "Emma - Information Collector",
                     "confidence": 1.0,
                     "reasoning": "Selected by agent-squad orchestration with Bedrock memory"
@@ -142,7 +142,7 @@ class TestAPIIntegration:
                     "response": "Agent response"
                 },
                 "agent_selection": {
-                    "agent_id": "auto_selected",
+                    "agent_id": "interviewer",
                     "agent_name": "Emma - Information Collector",
                     "confidence": 1.0,
                     "reasoning": "Selected by agent-squad orchestration with Bedrock memory"
@@ -202,7 +202,7 @@ class TestAPIIntegration:
                     "response": "Default response"
                 },
                 "agent_selection": {
-                    "agent_id": "auto_selected",
+                    "agent_id": "interviewer",
                     "agent_name": "Emma - Information Collector",
                     "confidence": 1.0,
                     "reasoning": "Selected by agent-squad orchestration with Bedrock memory"
@@ -296,7 +296,7 @@ class TestAPIIntegration:
                     "response": "Concurrent response"
                 },
                 "agent_selection": {
-                    "agent_id": "auto_selected",
+                    "agent_id": "interviewer",
                     "agent_name": "Emma - Information Collector",
                     "confidence": 1.0,
                     "reasoning": "Selected by agent-squad orchestration with Bedrock memory"
@@ -340,7 +340,7 @@ class TestAPIIntegration:
                     "response": "First response"
                 },
                 "agent_selection": {
-                    "agent_id": "auto_selected",
+                    "agent_id": "interviewer",
                     "agent_name": "Emma - Information Collector",
                     "confidence": 1.0,
                     "reasoning": "Selected by agent-squad orchestration with Bedrock memory"
@@ -368,7 +368,7 @@ class TestAPIIntegration:
                     "response": "Second response with context"
                 },
                 "agent_selection": {
-                    "agent_id": "auto_selected",
+                    "agent_id": "interviewer",
                     "agent_name": "Emma - Information Collector",
                     "confidence": 1.0,
                     "reasoning": "Selected by agent-squad orchestration with Bedrock memory"
@@ -399,7 +399,7 @@ class TestAPIIntegration:
                     "response": "Consistent response"
                 },
                 "agent_selection": {
-                    "agent_id": "auto_selected",
+                    "agent_id": "interviewer",
                     "agent_name": "Emma - Information Collector",
                     "confidence": 1.0,
                     "reasoning": "Selected by agent-squad orchestration with Bedrock memory"

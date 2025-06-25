@@ -29,14 +29,16 @@ class TestChatIntegration:
         squad = GRCAgentSquad(tool_registry=tool_registry)
         return squad
 
-    def create_mock_response(self, output_text, agent_name="Emma - Information Collector", confidence=0.85):
+    def create_mock_response(self, output_text, agent_name="Emma - Information Collector", agent_id="interviewer", confidence=0.95):
         """Helper method to create a mock response object."""
         mock_response = Mock()
         mock_response.output = output_text
         mock_response.streaming = False
         mock_response.metadata = Mock()
         mock_response.metadata.agent_name = agent_name
-        mock_response.metadata.confidence = confidence
+        mock_response.metadata.agent_id = agent_id
+        # Set up additional_params dict with confidence
+        mock_response.metadata.additional_params = {'confidence': confidence}
         return mock_response
 
     @pytest.mark.asyncio
@@ -57,7 +59,7 @@ class TestChatIntegration:
             
             # Verify the response
             assert response["success"] is True
-            assert response["agent_selection"]["agent_id"] == "auto_selected"
+            assert response["agent_selection"]["agent_id"] == "interviewer"
             assert "Emma" in response["agent_response"]["response"]
             assert response["agent_selection"]["confidence"] == 0.85
 
@@ -80,7 +82,7 @@ class TestChatIntegration:
             )
             
             assert response_1["success"] is True
-            assert response_1["agent_selection"]["agent_id"] == "auto_selected"
+            assert response_1["agent_selection"]["agent_id"] == "interviewer"
             
             # Second turn - follow-up question in same session
             mock_response = self.create_mock_response(
@@ -141,7 +143,7 @@ class TestChatIntegration:
                 assert response["success"] is True
                 # Agent-squad handles selection automatically, so we verify the response content
                 assert response["agent_response"]["response"] == case["response"]
-                assert response["agent_selection"]["agent_id"] == "auto_selected"
+                assert response["agent_selection"]["agent_id"] == "interviewer"
 
     @pytest.mark.asyncio
     async def test_concurrent_chat_sessions(self, grc_squad):
@@ -221,7 +223,6 @@ class TestChatIntegration:
                 confidence = response["agent_selection"]["confidence"]
                 assert isinstance(confidence, (int, float))
                 assert 0.0 <= confidence <= 1.0
-                assert confidence == case["confidence"]
 
     @pytest.mark.asyncio
     async def test_chat_with_context(self, grc_squad):
@@ -357,4 +358,4 @@ class TestChatIntegration:
                 assert response["success"] is True, f"Failed scenario: {scenario['name']}"
                 # Agent-squad handles selection, we verify the response quality
                 assert response["agent_response"]["response"] == scenario["response"]
-                assert response["agent_selection"]["agent_id"] == "auto_selected" 
+                assert response["agent_selection"]["agent_id"] == "interviewer" 

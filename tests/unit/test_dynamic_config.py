@@ -48,7 +48,7 @@ class TestSettings:
         assert test_settings.polly_engine == "neural"
     
     def test_active_agents_list_property(self):
-        """Test the active_agents_list property conversion."""
+        """Test the active_agents_list property."""
         test_settings = Settings()
         agents_list = test_settings.active_agents_list
         
@@ -58,6 +58,9 @@ class TestSettings:
         assert "authoritative_compliance_executive" in agents_list
         assert "analytical_risk_expert_executive" in agents_list
         assert "strategic_governance_executive" in agents_list
+        
+        # Verify that active_agents_list returns the same list as active_agents
+        assert agents_list is test_settings.active_agents
     
     def test_cors_origins_list_property(self):
         """Test the cors_origins_list property conversion."""
@@ -301,7 +304,7 @@ class TestAgentConfigLoader:
         
         with patch.dict(os.environ, {
             "AGENT_CONFIG_DIRECTORY": agents_dir,
-            "ACTIVE_AGENTS": "test_agent_1"
+            "ACTIVE_AGENTS": '["test_agent_1"]'
         }):
             # Create new settings instance with environment variables
             test_settings = Settings()
@@ -687,6 +690,12 @@ class TestConfigurationUsage:
             "active_agents",
             "default_agent",
             
+            # Classifier model settings
+            "classifier_model_id",
+            "classifier_max_tokens",
+            "classifier_temperature",
+            "classifier_top_p",
+            
             # Voice Services
             "transcribe_language_code",
             "polly_voice_id",
@@ -795,7 +804,7 @@ class TestConfigurationUsage:
         """Test that AgentConfigLoader uses settings correctly."""
         with patch.dict(os.environ, {
             "AGENT_CONFIG_DIRECTORY": "test/config/agents",
-            "ACTIVE_AGENTS": "test_agent"
+            "ACTIVE_AGENTS": '["test_agent"]'
         }):
             test_settings = Settings()
             
@@ -807,24 +816,26 @@ class TestConfigurationUsage:
             
             # Verify that settings have the expected values
             assert test_settings.agent_config_directory == "test/config/agents"
-            assert "test_agent" in test_settings.active_agents_list
+            assert test_settings.active_agents == ["test_agent"]
+            assert test_settings.active_agents_list == ["test_agent"]
     
     def test_environment_variable_overrides(self):
         """Test that environment variables can override settings."""
         with patch.dict(os.environ, {
-            "ACTIVE_AGENTS": "custom_agent_1,custom_agent_2",
+            "ACTIVE_AGENTS": '["custom_agent_1", "custom_agent_2"]',
             "AGENT_CONFIG_DIRECTORY": "custom/config/path",
             "API_PORT": "9000",
             "DEBUG": "true"
         }):
             test_settings = Settings()
             
-            assert test_settings.active_agents == "custom_agent_1,custom_agent_2"
+            assert isinstance(test_settings.active_agents, list)
+            assert test_settings.active_agents == ["custom_agent_1", "custom_agent_2"]
             assert test_settings.agent_config_directory == "custom/config/path"
             assert test_settings.api_port == 9000
             assert test_settings.debug is True
             
-            # Test that the list conversion works with overridden values
+            # Test that active_agents_list property returns the same list
             agents_list = test_settings.active_agents_list
-            assert "custom_agent_1" in agents_list
-            assert "custom_agent_2" in agents_list 
+            assert agents_list == ["custom_agent_1", "custom_agent_2"]
+            assert agents_list is test_settings.active_agents 

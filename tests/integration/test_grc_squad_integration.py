@@ -53,7 +53,7 @@ class TestGRCSquadIntegration:
         mock_response.output.content = [{'text': response_text}]
         mock_response.metadata = Mock()
         mock_response.metadata.agent_name = agent_name
-        mock_response.metadata.confidence = confidence
+        mock_response.metadata.additional_params = {'confidence': confidence}
         return mock_response
 
     @pytest.mark.asyncio
@@ -70,10 +70,10 @@ class TestGRCSquadIntegration:
             
             # Verify all required GRC agents are present
             expected_agents = [
-                "empathetic_interviewer_advanced",
-                "authoritative_compliance_advanced",
-                "analytical_risk_expert_advanced",
-                "strategic_governance_advanced"
+                "empathetic_interviewer_executive",
+                "authoritative_compliance_executive",
+                "analytical_risk_expert_executive",
+                "strategic_governance_executive"
             ]
             
             for agent_id in expected_agents:
@@ -158,10 +158,10 @@ class TestGRCSquadIntegration:
             
         # Test get_agent_info for each agent
         expected_agents = {
-            "empathetic_interviewer_advanced": "Emma - Senior Information Collector",
-            "authoritative_compliance_advanced": "Dr. Morgan - Chief Compliance Officer",
-            "analytical_risk_expert_advanced": "Alex - Chief Risk Officer", 
-            "strategic_governance_advanced": "Sam - Chief Governance Officer"
+            "empathetic_interviewer_executive": "Emma - Senior Information Collector",
+            "authoritative_compliance_executive": "Dr. Morgan - Chief Compliance Officer",
+            "analytical_risk_expert_executive": "Alex - Chief Risk Officer", 
+            "strategic_governance_executive": "Sam - Chief Governance Officer"
         }
         
         for agent_id, expected_name in expected_agents.items():
@@ -182,10 +182,10 @@ class TestGRCSquadIntegration:
         assert len(stats["agent_types"]) == 4
         
         expected_agent_types = [
-            "empathetic_interviewer_advanced",
-            "authoritative_compliance_advanced",
-            "analytical_risk_expert_advanced", 
-            "strategic_governance_advanced"
+            "empathetic_interviewer_executive",
+            "authoritative_compliance_executive",
+            "analytical_risk_expert_executive", 
+            "strategic_governance_executive"
         ]
         
         for agent_type in expected_agent_types:
@@ -286,24 +286,24 @@ class TestGRCSquadIntegration:
     async def test_grc_agent_capabilities_mapping(self, grc_squad):
         """Test that GRC agents have appropriate capabilities mapped."""
         expected_capabilities = {
-            "empathetic_interviewer_advanced": [
+            "empathetic_interviewer_executive": [
                 "question_answering",
                 "voice_processing", 
                 "customer_support"
             ],
-            "authoritative_compliance_advanced": [
+            "authoritative_compliance_executive": [
                 "question_answering",
                 "voice_processing",
                 "task_assistance",
                 "data_analysis"
             ],
-            "analytical_risk_expert_advanced": [
+            "analytical_risk_expert_executive": [
                 "question_answering",
                 "voice_processing",
                 "data_analysis",
                 "task_assistance"
             ],
-            "strategic_governance_advanced": [
+            "strategic_governance_executive": [
                 "question_answering",
                 "voice_processing",
                 "task_assistance",
@@ -341,7 +341,7 @@ class TestGRCSquadIntegration:
                 mock_response.output.content = [{'text': f"Test response {i}"}]
                 mock_response.metadata = Mock()
                 mock_response.metadata.agent_name = "Emma - Information Collector"
-                mock_response.metadata.confidence = case["confidence"]
+                mock_response.metadata.additional_params = {'confidence': case["confidence"]}
                 
                 mock_route.return_value = mock_response
                 

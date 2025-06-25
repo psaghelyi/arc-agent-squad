@@ -27,16 +27,32 @@ class Settings(BaseSettings):
         default="config/agents", 
         description="Directory containing individual agent configuration files"
     )
-    active_agents: str = Field(
-        default="empathetic_interviewer_executive,authoritative_compliance_executive,analytical_risk_expert_executive,strategic_governance_executive",
-        description="Comma-separated list of agent IDs to include in the squad"
+    active_agents: List[str] = Field(
+        default=["empathetic_interviewer_executive", "authoritative_compliance_executive", "analytical_risk_expert_executive", "strategic_governance_executive"],
+        description="List of agent IDs to include in the squad"
     )
     default_agent: str = Field(
         default="empathetic_interviewer",
         description="Default agent to use when no specific agent is selected"
     )
     
-
+    # Classifier model settings
+    classifier_model_id: str = Field(
+        default="us.anthropic.claude-3-5-haiku-20241022-v1:0",
+        description="Model ID for agent classifier/orchestrator"
+    )
+    classifier_max_tokens: int = Field(
+        default=4096, 
+        description="Maximum tokens for classifier/orchestrator responses"
+    )
+    classifier_temperature: float = Field(
+        default=0.5, 
+        description="Temperature for classifier/orchestrator"
+    )
+    classifier_top_p: float = Field(
+        default=0.9,
+        description="Top P for classifier/orchestrator"
+    )
     
     # Voice Services Configuration - Speech processing
     transcribe_language_code: str = Field(default="en-US", description="Language code for transcription")
@@ -97,8 +113,8 @@ class Settings(BaseSettings):
     
     @property
     def active_agents_list(self) -> List[str]:
-        """Convert active agents string to list."""
-        return [agent.strip() for agent in str(self.active_agents).split(",") if agent.strip()]
+        """Return the active agents list."""
+        return self.active_agents
     
 
     
