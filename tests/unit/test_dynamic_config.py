@@ -36,7 +36,7 @@ class TestSettings:
         # Test agent configuration defaults
         assert test_settings.agent_config_directory == "config/agents"
         assert "empathetic_interviewer_executive" in test_settings.active_agents
-        assert test_settings.default_agent == "empathetic_interviewer"
+        assert test_settings.default_agent == "supervisor_grc"
         
         # Test API defaults
         assert test_settings.api_port == 8000
@@ -53,11 +53,12 @@ class TestSettings:
         agents_list = test_settings.active_agents_list
         
         assert isinstance(agents_list, list)
-        assert len(agents_list) == 4
+        assert len(agents_list) == 5
         assert "empathetic_interviewer_executive" in agents_list
         assert "authoritative_compliance_executive" in agents_list
         assert "analytical_risk_expert_executive" in agents_list
         assert "strategic_governance_executive" in agents_list
+        assert "supervisor_grc" in agents_list
         
         # Verify that active_agents_list returns the same list as active_agents
         assert agents_list is test_settings.active_agents
@@ -718,12 +719,7 @@ class TestConfigurationUsage:
             # Logging Configuration
             "log_level",
             "structlog_renderer",
-            
-            # Agent Behavior Configuration
-            "max_concurrent_agents",
-            "agent_timeout_seconds",
-            "memory_retention_hours",
-            
+
             # Development Configuration
             "debug",
             "development_mode"

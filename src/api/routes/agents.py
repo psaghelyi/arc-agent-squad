@@ -14,11 +14,7 @@ from pydantic import BaseModel
 from src.agents.agent_config_loader import get_default_config_registry
 
 from ...services.grc_agent_squad import GRCAgentSquad
-from ...tools.tool_registry import get_default_registry
 from ...models.agent_models import AgentCapability
-
-
-
 
 
 # Request/Response Models
@@ -65,8 +61,7 @@ def get_grc_squad() -> GRCAgentSquad:
     """Get or create the GRC Agent Squad instance."""
     global _grc_squad_instance
     if _grc_squad_instance is None:
-        tool_registry = get_default_registry()
-        _grc_squad_instance = GRCAgentSquad(tool_registry=tool_registry)
+        _grc_squad_instance = GRCAgentSquad()
     return _grc_squad_instance
 
 
@@ -351,23 +346,8 @@ async def get_squad_stats(grc_squad: GRCAgentSquad = Depends(get_grc_squad)):
             "stats": stats
         }
     except Exception as e:
-        logger.error("Failed to get squad stats", error=str(e))
+        logger.error("Failed to get stats", error=str(e))
         raise HTTPException(status_code=500, detail=f"Failed to get stats: {str(e)}")
-
-
-@router.get("/tools")
-async def get_available_tools(grc_squad: GRCAgentSquad = Depends(get_grc_squad)):
-    """Get list of available tools for the GRC agents."""
-    try:
-        tools = grc_squad.get_available_tools()
-        return {
-            "success": True,
-            "tools": tools,
-            "total": len(tools)
-        }
-    except Exception as e:
-        logger.error("Failed to get available tools", error=str(e))
-        raise HTTPException(status_code=500, detail=f"Failed to get tools: {str(e)}")
 
 
 # Legacy endpoints for API compatibility (simplified)
@@ -537,7 +517,7 @@ async def get_detailed_agent_config(grc_squad: GRCAgentSquad = Depends(get_grc_s
 def _get_agent_primary_role(personality: str) -> str:
     """Get the primary role description for each agent personality."""
     try:
-        from ..agents.agent_config_loader import get_default_config_registry
+        from ...agents.agent_config_loader import get_default_config_registry
         
         # Get agent configuration from registry
         config_registry = get_default_config_registry()

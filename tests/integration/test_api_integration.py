@@ -49,8 +49,8 @@ class TestAPIIntegration:
         assert "success" in data
         assert isinstance(data["agents"], list)
         
-        # Should have 4 default GRC agents
-        assert len(data["agents"]) == 4
+        # Should have 5 default GRC agents
+        assert len(data["agents"]) == 5
         
         # Verify agent structure
         for agent in data["agents"]:

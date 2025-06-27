@@ -28,11 +28,11 @@ class Settings(BaseSettings):
         description="Directory containing individual agent configuration files"
     )
     active_agents: List[str] = Field(
-        default=["empathetic_interviewer_executive", "authoritative_compliance_executive", "analytical_risk_expert_executive", "strategic_governance_executive"],
+        default=["supervisor_grc", "empathetic_interviewer_executive", "authoritative_compliance_executive", "analytical_risk_expert_executive", "strategic_governance_executive"],
         description="List of agent IDs to include in the squad"
     )
     default_agent: str = Field(
-        default="empathetic_interviewer",
+        default="supervisor_grc",
         description="Default agent to use when no specific agent is selected"
     )
     
@@ -84,11 +84,6 @@ class Settings(BaseSettings):
     # Logging Configuration
     log_level: str = Field(default="INFO", description="Logging level")
     structlog_renderer: str = Field(default="json", description="Structured logging renderer")
-    
-    # Agent Configuration - Core agent behavior
-    max_concurrent_agents: int = Field(default=10, description="Maximum concurrent agents")
-    agent_timeout_seconds: int = Field(default=300, description="Agent timeout in seconds")
-    memory_retention_hours: int = Field(default=24, description="Memory retention period")
     
     # Development Configuration
     debug: bool = Field(default=False, description="Enable debug mode")

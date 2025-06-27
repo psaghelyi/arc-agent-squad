@@ -16,7 +16,6 @@ from unittest.mock import patch
 from src.api.main import app
 from src.services.grc_agent_squad import GRCAgentSquad
 from src.services.aws_config import AWSConfig
-from src.tools.tool_registry import get_default_registry
 
 
 def check_aws_credentials():
@@ -48,8 +47,7 @@ class TestGRCAgentsE2E:
             if not aws_config.validate_credentials_sync():
                 pytest.skip("AWS credentials validation failed")
             
-            tool_registry = get_default_registry()
-            squad = GRCAgentSquad(tool_registry=tool_registry)
+            squad = GRCAgentSquad()
             return squad
         except Exception as e:
             pytest.skip(f"Could not initialize GRC squad with real AWS services: {e}")

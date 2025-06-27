@@ -19,8 +19,6 @@ from agent_squad.orchestrator import AgentSquad
 from agent_squad.agents import BedrockLLMAgent, BedrockLLMAgentOptions
 from agent_squad.classifiers import BedrockClassifier, BedrockClassifierOptions
 
-from ..tools.tool_registry import ToolRegistry, get_default_registry
-from ..models.agent_models import AgentCapability
 from .aws_config import AWSConfig
 from src.agents.agent_config_loader import get_default_config_registry
 from src.utils.settings import settings
@@ -39,14 +37,10 @@ class GRCAgentSquad:
     Uses Bedrock's built-in session memory for conversation persistence.
     """
     
-    def __init__(self, tool_registry: Optional[ToolRegistry] = None):
+    def __init__(self):
         """
         Initialize the GRC Agent Squad.
-        
-        Args:
-            tool_registry: Tool registry for external capabilities
         """
-        self.tool_registry = tool_registry or get_default_registry()
         self.logger = structlog.get_logger(__name__)
         
         # Agent squad will be initialized in _initialize_grc_agents
@@ -59,8 +53,7 @@ class GRCAgentSquad:
         self._initialize_grc_agents()
         
         self.logger.info("GRC Agent Squad initialized with Bedrock built-in memory", 
-                        agent_count=len(self.squad.agents) if self.squad else 0,
-                        available_tools=len(self.tool_registry.list_tools()))
+                        agent_count=len(self.squad.agents) if self.squad else 0)
     
     def _initialize_grc_agents(self):
         """Initialize the four specialized GRC agents using YAML configurations."""
@@ -136,8 +129,8 @@ class GRCAgentSquad:
         # Create orchestrator with classifier and default agent
         self.logger.info("Creating agent squad orchestrator...")
         
-        # Use the first agent as default if available, or pick a specific one if needed
-        default_agent_id = next(iter(agents.keys())) if agents else None
+        # Use the configured default agent if available, otherwise fall back to the first agent
+        default_agent_id = settings.default_agent if settings.default_agent in agents else next(iter(agents.keys())) if agents else None
         default_agent = agents.get(default_agent_id) if default_agent_id else None
         
         if not default_agent:
@@ -288,17 +281,5 @@ class GRCAgentSquad:
             "total_agents": len(self.agent_configs),
             "active_agents": len(self.agent_configs),  # All loaded agents are considered active
             "memory_type": "bedrock_built_in",
-            "available_tools": len(self.tool_registry.list_tools()),
             "agent_types": list(self.agent_configs.keys())
         }
-    
-    def get_available_tools(self) -> List[Dict[str, Any]]:
-        """Get list of available tools."""
-        return [
-            {
-                "name": tool_name,
-                "description": tool.description,
-                "category": getattr(tool, 'category', 'general')
-            }
-            for tool_name, tool in self.tool_registry.tools.items()
-        ] 

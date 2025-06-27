@@ -11,21 +11,10 @@ from unittest.mock import Mock, AsyncMock, patch, MagicMock
 from typing import List, Dict, Any
 
 from src.services.grc_agent_squad import GRCAgentSquad
-from src.tools.tool_registry import ToolRegistry
-from src.models.agent_models import AgentCapability
 
 
 class TestGRCSquadIntegration:
     """Integration tests for GRC Agent Squad core functionality."""
-
-    @pytest.fixture
-    def tool_registry(self):
-        """Create a mock tool registry for testing."""
-        registry = Mock(spec=ToolRegistry)
-        registry.get_tools = Mock(return_value=[])
-        registry.list_tools = Mock(return_value=[])
-        registry.tools = {}
-        return registry
 
     @pytest.fixture
     def mock_bedrock_client(self):
@@ -37,12 +26,12 @@ class TestGRCSquadIntegration:
         return client
 
     @pytest.fixture
-    def grc_squad(self, tool_registry, mock_bedrock_client):
+    def grc_squad(self, mock_bedrock_client):
         """Create a GRC Agent Squad instance with mocked dependencies."""
         with patch('src.services.aws_config.AWSConfig.create_aws_vault_client') as mock_bedrock:
             mock_bedrock.return_value = mock_bedrock_client
             
-            squad = GRCAgentSquad(tool_registry=tool_registry)
+            squad = GRCAgentSquad()
             return squad
 
     def create_mock_agent_response(self, response_text: str, agent_name: str = "Emma - Information Collector", 
@@ -57,23 +46,24 @@ class TestGRCSquadIntegration:
         return mock_response
 
     @pytest.mark.asyncio
-    async def test_grc_squad_initialization(self, tool_registry, mock_bedrock_client):
+    async def test_grc_squad_initialization(self, mock_bedrock_client):
         """Test that GRC Agent Squad initializes correctly with all required agents."""
         with patch('src.services.aws_config.AWSConfig.create_aws_vault_client') as mock_bedrock:
             mock_bedrock.return_value = mock_bedrock_client
             
-            grc_squad = GRCAgentSquad(tool_registry=tool_registry)
+            grc_squad = GRCAgentSquad()
             
             # Verify initialization
             assert grc_squad.squad is not None
-            assert len(grc_squad.agent_configs) == 4
+            assert len(grc_squad.agent_configs) == 5
             
             # Verify all required GRC agents are present
             expected_agents = [
                 "empathetic_interviewer_executive",
                 "authoritative_compliance_executive",
                 "analytical_risk_expert_executive",
-                "strategic_governance_executive"
+                "strategic_governance_executive",
+                "supervisor_grc"
             ]
             
             for agent_id in expected_agents:
@@ -147,7 +137,7 @@ class TestGRCSquadIntegration:
         """Test retrieval of GRC agent information."""
         # Test list_agents
         agents = await grc_squad.list_agents()
-        assert len(agents) == 4
+        assert len(agents) == 5
         
         # Verify each agent has required fields
         for agent in agents:
@@ -161,7 +151,8 @@ class TestGRCSquadIntegration:
             "empathetic_interviewer_executive": "Emma - Senior Information Collector",
             "authoritative_compliance_executive": "Dr. Morgan - Chief Compliance Officer",
             "analytical_risk_expert_executive": "Alex - Chief Risk Officer", 
-            "strategic_governance_executive": "Sam - Chief Governance Officer"
+            "strategic_governance_executive": "Sam - Chief Governance Officer",
+            "supervisor_grc": "Director"
         }
         
         for agent_id, expected_name in expected_agents.items():
@@ -175,17 +166,17 @@ class TestGRCSquadIntegration:
         """Test GRC squad statistics and metadata."""
         stats = await grc_squad.get_squad_stats()
         
-        assert stats["total_agents"] == 4
-        assert stats["active_agents"] == 4
+        assert stats["total_agents"] == 5
+        assert stats["active_agents"] == 5
         assert stats["memory_type"] == "bedrock_built_in"
-        assert stats["available_tools"] == 0  # Mock registry has no tools
-        assert len(stats["agent_types"]) == 4
+        assert len(stats["agent_types"]) == 5
         
         expected_agent_types = [
             "empathetic_interviewer_executive",
             "authoritative_compliance_executive",
             "analytical_risk_expert_executive", 
-            "strategic_governance_executive"
+            "strategic_governance_executive",
+            "supervisor_grc"
         ]
         
         for agent_type in expected_agent_types:

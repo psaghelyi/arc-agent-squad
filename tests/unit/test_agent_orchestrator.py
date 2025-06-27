@@ -11,8 +11,6 @@ from unittest.mock import Mock, AsyncMock, patch
 from typing import List, Dict, Any
 
 from src.services.grc_agent_squad import GRCAgentSquad
-from src.tools.tool_registry import ToolRegistry
-from src.models.agent_models import AgentCapability
 
 
 class TestGRCAgentSquad:
@@ -28,18 +26,9 @@ class TestGRCAgentSquad:
         return mock_response
 
     @pytest.fixture
-    def tool_registry(self):
-        """Create a mock tool registry."""
-        registry = Mock(spec=ToolRegistry)
-        registry.get_tools = Mock(return_value=[])
-        registry.list_tools = Mock(return_value=[])
-        registry.tools = {}  # Add tools attribute for get_available_tools test
-        return registry
-
-    @pytest.fixture
-    def grc_squad(self, tool_registry):
+    def grc_squad(self):
         """Create a GRC Agent Squad instance."""
-        squad = GRCAgentSquad(tool_registry=tool_registry)
+        squad = GRCAgentSquad()
         return squad
 
     @pytest.mark.asyncio
@@ -48,7 +37,7 @@ class TestGRCAgentSquad:
         agents = await grc_squad.list_agents()
         
         assert isinstance(agents, list)
-        assert len(agents) == 4  # Should have 4 GRC agents
+        assert len(agents) == 5  # Should have 5 GRC agents
         
         # Verify all expected agents are present
         agent_personalities = [agent["agent_id"] for agent in agents]
@@ -56,7 +45,8 @@ class TestGRCAgentSquad:
                     "empathetic_interviewer_executive",
         "authoritative_compliance_executive",
         "analytical_risk_expert_executive",
-        "strategic_governance_executive"
+        "strategic_governance_executive",
+        "supervisor_grc"
         ]
         
         for personality in expected_personalities:
@@ -196,17 +186,9 @@ class TestGRCAgentSquad:
         
         assert isinstance(stats, dict)
         assert "total_agents" in stats
-        assert stats["total_agents"] == 4
+        assert stats["total_agents"] == 5
         assert "agent_types" in stats
-        assert len(stats["agent_types"]) == 4
-
-    @pytest.mark.asyncio
-    async def test_get_available_tools(self, grc_squad):
-        """Test getting available tools."""
-        tools = grc_squad.get_available_tools()
-        
-        assert isinstance(tools, list)
-        # Tools list might be empty in test environment, but should be a list
+        assert len(stats["agent_types"]) == 5
 
     @pytest.mark.asyncio
     async def test_process_request_error_handling(self, grc_squad):

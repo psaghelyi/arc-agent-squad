@@ -109,21 +109,15 @@ class AgentConfiguration(BaseModel):
     personality: AgentPersonalityConfig
     capabilities: List[AgentCapability]
     
-    # Technical configuration - Updated to be configurable, not hardcoded
+    # Technical configuration
     model_id: str = Field(default="")  # Will be loaded from config
-    max_tokens: Optional[int] = None  # Will be loaded from config
-    temperature: Optional[float] = None  # Will be loaded from config
-    top_p: Optional[float] = None  # Will be loaded from config
     
     # Memory and context
     memory_enabled: bool = True
-    max_memory_messages: int = 50
-    context_window_size: int = 4000
     
-    # Voice settings (if voice-enabled)
-    voice_enabled: bool = True
-    voice_id: str = "Joanna"
-    speech_rate: str = "medium"
+    # Voice settings (for future voice integration)
+    voice_enabled: bool = True  # Flag for enabling voice capabilities
+    voice_id: str = "Joanna"    # Default voice ID for text-to-speech
     
     # Status and metadata
     is_active: bool = True

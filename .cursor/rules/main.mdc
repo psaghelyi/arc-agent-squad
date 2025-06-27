@@ -21,7 +21,7 @@ This project implements an AI agent squad specifically designed for the **Govern
 
 ### Core Framework
 - **Agent Orchestration**: [AWS Labs agent-squad](mdc:https:/github.com/awslabs/agent-squad) framework
-- **LLM Platform**: Amazon Bedrock with Claude models
+- **LLM Platform**: Amazon Bedrock with Claude models (default: us.anthropic.claude-sonnet-4-20250514-v1:0)
 - **Infrastructure**: AWS CDK with ECS Fargate deployment
 
 ### Voice & Conversation Services

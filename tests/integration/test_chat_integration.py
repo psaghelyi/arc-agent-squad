@@ -9,24 +9,15 @@ import asyncio
 from unittest.mock import Mock, AsyncMock, patch
 
 from src.services.grc_agent_squad import GRCAgentSquad
-from src.tools.tool_registry import ToolRegistry
 
 
 class TestChatIntegration:
     """Integration tests for GRC Agent Squad chat functionality."""
 
     @pytest.fixture
-    def tool_registry(self):
-        """Create a tool registry for testing."""
-        registry = Mock(spec=ToolRegistry)
-        registry.get_tools = Mock(return_value=[])
-        registry.list_tools = Mock(return_value=[])
-        return registry
-
-    @pytest.fixture
-    def grc_squad(self, tool_registry):
+    def grc_squad(self):
         """Create a GRC Agent Squad instance."""
-        squad = GRCAgentSquad(tool_registry=tool_registry)
+        squad = GRCAgentSquad()
         return squad
 
     def create_mock_response(self, output_text, agent_name="Emma - Information Collector", agent_id="interviewer", confidence=0.95):
