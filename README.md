@@ -85,7 +85,30 @@ cp env.example .env
 # Edit .env with your AWS settings
 ```
 
-### 2. Local Development
+### 2. Virtual Environment
+
+This project uses a Python virtual environment stored in the `venv` directory. Here's how to work with it:
+
+```bash
+# Create or update the virtual environment
+make venv
+
+# Activate the virtual environment (direct method)
+source venv/bin/activate
+
+# Alternative: use the activation script
+source activate.sh
+
+# Check virtual environment status
+make venv-status
+
+# Deactivate the virtual environment when done
+deactivate
+```
+
+> **VS Code Setup**: The project is configured to automatically use the virtual environment in VS Code. The Python interpreter path is set to `${workspaceFolder}/venv/bin/python` in `.vscode/settings.json`.
+
+### 3. Local Development
 
 ```bash
 # Start local development environment

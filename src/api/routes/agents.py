@@ -397,33 +397,6 @@ async def get_agent_capabilities():
     }
 
 
-@router.get("/personalities/presets")
-async def get_personality_presets():
-    """Get available personality presets."""
-    from src.models.agent_models import PERSONALITY_PRESETS
-    
-    presets = {}
-    for personality_type, config in PERSONALITY_PRESETS.items():
-        presets[personality_type.value] = {
-            "type": personality_type.value,
-            "tone": config.tone.value,
-            "greeting": config.greeting_message,
-            "style": config.response_style,
-            "politeness": config.politeness_level,
-            "enthusiasm": config.enthusiasm_level,
-            "uses_emojis": config.use_emojis,
-            "asks_follow_ups": config.asks_follow_up_questions,
-            "provides_examples": config.provides_examples,
-            "shows_empathy": config.shows_empathy,
-            "is_proactive": config.is_proactive
-        }
-    
-    return {
-        "presets": presets,
-        "total": len(presets)
-    }
-
-
 @router.get("/config/details")
 async def get_detailed_agent_config(grc_squad: GRCAgentSquad = Depends(get_grc_squad)):
     """Get detailed configuration information for all agents including model IDs, prompts, and settings."""

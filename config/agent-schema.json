@@ -143,6 +143,13 @@
               "minimum": 0,
               "maximum": 1,
               "description": "Nucleus sampling parameter"
+            },
+            "stopSequences": {
+              "type": "array",
+              "description": "List of sequences that will stop the model generation",
+              "items": {
+                "type": "string"
+              }
             }
           },
           "additionalProperties": true
@@ -169,6 +176,11 @@
     "system_prompt_template": {
       "type": "string",
       "description": "System prompt template for the agent"
+    },
+    "system_prompt_variables": {
+      "type": "object",
+      "description": "Variables to be used with the system prompt template",
+      "additionalProperties": true
     }
   },
   "additionalProperties": false

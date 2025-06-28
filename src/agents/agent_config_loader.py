@@ -41,14 +41,47 @@ class AgentConfigLoader:
         self.individual_schema_path = self._get_individual_schema_path()
         self._agent_configs: Dict[str, 'FileBasedAgentConfig'] = {}
         self._individual_schema: Optional[Dict[str, Any]] = None
+        self._communication_formats: Dict[str, str] = {}
         
         self._load_schema()
+        self._load_communication_formats()
         self._load_config()
     
     def _get_individual_schema_path(self) -> str:
         """Get the path for agent schema file."""
         config_dir = os.path.dirname(self.config_directory)
         return os.path.join(config_dir, "agent-schema.json")
+    
+    def _load_communication_formats(self) -> None:
+        """Load common communication format instructions from YAML file."""
+        try:
+            # Get path to communication_formats.yaml
+            config_dir = os.path.dirname(self.config_directory)
+            common_dir = os.path.join(config_dir, "common")
+            formats_path = os.path.join(common_dir, "communication_formats.yaml")
+            
+            if os.path.exists(formats_path):
+                with open(formats_path, 'r', encoding='utf-8') as f:
+                    formats_data = yaml.safe_load(f)
+                
+                # Store communication format instructions
+                self._communication_formats = {
+                    'display_mode': formats_data.get('display_mode_instructions', ''),
+                    'voice_mode': formats_data.get('voice_mode_instructions', '')
+                }
+                
+                self.logger.info("Communication format instructions loaded successfully")
+            else:
+                self.logger.warning("Communication formats file not found, using empty instructions", 
+                                  formats_path=formats_path)
+                self._communication_formats = {'display_mode': '', 'voice_mode': ''}
+        except Exception as e:
+            self.logger.error(f"Failed to load communication formats: {e}")
+            self._communication_formats = {'display_mode': '', 'voice_mode': ''}
+
+    def get_communication_formats(self) -> Dict[str, str]:
+        """Get the loaded communication format instructions."""
+        return self._communication_formats.copy()
     
     def _load_schema(self):
         """Load the JSON schema for individual agent validation."""
@@ -110,11 +143,12 @@ class AgentConfigLoader:
                     # Validate individual agent configuration
                     self._validate_individual_agent_config(agent_data, agent_id)
                     
-                    # Create FileBasedAgentConfig instance
+                    # Create FileBasedAgentConfig instance with communication formats
                     self._agent_configs[agent_id] = FileBasedAgentConfig(
                         agent_id=agent_id,
                         config_data=agent_data,
-                        default_model_settings=agent_data.get('model_settings', {})
+                        default_model_settings=agent_data.get('model_settings', {}),
+                        communication_formats=self._communication_formats
                     )
                     
                     self.logger.debug(f"Loaded agent configuration for '{agent_id}'", 
@@ -183,7 +217,8 @@ class AgentConfigLoader:
 class FileBasedAgentConfig:
     """Configuration for a single agent loaded from a YAML file."""
     
-    def __init__(self, agent_id: str, config_data: Dict[str, Any], default_model_settings: Dict[str, Any]):
+    def __init__(self, agent_id: str, config_data: Dict[str, Any], default_model_settings: Dict[str, Any],
+                 communication_formats: Optional[Dict[str, str]] = None):
         """
         Initialize agent configuration from loaded data.
         
@@ -191,6 +226,7 @@ class FileBasedAgentConfig:
             agent_id: Unique identifier for the agent
             config_data: Raw configuration data from YAML file
             default_model_settings: Default model settings to use if not specified
+            communication_formats: Common communication format instructions
         """
 
         self.logger = structlog.get_logger(__name__)
@@ -198,6 +234,7 @@ class FileBasedAgentConfig:
         self.agent_id = agent_id
         self.config_data = config_data
         self.default_model_settings = default_model_settings
+        self.communication_formats = communication_formats or {}
         
         # Validate required fields
         required_fields = ['id', 'name', 'description']
@@ -207,7 +244,30 @@ class FileBasedAgentConfig:
 
     def get_system_prompt(self) -> str:
         """Get the system prompt template for the agent."""
-        return self.config_data.get('system_prompt_template', '')
+        base_prompt = self.config_data.get('system_prompt_template', '')
+        
+        # Add communication format instructions if available
+        if self.communication_formats and (self.communication_formats.get('display_mode') 
+                                           or self.communication_formats.get('voice_mode')):
+            # Add a section heading for communication formats
+            format_section = "\n\n## RESPONSE FORMATTING:\n"
+            
+            # Add display mode instructions if available
+            if self.communication_formats.get('display_mode'):
+                format_section += self.communication_formats['display_mode'] + "\n\n"
+                
+            # Add voice mode instructions if available
+            if self.communication_formats.get('voice_mode'):
+                format_section += self.communication_formats['voice_mode']
+                
+            # Append the format section to the base prompt
+            return base_prompt + format_section
+        
+        return base_prompt
+    
+    def get_system_prompt_variables(self) -> Optional[Dict[str, Any]]:
+        """Get the system prompt variables for the agent."""
+        return self.config_data.get('system_prompt_variables', None)
 
     def get_capabilities(self) -> List[AgentCapability]:
         """Get the list of capabilities for the agent."""

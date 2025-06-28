@@ -245,21 +245,6 @@ class TestAPIIntegration:
             assert "Agent processing failed" in data["detail"]
 
     @pytest.mark.asyncio
-    async def test_personalities_presets_endpoint(self, client):
-        """Test the personality presets endpoint."""
-        response = await client.get("/api/agents/personalities/presets")
-        assert response.status_code == 200
-        
-        data = response.json()
-        assert "presets" in data
-        assert isinstance(data["presets"], dict)
-        
-        # Should have the defined personality presets
-        expected_personalities = ["kind_helpful", "to_the_point", "professional", "casual_friendly"]
-        for personality in expected_personalities:
-            assert personality in data["presets"]
-
-    @pytest.mark.asyncio
     async def test_capabilities_list_endpoint(self, client):
         """Test the capabilities list endpoint."""
         response = await client.get("/api/agents/capabilities/list")

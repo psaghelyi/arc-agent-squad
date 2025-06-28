@@ -4,7 +4,7 @@
 # - Application startup (local-start, local-api) uses programmatic credential extraction
 # - Infrastructure operations (CDK, Docker, AWS CLI) still use aws-vault for credential management
 #
-.PHONY: help install dev-install test lint format clean build deploy local-start docker-build docker-run cdk-deploy cdk-destroy
+.PHONY: help install dev-install test lint format clean build deploy local-start docker-build docker-run cdk-deploy cdk-destroy venv venv-activate venv-status
 
 # Variables
 PYTHON := python3.13
@@ -31,6 +31,31 @@ install: ## Install production dependencies
 dev-install: install ## Install development dependencies
 	$(PIP) install -e ".[dev]"
 	$(PIP) install pytest-cov
+
+# Virtual environment management
+venv: ## Create or update the virtual environment
+	@if [ -d "$(VENV)" ]; then \
+		echo "Virtual environment already exists. Updating..."; \
+		$(PIP) install --upgrade pip; \
+		$(PIP) install -r requirements.txt; \
+	else \
+		echo "Creating virtual environment in ./$(VENV)..."; \
+		$(PYTHON) -m venv $(VENV); \
+		$(PIP) install --upgrade pip; \
+		$(PIP) install -r requirements.txt; \
+	fi
+	@echo "Virtual environment is ready!"
+
+venv-activate: ## Print command to activate virtual environment (must use: eval $$(make venv-activate))
+	@echo "source $(VENV)/bin/activate"
+
+venv-status: ## Show virtual environment status and Python version
+	@if [ -d "$(VENV)" ]; then \
+		echo "Virtual environment exists in ./$(VENV)"; \
+		$(PYTHON_VENV) --version; \
+	else \
+		echo "Virtual environment not found. Run 'make venv' to create it."; \
+	fi
 
 # Code quality
 test: test-unit

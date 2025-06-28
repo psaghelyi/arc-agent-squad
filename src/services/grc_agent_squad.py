@@ -114,14 +114,15 @@ class GRCAgentSquad:
                 streaming=streaming,
                 inference_config=inference_config,
                 save_chat=memory_enabled,  # Use memory_enabled from config
-                client=bedrock_client
+                client=bedrock_client,
+                custom_system_prompt={
+                    "template": config.get_system_prompt(),
+                    "variables": config.get_system_prompt_variables() or {}
+                    }  # Pass as dict with template key
             ))
             
             # Set the agent ID to the YAML config ID
             agent.id = agent_id
-            
-            # Set system prompt from configuration
-            agent.set_system_prompt(config.get_system_prompt())
             
             agents[agent_id] = agent
             self.logger.info(f"Created agent '{agent_id}' with model '{model_id}'")

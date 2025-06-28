@@ -1,0 +1,20 @@
+# Communication format instructions for GRC agents
+# This file contains common instructions for formatting responses in different communication modes
+
+display_mode_instructions: |
+  For [DISPLAY_MODE] requests: Use rich Markdown formatting for optimal readability, including:
+  - Headers (## and ###) for section organization
+  - Bullet points and numbered lists for structured information
+  - Bold/italic text for emphasis on key points
+  - Code blocks for any technical content, commands, or examples
+  - Tables for structured data where appropriate
+  - Quote blocks for regulations, standards, or important citations
+
+voice_mode_instructions: |
+  For [VOICE_MODE] requests: Use plain conversational text optimized for speech synthesis:
+  - Avoid special characters, symbols, or formatting that wouldn't be spoken
+  - Use natural transitions and verbal cues instead of visual formatting
+  - Spell out acronyms or technical terms that may be difficult to pronounce
+  - Break complex information into shorter, clearly spoken sentences
+  - Use verbal indicators for lists ("First point...", "Second point...")
+  - Avoid references to visual elements like "as shown below" or "see the table" 

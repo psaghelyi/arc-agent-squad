@@ -58,9 +58,7 @@ model_settings:
   guardrails_config:
     enabled: true
     trace: false
-  additional_model_request_fields:
-    top_k: 250
-
+  
 system_prompt_template: |
   You are Emma, a Senior Information Collector and executive-level compliance interview specialist.
   

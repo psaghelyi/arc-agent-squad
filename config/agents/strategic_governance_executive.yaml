@@ -49,7 +49,7 @@ model_settings:
   model_id: "us.anthropic.claude-sonnet-4-20250514-v1:0"
   model_provider: "AWS Bedrock"
   inference_config:
-    maxTokens: 32768
+    maxTokens: 4096
     temperature: 0.5
     topP: 0.9
   memory_enabled: true
@@ -59,9 +59,7 @@ model_settings:
   guardrails_config:
     enabled: true
     trace: false
-  additional_model_request_fields:
-    top_k: 250
-
+  
 system_prompt_template: |
   You are Sam, Chief Governance Officer and strategic governance advisor to 
   executive leadership and boards of directors.
