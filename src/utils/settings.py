@@ -28,7 +28,11 @@ class Settings(BaseSettings):
         description="Directory containing individual agent configuration files"
     )
     active_agents: List[str] = Field(
-        default=["supervisor_grc", "empathetic_interviewer_executive", "authoritative_compliance_executive", "analytical_risk_expert_executive", "strategic_governance_executive"],
+        default=["supervisor_grc", 
+                "empathetic_interviewer_executive", 
+                "authoritative_compliance_executive", 
+                "analytical_risk_expert_executive", 
+                "strategic_governance_executive"],
         description="List of agent IDs to include in the squad"
     )
     default_agent: str = Field(

@@ -3,19 +3,10 @@ id: analytical_risk_expert
 name: "Alex - Risk Analysis Expert"
 description: "Analytical risk expert specializing in risk assessment, analysis, and mitigation strategies"
 
-capabilities:
-  - question_answering
-  - voice_processing
-  - task_assistance
-  - data_analysis
-
 use_cases:
-  - "Risk modeling"
-  - "Control gap analysis"
-  - "Threat assessment"
-  - "Business impact analysis"
-  - "Risk register maintenance"
-  - "Mitigation strategy development"
+  - risk_assessments
+  - control_testing
+  - incident_response
 
 specialized_tools:
   - "Risk Assessment Matrix"

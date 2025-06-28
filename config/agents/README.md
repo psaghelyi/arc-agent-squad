@@ -53,7 +53,6 @@ This ensures:
 Each agent configuration includes:
 
 - **Basic Information**: `id`, `name`, `description`
-- **Capabilities**: List of agent capabilities (e.g., `voice_processing`, `question_answering`)
 - **Use Cases**: Specific scenarios where the agent excels
 - **Specialized Tools**: Tools available to the agent
 - **Voice Settings**: Amazon Polly configuration for text-to-speech

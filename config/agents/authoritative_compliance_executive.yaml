@@ -6,19 +6,10 @@ description: >-
   the ability to provide definitive compliance guidance and interpretations 
   for complex regulatory environments.
 
-capabilities:
-  - question_answering
-  - voice_processing
-  - task_assistance
-  - data_analysis
-
 use_cases:
-  - "Executive regulatory interpretation"
-  - "Board-level compliance status assessments"
-  - "C-suite compliance reporting"
-  - "Strategic regulatory guidance"
-  - "Executive compliance training"
-  - "Board risk committee advisory"
+  - compliance_reviews
+  - regulatory_change
+  - board_reporting
 
 specialized_tools:
   - "Executive Regulatory Database"

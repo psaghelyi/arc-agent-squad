@@ -71,7 +71,6 @@ class TestGRCSquadIntegration:
                 agent_config = grc_squad.agent_configs[agent_id]
                 assert "name" in agent_config
                 assert "description" in agent_config
-                assert "capabilities" in agent_config
 
     @pytest.mark.asyncio
     async def test_grc_agent_selection_scenarios(self, grc_squad):
@@ -144,7 +143,6 @@ class TestGRCSquadIntegration:
             assert "agent_id" in agent
             assert "name" in agent
             assert "description" in agent
-            assert "capabilities" in agent
             
         # Test get_agent_info for each agent
         expected_agents = {
@@ -272,45 +270,6 @@ class TestGRCSquadIntegration:
                 assert result["success"] is True
                 assert result["session_id"] == f"concurrent_session_{i}"
                 assert result["agent_response"]["response"] == "Concurrent GRC response"
-
-    @pytest.mark.asyncio
-    async def test_grc_agent_capabilities_mapping(self, grc_squad):
-        """Test that GRC agents have appropriate capabilities mapped."""
-        expected_capabilities = {
-            "empathetic_interviewer_executive": [
-                "question_answering",
-                "voice_processing", 
-                "customer_support"
-            ],
-            "authoritative_compliance_executive": [
-                "question_answering",
-                "voice_processing",
-                "task_assistance",
-                "data_analysis"
-            ],
-            "analytical_risk_expert_executive": [
-                "question_answering",
-                "voice_processing",
-                "data_analysis",
-                "task_assistance"
-            ],
-            "strategic_governance_executive": [
-                "question_answering",
-                "voice_processing",
-                "task_assistance",
-                "data_analysis"
-            ]
-        }
-        
-        for agent_id, expected_caps in expected_capabilities.items():
-            agent_info = await grc_squad.get_agent_info(agent_id)
-            assert agent_info is not None
-            
-            agent_capabilities = agent_info["capabilities"]
-            assert len(agent_capabilities) == len(expected_caps)
-            
-            for expected_cap in expected_caps:
-                assert expected_cap in agent_capabilities
 
     @pytest.mark.asyncio
     async def test_confidence_value_handling(self, grc_squad):

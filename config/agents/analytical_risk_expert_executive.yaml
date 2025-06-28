@@ -6,19 +6,10 @@ description: >-
   enterprise risk management, and providing data-driven risk insights to 
   senior leadership and board committees.
 
-capabilities:
-  - question_answering
-  - voice_processing
-  - data_analysis
-  - task_assistance
-
 use_cases:
-  - "Executive risk modeling and assessment"
-  - "Board risk committee reporting"
-  - "Strategic risk planning sessions"
-  - "C-suite risk advisory"
-  - "Enterprise risk management design"
-  - "Board risk appetite discussions"
+  - risk_assessments
+  - control_testing
+  - incident_response
 
 specialized_tools:
   - "Executive Risk Modeling Platform"

@@ -14,7 +14,6 @@ from pydantic import BaseModel
 from src.agents.agent_config_loader import get_default_config_registry
 
 from ...services.grc_agent_squad import GRCAgentSquad
-from ...models.agent_models import AgentCapability
 
 
 # Request/Response Models
@@ -44,7 +43,6 @@ class AgentResponse(BaseModel):
     name: str
     description: str
     personality: str
-    capabilities: List[str]
     status: str
     created_at: str
 
@@ -101,7 +99,6 @@ async def get_grc_agent_types(grc_squad: GRCAgentSquad = Depends(get_grc_squad))
                 "name": agent["name"], 
                 "personality": agent["personality"],
                 "description": agent["description"],
-                "capabilities": agent["capabilities"],
                 "use_cases": config_class.get_use_cases() if config_class else _get_agent_use_cases(agent["personality"])
             })
         
@@ -183,7 +180,6 @@ async def chat_with_agents(
     """
     try:
         from src.services.voice_processor import VoiceProcessor
-        from src.models.agent_models import AgentCapability
         from src.agents.agent_config_loader import get_default_config_registry
         import structlog
         
@@ -253,21 +249,18 @@ async def chat_with_agents(
             debug_logger.info("Available agent configs:", 
                              available_configs=list(config_registry.list_agent_ids()))
         else:
-            # Get and log the agent capabilities
-            capabilities = agent_config.get_capabilities()
-            debug_logger.info("Agent capabilities", 
+            # Get voice settings to determine if agent has voice capability
+            voice_settings = agent_config.get_voice_settings()
+            debug_logger.info("Agent voice settings", 
                            agent_id=agent_id,
-                           capabilities=[cap.value for cap in capabilities])
+                           voice_settings=voice_settings)
             
-            # Check if VOICE_PROCESSING is in capabilities
-            has_voice_capability = AgentCapability.VOICE_PROCESSING in capabilities
-            debug_logger.info(f"Agent has voice capability: {has_voice_capability}")
-            
-            # Set has_voice flag based on capability
-            has_voice = has_voice_capability
+            # Check if agent has voice capability based on having a valid voice_id
+            has_voice = bool(voice_settings and voice_settings.get('voice_id'))
+            debug_logger.info(f"Agent has voice capability based on voice_settings: {has_voice}")
             
             # Only process voice if requested
-            if request.response_type == "voice" and has_voice_capability:
+            if request.response_type == "voice" and has_voice:
                 debug_logger.info("Agent has voice capability, synthesizing speech")
                 # Generate voice response
                 voice_processor = VoiceProcessor()
@@ -379,24 +372,6 @@ async def get_agent_conversations(
         raise HTTPException(status_code=500, detail=f"Failed to get conversations: {str(e)}")
 
 
-@router.get("/capabilities/list")
-async def get_agent_capabilities():
-    """Get list of available agent capabilities."""
-    capabilities = [
-        {
-            "value": cap.value,
-            "name": cap.value.replace("_", " ").title(),
-            "description": f"Agent capability for {cap.value.replace('_', ' ')}"
-        }
-        for cap in AgentCapability
-    ]
-    
-    return {
-        "capabilities": capabilities,
-        "total": len(capabilities)
-    }
-
-
 @router.get("/config/details")
 async def get_detailed_agent_config(grc_squad: GRCAgentSquad = Depends(get_grc_squad)):
     """Get detailed configuration information for all agents including model IDs, prompts, and settings."""
@@ -431,8 +406,7 @@ async def get_detailed_agent_config(grc_squad: GRCAgentSquad = Depends(get_grc_s
                     "id": agent.get("agent_id", ""),
                     "name": agent["name"],
                     "description": agent["description"],
-                    "personality": agent.get("personality", {}), 
-                    "capabilities": agent["capabilities"],
+                    "personality": config_class.get_personality(), 
                     "status": agent.get("status", "active"),
                     "created_at": agent.get("created_at", ""),
                     
@@ -449,10 +423,7 @@ async def get_detailed_agent_config(grc_squad: GRCAgentSquad = Depends(get_grc_s
                     
                     # Voice configuration
                     "voice_settings": voice_settings,
-                    "voice_enabled": (
-                        "VOICE_PROCESSING" in agent["capabilities"] or 
-                        "voice_processing" in agent["capabilities"]
-                    ),
+                    "voice_enabled": bool(voice_settings and voice_settings.get('voice_id')),
                     
                     # System prompt and role
                     "system_prompt": system_prompt,
@@ -541,16 +512,13 @@ async def debug_voice_test(agent_id: Optional[str] = None, grc_squad: GRCAgentSq
             if not agent_config:
                 raise HTTPException(status_code=404, detail=f"Agent configuration not found for ID: {agent_id}")
             
-            # Check if agent has voice capability
-            capabilities = agent_config.get_capabilities()
-            has_voice = AgentCapability.VOICE_PROCESSING in capabilities
-            
-            if not has_voice:
-                raise HTTPException(status_code=400, detail=f"Agent {agent_id} does not have voice capability")
-            
             # Get voice settings
             voice_settings = agent_config.get_voice_settings()
-            if not voice_settings or not voice_settings.get('voice_id'):
+            
+            # Check if agent has voice capability based on voice settings having a voice_id
+            has_voice = bool(voice_settings and voice_settings.get('voice_id'))
+            
+            if not has_voice:
                 raise HTTPException(status_code=400, detail=f"Agent {agent_id} does not have valid voice settings")
             
             # Test voice synthesis
@@ -592,22 +560,13 @@ async def debug_voice_test(agent_id: Optional[str] = None, grc_squad: GRCAgentSq
                     })
                     continue
                 
-                # Check if agent has voice capability
-                capabilities = agent_config.get_capabilities()
-                has_voice = AgentCapability.VOICE_PROCESSING in capabilities
-                
-                if not has_voice:
-                    results.append({
-                        "agent_id": test_agent_id,
-                        "success": False,
-                        "error": "Agent does not have voice capability",
-                        "capabilities": [cap.value for cap in capabilities]
-                    })
-                    continue
-                
                 # Get voice settings
                 voice_settings = agent_config.get_voice_settings()
-                if not voice_settings or not voice_settings.get('voice_id'):
+                
+                # Check if agent has voice capability based on voice settings having a voice_id
+                has_voice = bool(voice_settings and voice_settings.get('voice_id'))
+                
+                if not has_voice:
                     results.append({
                         "agent_id": test_agent_id,
                         "success": False,

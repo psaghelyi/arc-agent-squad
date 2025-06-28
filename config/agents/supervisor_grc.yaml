@@ -6,17 +6,11 @@ description: |
   This agent breaks down complex GRC tasks into subtasks, assigns them to the most appropriate specialist agents,
   and synthesizes the final response.
 
-capabilities:
-  - task_assistance
-  - data_analysis
-  - question_answering
-
 use_cases:
-  - "Orchestrating complex GRC assessments requiring multiple specialists"
-  - "Managing end-to-end audit processes involving multiple phases"
-  - "Coordinating risk assessment workflows across different domains"
-  - "Synthesizing findings from multiple agents into comprehensive reports"
-  - "Breaking down complex regulatory requirements into specialized sub-tasks"
+  - regulatory_change
+  - incident_response
+  - compliance_reviews
+  - policy_development
 
 specialized_tools:
   - "supervisor_task_planning"

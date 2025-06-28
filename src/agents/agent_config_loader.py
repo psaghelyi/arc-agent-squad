@@ -19,7 +19,6 @@ except ImportError:
     HAS_JSONSCHEMA = False
     ValidationError = Exception
 
-from src.models.agent_models import AgentCapability
 from src.utils.settings import settings
 
 
@@ -42,9 +41,11 @@ class AgentConfigLoader:
         self._agent_configs: Dict[str, 'FileBasedAgentConfig'] = {}
         self._individual_schema: Optional[Dict[str, Any]] = None
         self._communication_formats: Dict[str, str] = {}
+        self._use_cases: Dict[str, Dict[str, Any]] = {}
         
         self._load_schema()
         self._load_communication_formats()
+        self._load_use_cases()
         self._load_config()
     
     def _get_individual_schema_path(self) -> str:
@@ -79,10 +80,38 @@ class AgentConfigLoader:
             self.logger.error(f"Failed to load communication formats: {e}")
             self._communication_formats = {'display_mode': '', 'voice_mode': ''}
 
+    def _load_use_cases(self) -> None:
+        """Load common use case descriptions from YAML file."""
+        try:
+            # Get path to use_cases.yaml
+            config_dir = os.path.dirname(self.config_directory)
+            common_dir = os.path.join(config_dir, "common")
+            use_cases_path = os.path.join(common_dir, "use_cases.yaml")
+            
+            if os.path.exists(use_cases_path):
+                with open(use_cases_path, 'r', encoding='utf-8') as f:
+                    use_cases_data = yaml.safe_load(f)
+                
+                # Store use cases
+                self._use_cases = use_cases_data.get('use_cases', {})
+                
+                self.logger.info("Use cases loaded successfully", count=len(self._use_cases))
+            else:
+                self.logger.warning("Use cases file not found, using empty dictionary", 
+                                  use_cases_path=use_cases_path)
+                self._use_cases = {}
+        except Exception as e:
+            self.logger.error(f"Failed to load use cases: {e}")
+            self._use_cases = {}
+
     def get_communication_formats(self) -> Dict[str, str]:
         """Get the loaded communication format instructions."""
         return self._communication_formats.copy()
     
+    def get_use_cases(self) -> Dict[str, Dict[str, Any]]:
+        """Get the loaded use cases."""
+        return self._use_cases.copy()
+
     def _load_schema(self):
         """Load the JSON schema for individual agent validation."""
         try:
@@ -143,12 +172,13 @@ class AgentConfigLoader:
                     # Validate individual agent configuration
                     self._validate_individual_agent_config(agent_data, agent_id)
                     
-                    # Create FileBasedAgentConfig instance with communication formats
+                    # Create FileBasedAgentConfig instance with communication formats and use cases
                     self._agent_configs[agent_id] = FileBasedAgentConfig(
                         agent_id=agent_id,
                         config_data=agent_data,
                         default_model_settings=agent_data.get('model_settings', {}),
-                        communication_formats=self._communication_formats
+                        communication_formats=self._communication_formats,
+                        use_cases=self._use_cases
                     )
                     
                     self.logger.debug(f"Loaded agent configuration for '{agent_id}'", 
@@ -218,7 +248,7 @@ class FileBasedAgentConfig:
     """Configuration for a single agent loaded from a YAML file."""
     
     def __init__(self, agent_id: str, config_data: Dict[str, Any], default_model_settings: Dict[str, Any],
-                 communication_formats: Optional[Dict[str, str]] = None):
+                 communication_formats: Optional[Dict[str, str]] = None, use_cases: Optional[Dict[str, Dict[str, Any]]] = None):
         """
         Initialize agent configuration from loaded data.
         
@@ -227,6 +257,7 @@ class FileBasedAgentConfig:
             config_data: Raw configuration data from YAML file
             default_model_settings: Default model settings to use if not specified
             communication_formats: Common communication format instructions
+            use_cases: Common use case descriptions
         """
 
         self.logger = structlog.get_logger(__name__)
@@ -235,6 +266,7 @@ class FileBasedAgentConfig:
         self.config_data = config_data
         self.default_model_settings = default_model_settings
         self.communication_formats = communication_formats or {}
+        self.use_cases = use_cases or {}
         
         # Validate required fields
         required_fields = ['id', 'name', 'description']
@@ -245,6 +277,33 @@ class FileBasedAgentConfig:
     def get_system_prompt(self) -> str:
         """Get the system prompt template for the agent."""
         base_prompt = self.config_data.get('system_prompt_template', '')
+        
+        # Add use case descriptions if available
+        agent_use_cases = self.get_use_cases()
+        self.logger.debug(f"Agent {self.agent_id} use cases: {agent_use_cases}")
+        self.logger.debug(f"Available common use cases: {list(self.use_cases.keys())}")
+        
+        if agent_use_cases and self.use_cases:
+            use_cases_section = "\n\n## USE CASES:\n"
+            
+            for use_case_id in agent_use_cases:
+                # Check if this use case has a detailed description in the common use cases
+                if use_case_id in self.use_cases:
+                    use_case = self.use_cases[use_case_id]
+                    self.logger.debug(f"Adding use case {use_case_id}: {use_case['name']}")
+                    use_cases_section += f"### {use_case['name']}\n"
+                    use_cases_section += f"{use_case['description']}\n\n"
+                else:
+                    self.logger.debug(f"Use case {use_case_id} not found in common use cases")
+            
+            # Only add the section if we found at least one matching use case
+            if use_cases_section != "\n\n## USE CASES:\n":
+                self.logger.debug(f"Adding use cases section to prompt for agent {self.agent_id}")
+                base_prompt += use_cases_section
+            else:
+                self.logger.debug(f"No matching use cases found for agent {self.agent_id}")
+        else:
+            self.logger.debug(f"No use cases available for agent {self.agent_id} or no common use cases defined")
         
         # Add communication format instructions if available
         if self.communication_formats and (self.communication_formats.get('display_mode') 
@@ -261,7 +320,7 @@ class FileBasedAgentConfig:
                 format_section += self.communication_formats['voice_mode']
                 
             # Append the format section to the base prompt
-            return base_prompt + format_section
+            base_prompt += format_section
         
         return base_prompt
     
@@ -269,38 +328,6 @@ class FileBasedAgentConfig:
         """Get the system prompt variables for the agent."""
         return self.config_data.get('system_prompt_variables', None)
 
-    def get_capabilities(self) -> List[AgentCapability]:
-        """Get the list of capabilities for the agent."""
-        capabilities_data = self.config_data.get('capabilities', [])
-        capabilities = []
-        
-        # Create a map of lowercase capability values to enum members for case-insensitive lookup
-        capability_map = {cap.value.lower(): cap for cap in AgentCapability}
-        
-        # Debug logging
-        self.logger.debug(f"Agent {self.agent_id} capabilities in YAML: {capabilities_data}")
-        self.logger.debug(f"Available capability map: {capability_map}")
-        
-        for cap in capabilities_data:
-            try:
-                # Try to convert string to enum
-                if isinstance(cap, str):
-                    cap_lower = cap.lower()
-                    self.logger.debug(f"Processing capability '{cap}', lowercase: '{cap_lower}'")
-                    if cap_lower in capability_map:
-                        self.logger.debug(f"Found matching capability: {capability_map[cap_lower]}")
-                        capabilities.append(capability_map[cap_lower])
-                    else:
-                        self.logger.warning(f"Unknown capability '{cap}' for agent {self.agent_id}")
-                else:
-                    capabilities.append(cap)
-            except (KeyError, ValueError) as e:
-                # If conversion fails, log the error and skip this capability
-                self.logger.error(f"Error processing capability '{cap}' for agent {self.agent_id}: {e}")
-                continue
-        
-        self.logger.info(f"Final capabilities for {self.agent_id}: {[cap.value for cap in capabilities]}")
-        return capabilities
 
     def get_specialized_tools(self) -> List[str]:
         """Get the list of specialized tools for the agent."""
@@ -347,14 +374,17 @@ class FileBasedGRCAgentConfigRegistry:
         if not config:
             raise ValueError(f"No configuration found for agent: {agent_id}")
         
+        voice_settings = config.get_voice_settings()
+        voice_enabled = bool(voice_settings and voice_settings.get('voice_id'))
+        
         return {
             "agent_id": agent_id,
             "name": config.config_data.get('name', agent_id),
             "description": config.config_data.get('description', ''),
-            "capabilities": [cap.value for cap in config.get_capabilities()],
             "use_cases": config.get_use_cases(),
             "specialized_tools": config.get_specialized_tools(),
-            "voice_settings": config.get_voice_settings(),
+            "voice_settings": voice_settings,
+            "voice_enabled": voice_enabled,
             "personality": config.get_personality(),
             "system_prompt": config.get_system_prompt(),
             "model_settings": config.get_model_settings()

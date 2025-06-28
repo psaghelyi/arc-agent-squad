@@ -57,7 +57,6 @@ class TestAPIIntegration:
             assert "agent_id" in agent
             assert "name" in agent
             assert "description" in agent
-            assert "capabilities" in agent
 
     @pytest.mark.asyncio
     async def test_get_specific_agent(self, client):
@@ -78,7 +77,6 @@ class TestAPIIntegration:
         assert "agent_id" in agent_data["agent"]
         assert "name" in agent_data["agent"]
         assert "description" in agent_data["agent"]
-        assert "capabilities" in agent_data["agent"]
 
     @pytest.mark.asyncio
     async def test_get_nonexistent_agent(self, client):
@@ -243,28 +241,6 @@ class TestAPIIntegration:
             data = response.json()
             assert "detail" in data
             assert "Agent processing failed" in data["detail"]
-
-    @pytest.mark.asyncio
-    async def test_capabilities_list_endpoint(self, client):
-        """Test the capabilities list endpoint."""
-        response = await client.get("/api/agents/capabilities/list")
-        assert response.status_code == 200
-        
-        data = response.json()
-        assert "capabilities" in data
-        assert "total" in data
-        assert isinstance(data["capabilities"], list)
-        
-        # Should have standard GRC capabilities
-        # Note: capabilities are returned as objects with 'value' field
-        capability_values = [cap["value"] for cap in data["capabilities"]]
-        expected_capabilities = [
-            "question_answering", "voice_processing", "customer_support",
-            "technical_support", "data_analysis", "task_assistance", "creative_writing"
-        ]
-        
-        for capability in expected_capabilities:
-            assert capability in capability_values
 
     @pytest.mark.asyncio
     async def test_concurrent_api_requests(self, client):

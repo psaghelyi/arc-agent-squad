@@ -6,18 +6,10 @@ description: >-
   thorough audit interviews, stakeholder consultations, and gathering detailed 
   compliance information from C-suite executives and board members.
 
-capabilities:
-  - question_answering
-  - voice_processing
-  - customer_support
-
 use_cases:
-  - "Executive compliance interviews"
-  - "Board-level risk assessment sessions"
-  - "Senior stakeholder consultations"
-  - "Executive documentation reviews"
-  - "High-level control testing interviews"
-  - "C-suite audit interviews"
+  - audit_interviews
+  - stakeholder_training
+  - executive_briefings
 
 specialized_tools:
   - "Executive Interview Template Generator"

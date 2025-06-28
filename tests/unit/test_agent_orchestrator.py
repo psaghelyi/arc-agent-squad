@@ -95,7 +95,6 @@ class TestGRCAgentSquad:
         assert agent_info["agent_id"] == "empathetic_interviewer_executive"
         assert "Emma" in agent_info["name"]
         assert agent_info["agent_id"] == "empathetic_interviewer_executive"
-        assert isinstance(agent_info["capabilities"], list)
 
     @pytest.mark.asyncio
     async def test_get_nonexistent_agent_info(self, grc_squad):
@@ -203,20 +202,6 @@ class TestGRCAgentSquad:
             
             assert response["success"] is False
             assert "error" in response
-
-    @pytest.mark.asyncio
-    async def test_agent_capabilities(self, grc_squad):
-        """Test that agents have appropriate capabilities."""
-        agents = await grc_squad.list_agents()
-        
-        for agent in agents:
-            assert "capabilities" in agent
-            assert isinstance(agent["capabilities"], list)
-            assert len(agent["capabilities"]) > 0
-            
-            # All GRC agents should have these basic capabilities
-            capabilities = agent["capabilities"]
-            assert "question_answering" in capabilities
 
     @pytest.mark.asyncio
     async def test_session_id_handling(self, grc_squad):

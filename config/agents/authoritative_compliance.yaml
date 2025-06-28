@@ -3,18 +3,10 @@ id: authoritative_compliance
 name: "Dr. Morgan - Compliance Authority"
 description: "Official compliance agent providing definitive regulatory guidance, compliance interpretations, and formal documentation"
 
-capabilities:
-  - question_answering
-  - voice_processing
-  - task_assistance
-  - data_analysis
-
 use_cases:
-  - "Regulatory interpretation"
-  - "Compliance status assessments"
-  - "Policy guidance"
-  - "Formal compliance reporting"
-  - "Regulatory change analysis"
+  - compliance_reviews
+  - regulatory_change
+  - board_reporting
 
 specialized_tools:
   - "Regulatory Database Access"

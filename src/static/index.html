@@ -164,20 +164,6 @@
             background: #5a67d8;
         }
 
-        .agents-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-        }
-
-        .agent-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            border-left: 5px solid #667eea;
-        }
-
         .loading {
             text-align: center;
             padding: 20px;
@@ -428,84 +414,6 @@
             color: #64748b;
         }
 
-        /* Modal Styles */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 15px;
-            max-width: 90%;
-            max-height: 90%;
-            overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            animation: modalSlideIn 0.3s ease-out;
-        }
-
-        @keyframes modalSlideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-50px) scale(0.95);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 25px;
-            border-bottom: 2px solid #e2e8f0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .modal-header h2 {
-            margin: 0;
-            font-size: 1.5rem;
-        }
-
-        .close-modal {
-            background: none;
-            border: none;
-            font-size: 2rem;
-            cursor: pointer;
-            color: white;
-            padding: 0;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            transition: all 0.3s ease;
-        }
-
-        .close-modal:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: rotate(90deg);
-        }
-
-        .modal-body {
-            padding: 25px;
-            max-height: 70vh;
-            overflow-y: auto;
-        }
-
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 2rem;
@@ -518,19 +426,6 @@
             .chat-input-container {
                 flex-direction: column;
             }
-
-            .modal-content {
-                max-width: 95%;
-                max-height: 95%;
-            }
-
-            .modal-header {
-                padding: 20px;
-            }
-
-            .modal-body {
-                padding: 20px;
-            }
         }
     </style>
 </head>
@@ -538,12 +433,11 @@
     <div class="container">
         <div class="header">
             <h1>🤖 Agent Swarm Management</h1>
-            <p>Manage your AI agents with different personalities and capabilities</p>
+            <p>Manage your AI agents with different personalities and use cases</p>
         </div>
 
         <div class="card">
             <h2>Quick Actions</h2>
-            <button class="btn btn-primary" onclick="showAgentsModal()">Show Agents</button>
             <a href="/config.html" class="btn btn-primary" style="text-decoration: none; display: inline-block;">⚙️ Agent Configuration</a>
             <button class="btn btn-primary" onclick="testAPI()">Test API</button>
             <button class="btn btn-primary" onclick="testVoice()">🔊 Test Voice</button>
@@ -575,21 +469,6 @@
         </div>
 
 
-    </div>
-
-    <!-- Agents Modal -->
-    <div id="agents-modal" class="modal-overlay" onclick="closeAgentsModal(event)">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <div class="modal-header">
-                <h2>🤖 Your Agent Squad</h2>
-                <button class="close-modal" onclick="closeAgentsModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="agents-container" class="loading">
-                    Loading agents...
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -736,80 +615,7 @@
             }
         }
 
-        // Modal functions
-        function showAgentsModal() {
-            const modal = document.getElementById('agents-modal');
-            modal.style.display = 'flex';
-            loadAgents(); // Load agents when modal opens
-        }
 
-        function closeAgentsModal(event) {
-            if (!event || event.target.id === 'agents-modal' || event.target.classList.contains('close-modal')) {
-                const modal = document.getElementById('agents-modal');
-                modal.style.display = 'none';
-            }
-        }
-
-        async function loadAgents() {
-            const container = document.getElementById('agents-container');
-            container.innerHTML = '<div class="loading">Loading agents...</div>';
-            
-            try {
-                const data = await apiCall('/');
-                const agents = data.agents || [];
-                
-                if (agents.length === 0) {
-                    container.innerHTML = '<div class="loading">No agents found. The system will create default agents on first API call.</div>';
-                    return;
-                }
-
-                container.innerHTML = '';
-                const agentsGrid = document.createElement('div');
-                agentsGrid.className = 'agents-grid';
-
-                agents.forEach(agent => {
-                    const agentCard = document.createElement('div');
-                    agentCard.className = 'agent-card';
-                    
-                    // Convert personality type to readable format
-                    const personalityMap = {
-                        'empathetic_interviewer': 'Empathetic Interviewer',
-                        'authoritative_compliance': 'Compliance Authority',
-                        'analytical_risk_expert': 'Risk Analysis Expert',
-                        'strategic_governance': 'Governance Strategist',
-                        'kind_helpful': 'Kind & Helpful',
-                        'to_the_point': 'Direct & Efficient',
-                        'professional': 'Professional',
-                        'casual_friendly': 'Casual & Friendly'
-                    };
-                    const displayPersonality = personalityMap[agent.personality] || agent.personality || 'Unknown';
-                    
-                    // Check if agent has voice processing capability
-                    const hasVoice = agent.capabilities.includes('VOICE_PROCESSING');
-                    const voiceSettings = agent.voice_settings;
-                    
-                    let voiceInfo = '';
-                    if (hasVoice && voiceSettings) {
-                        voiceInfo = `<p><strong>🎙️ Voice:</strong> ${voiceSettings.voice_id} (${voiceSettings.style})</p>`;
-                    }
-                    
-                    agentCard.innerHTML = `
-                        <h3>${agent.name} ${hasVoice ? '🎙️' : ''}</h3>
-                        <p><strong>Personality:</strong> ${displayPersonality}</p>
-                        <p><strong>Description:</strong> ${agent.description}</p>
-                        <p><strong>Status:</strong> ${agent.status}</p>
-                        <p><strong>Capabilities:</strong> ${agent.capabilities.join(', ')}</p>
-                        ${voiceInfo}
-                    `;
-                    agentsGrid.appendChild(agentCard);
-                });
-
-                container.appendChild(agentsGrid);
-                
-            } catch (error) {
-                container.innerHTML = `<div class="error">Failed to load agents: ${error.message}</div>`;
-            }
-        }
 
         async function testAPI() {
             try {
@@ -1320,11 +1126,7 @@ I'll connect you with the most suitable agent from our specialized team:
         });
 
         // Keyboard shortcuts
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                closeAgentsModal();
-            }
-        });
+        // (No shortcuts currently defined)
     </script>
 </body>
 </html> 

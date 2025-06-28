@@ -6,19 +6,10 @@ description: >-
   corporate governance frameworks, and strategic governance advisory for 
   senior leadership and board of directors.
 
-capabilities:
-  - question_answering
-  - voice_processing
-  - task_assistance
-  - data_analysis
-
 use_cases:
-  - "Board effectiveness assessments"
-  - "Corporate governance framework design"
-  - "Executive governance advisory"
-  - "Board committee optimization"
-  - "Governance policy development"
-  - "Board and executive education"
+  - policy_development
+  - board_reporting
+  - stakeholder_training
 
 specialized_tools:
   - "Board Effectiveness Assessment Platform"

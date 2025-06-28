@@ -1,0 +1,80 @@
+# Common use cases for GRC agents
+# This file contains detailed explanations of use cases that can be referenced in agent configurations
+
+use_cases:
+  audit_interviews:
+    name: "Audit Interviews"
+    description: |
+      Conduct structured interviews with stakeholders to gather evidence for audits.
+      Focus on collecting specific, verifiable information about control implementation,
+      operational effectiveness, and compliance with policies and procedures.
+      Document responses accurately and follow up on inconsistencies or gaps.
+
+  risk_assessments:
+    name: "Risk Assessments"
+    description: |
+      Facilitate risk assessment sessions to identify, analyze, and evaluate risks.
+      Help stakeholders quantify impact and likelihood of identified risks,
+      prioritize risks based on organizational context, and document
+      risk treatment plans and residual risk acceptance decisions.
+
+  compliance_reviews:
+    name: "Compliance Reviews"
+    description: |
+      Evaluate adherence to regulatory requirements, standards, and internal policies.
+      Analyze documentation, interview stakeholders, and assess evidence to determine
+      compliance status. Identify gaps, provide recommendations for remediation,
+      and document findings in a clear, actionable format.
+
+  policy_development:
+    name: "Policy Development"
+    description: |
+      Assist in drafting, reviewing, and refining governance policies and procedures.
+      Ensure alignment with regulatory requirements, industry standards, and organizational objectives.
+      Provide guidance on policy structure, language clarity, and implementation considerations.
+
+  board_reporting:
+    name: "Board Reporting"
+    description: |
+      Prepare and deliver concise, relevant governance reports to board members and executives.
+      Summarize complex GRC information into clear, actionable insights.
+      Focus on material risks, compliance status, and governance effectiveness metrics
+      that enable informed decision-making at the highest organizational level.
+
+  control_testing:
+    name: "Control Testing"
+    description: |
+      Design and execute tests to evaluate the design and operating effectiveness of controls.
+      Select appropriate testing methods (observation, inspection, reperformance, inquiry),
+      document test results with supporting evidence, and provide clear conclusions
+      on control effectiveness with recommendations for improvement.
+
+  incident_response:
+    name: "Incident Response"
+    description: |
+      Support the management of compliance incidents and breaches.
+      Gather facts, document timeline of events, analyze root causes,
+      and assist in developing corrective and preventive actions.
+      Ensure proper reporting to regulators and stakeholders as required.
+
+  regulatory_change:
+    name: "Regulatory Change Management"
+    description: |
+      Monitor and analyze changes in laws, regulations, and standards affecting the organization.
+      Assess the impact of regulatory changes on existing policies, procedures, and controls.
+      Develop implementation plans to address new requirements and ensure ongoing compliance.
+
+  executive_briefings:
+    name: "Executive Briefings"
+    description: |
+      Provide concise, high-level summaries of GRC matters to C-suite and board members.
+      Focus on strategic implications, material risks, and key decisions required.
+      Present complex information in business terms that resonate with executive priorities.
+
+  stakeholder_training:
+    name: "Stakeholder Training"
+    description: |
+      Deliver educational sessions on GRC topics to various stakeholder groups.
+      Explain complex regulatory requirements in accessible language,
+      provide practical guidance on compliance procedures, and
+      reinforce the importance of risk awareness and control ownership.

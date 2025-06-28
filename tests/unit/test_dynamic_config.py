@@ -19,7 +19,6 @@ from typing import Dict, Any, List
 
 from src.utils.settings import Settings, settings
 from src.agents.agent_config_loader import AgentConfigLoader, FileBasedAgentConfig, FileBasedGRCAgentConfigRegistry
-from src.models.agent_models import AgentCapability
 
 
 class TestSettings:
@@ -199,10 +198,6 @@ class TestAgentConfigLoader:
                     "name": {"type": "string"},
                     "description": {"type": "string"},
                     "system_prompt_template": {"type": "string"},
-                    "capabilities": {
-                        "type": "array",
-                        "items": {"type": "string"}
-                    },
                     "specialized_tools": {
                         "type": "array",
                         "items": {"type": "string"}
@@ -230,7 +225,6 @@ class TestAgentConfigLoader:
                     "name": "Test Agent 1",
                     "description": "First test agent",
                     "system_prompt_template": "You are test agent 1",
-                    "capabilities": ["VOICE_PROCESSING", "DATA_ANALYSIS"],
                     "specialized_tools": ["tool1", "tool2"],
                     "voice_settings": {
                         "voice_id": "Joanna",
@@ -253,7 +247,6 @@ class TestAgentConfigLoader:
                     "name": "Test Agent 2",
                     "description": "Second test agent",
                     "system_prompt_template": "You are test agent 2",
-                    "capabilities": ["TEXT_CHAT", "QUESTION_ANSWERING"],
                     "specialized_tools": ["tool3"],
                     "voice_settings": {
                         "voice_id": "Matthew",
@@ -449,7 +442,6 @@ class TestFileBasedAgentConfig:
             "name": "Test Agent",
             "description": "A test agent for validation",
             "system_prompt_template": "You are a test agent.",
-            "capabilities": ["VOICE_PROCESSING", "DATA_ANALYSIS"],
             "specialized_tools": ["tool1", "tool2"],
             "voice_settings": {
                 "voice_id": "Joanna",
@@ -501,34 +493,6 @@ class TestFileBasedAgentConfig:
         
         prompt = config.get_system_prompt()
         assert prompt == "You are a test agent."
-    
-    def test_get_capabilities(self, sample_agent_data):
-        """Test getting capabilities."""
-        config = FileBasedAgentConfig(
-            agent_id="test_agent",
-            config_data=sample_agent_data,
-            default_model_settings={}
-        )
-        
-        capabilities = config.get_capabilities()
-        assert len(capabilities) == 2
-        assert AgentCapability.VOICE_PROCESSING in capabilities
-        assert AgentCapability.DATA_ANALYSIS in capabilities
-    
-    def test_get_capabilities_unknown_capability(self, sample_agent_data):
-        """Test getting capabilities with unknown capability."""
-        sample_agent_data["capabilities"] = ["VOICE_PROCESSING", "UNKNOWN_CAPABILITY"]
-        
-        config = FileBasedAgentConfig(
-            agent_id="test_agent",
-            config_data=sample_agent_data,
-            default_model_settings={}
-        )
-        
-        capabilities = config.get_capabilities()
-        # Should only include known capabilities
-        assert len(capabilities) == 1
-        assert AgentCapability.VOICE_PROCESSING in capabilities
     
     def test_get_specialized_tools(self, sample_agent_data):
         """Test getting specialized tools."""
@@ -606,7 +570,6 @@ class TestFileBasedGRCAgentConfigRegistry:
                 "name": "Test Registry Agent",
                 "description": "Agent for testing registry",
                 "system_prompt_template": "You are a registry test agent",
-                "capabilities": ["VOICE_PROCESSING"],
                 "specialized_tools": ["registry_tool"],
                 "voice_settings": {"voice_id": "Joanna"},
                 "use_cases": ["Registry Testing"],
@@ -649,9 +612,9 @@ class TestFileBasedGRCAgentConfigRegistry:
         assert metadata["agent_id"] == "test_registry_agent"
         assert metadata["name"] == "Test Registry Agent"
         assert metadata["description"] == "Agent for testing registry"
-        assert "capabilities" in metadata
         assert "specialized_tools" in metadata
         assert "voice_settings" in metadata
+        assert "voice_enabled" in metadata
         assert "use_cases" in metadata
         assert "personality" in metadata
     
@@ -763,7 +726,6 @@ class TestConfigurationUsage:
             "name": "Complete Test Agent",
             "description": "Agent with all possible configuration fields",
             "system_prompt_template": "Complete system prompt",
-            "capabilities": ["VOICE_PROCESSING", "DATA_ANALYSIS"],
             "specialized_tools": ["tool1", "tool2"],
             "voice_settings": {"voice_id": "Joanna", "style": "conversational"},
             "use_cases": ["Testing", "Validation"],
@@ -780,7 +742,6 @@ class TestConfigurationUsage:
         
         # Test that all getter methods work and return expected types
         assert isinstance(config.get_system_prompt(), str)
-        assert isinstance(config.get_capabilities(), list)
         assert isinstance(config.get_specialized_tools(), list)
         assert isinstance(config.get_voice_settings(), dict)
         assert isinstance(config.get_use_cases(), list)
@@ -789,7 +750,6 @@ class TestConfigurationUsage:
         
         # Test that all data is accessible
         assert config.get_system_prompt() == "Complete system prompt"
-        assert len(config.get_capabilities()) == 2
         assert config.get_specialized_tools() == ["tool1", "tool2"]
         assert config.get_voice_settings()["voice_id"] == "Joanna"
         assert config.get_use_cases() == ["Testing", "Validation"]

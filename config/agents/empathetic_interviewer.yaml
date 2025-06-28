@@ -3,17 +3,10 @@ id: empathetic_interviewer
 name: "Emma - Information Collector"
 description: "Empathetic interviewer specialized in conducting thorough audit interviews, stakeholder consultations, and gathering detailed compliance information"
 
-capabilities:
-  - question_answering
-  - voice_processing
-  - customer_support
-
 use_cases:
-  - "Compliance interviews"
-  - "Risk assessment sessions"
-  - "Stakeholder consultations"
-  - "Documentation reviews"
-  - "Control testing interviews"
+  - audit_interviews
+  - stakeholder_training
+  - executive_briefings
 
 specialized_tools:
   - "Interview Template Generator"

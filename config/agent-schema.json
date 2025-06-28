@@ -3,7 +3,7 @@
   "title": "Individual Agent Configuration",
   "description": "Schema for individual GRC agent configuration files",
   "type": "object",
-  "required": ["id", "name", "description", "capabilities", "use_cases", "specialized_tools", "voice_settings", "personality", "model_settings", "system_prompt_template"],
+  "required": ["id", "name", "description", "use_cases", "specialized_tools", "voice_settings", "personality", "model_settings", "system_prompt_template"],
   "properties": {
     "id": {
       "type": "string",
@@ -17,22 +17,6 @@
     "description": {
       "type": "string",
       "description": "Detailed description of the agent's role and purpose"
-    },
-    "capabilities": {
-      "type": "array",
-      "description": "List of agent capabilities",
-      "items": {
-        "type": "string",
-        "enum": [
-          "question_answering",
-          "voice_processing",
-          "customer_support",
-          "task_assistance",
-          "data_analysis",
-          "creative_writing"
-        ]
-      },
-      "minItems": 1
     },
     "use_cases": {
       "type": "array",

@@ -164,13 +164,18 @@
         .config-item {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             padding: 8px 0;
             border-bottom: 1px solid #f7fafc;
         }
 
         .config-item:last-child {
             border-bottom: none;
+        }
+
+        .config-item .traits-tags {
+            flex: 1;
+            justify-content: flex-end;
         }
 
         .config-label {
@@ -193,21 +198,6 @@
             font-size: 0.9rem;
         }
 
-        .capabilities-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-        }
-
-        .capability-tag {
-            background: #e2e8f0;
-            color: #2d3748;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 500;
-        }
-
         .voice-enabled {
             background: #c6f6d5;
             color: #2f855a;
@@ -217,6 +207,32 @@
             color: #4a5568;
             font-size: 0.9rem;
             line-height: 1.4;
+        }
+
+        .use-cases-tags, .tools-tags, .traits-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 5px;
+        }
+
+        .use-case-tag {
+            display: inline-block;
+            background: #edf2f7;
+            color: #4a5568;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+        }
+
+        .use-case-item {
+            margin-bottom: 8px;
+        }
+
+        .use-case-name {
+            font-weight: 500;
+            color: #2d3748;
         }
 
         .prompt-section {
@@ -527,12 +543,11 @@
             const statsContainer = document.getElementById('stats-container');
             
             const totalAgents = configs.length;
-            // Fix voice detection: check capabilities array for voice_processing
+            // Check for voice_enabled flag or valid voice_settings
             const voiceEnabledCount = configs.filter(c => 
-                c.capabilities.includes('voice_processing') || 
-                c.capabilities.includes('VOICE_PROCESSING')
+                c.voice_enabled || (c.voice_settings && c.voice_settings.voice_id)
             ).length;
-            const totalCapabilities = [...new Set(configs.flatMap(c => c.capabilities))].length;
+            const totalUseCases = configs.reduce((sum, c) => sum + c.use_cases.length, 0);
             const avgPromptLength = configs.reduce((sum, c) => sum + c.system_prompt_length, 0) / totalAgents;
             
             statsContainer.innerHTML = `
@@ -545,8 +560,8 @@
                     <div class="stat-label">Voice Enabled</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">${totalCapabilities}</div>
-                    <div class="stat-label">Unique Capabilities</div>
+                    <div class="stat-number">${totalUseCases}</div>
+                    <div class="stat-label">Unique Use Cases</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number">${Math.round(avgPromptLength / 1000)}k</div>
@@ -615,8 +630,20 @@
                     <div class="config-section">
                         <h4>🎭 Personality & Role</h4>
                         <div class="config-item">
-                            <span class="config-label">Personality:</span>
-                            <span class="config-value">${formatPersonality(config.personality)}</span>
+                            <span class="config-label">Tone:</span>
+                            <span class="config-value">${config.personality && config.personality.tone ? 
+                                config.personality.tone.charAt(0).toUpperCase() + config.personality.tone.slice(1) : 
+                                'Not specified'}</span>
+                        </div>
+                        <div class="config-item">
+                            <span class="config-label">Traits:</span>
+                            <div class="traits-tags">
+                                ${config.personality && config.personality.traits ? 
+                                    config.personality.traits.map(trait => 
+                                        `<span class="use-case-tag">${trait.charAt(0).toUpperCase() + trait.slice(1)}</span>`
+                                    ).join('') : 
+                                    '<span class="config-value">Not specified</span>'}
+                            </div>
                         </div>
                         <div class="config-item">
                             <span class="config-label">Description:</span>
@@ -625,10 +652,10 @@
                     </div>
 
                     <div class="config-section">
-                        <h4>🛠️ Capabilities</h4>
-                        <div class="capabilities-list">
-                            ${config.capabilities.map(cap => 
-                                `<span class="capability-tag ${cap === 'VOICE_PROCESSING' ? 'voice-enabled' : ''}">${formatCapability(cap)}</span>`
+                        <h4>🛠️ Use Cases</h4>
+                        <div class="use-cases-list">
+                            ${config.use_cases.map(useCase => 
+                                `<span class="use-case-tag ${useCase === 'VOICE_PROCESSING' ? 'voice-enabled' : ''}">${formatUseCaseName(useCase)}</span>`
                             ).join('')}
                         </div>
                     </div>
@@ -637,12 +664,12 @@
                         <h4>🎙️ Voice Settings</h4>
                         <div class="config-item">
                             <span class="config-label">Voice Enabled:</span>
-                            <span class="config-value">${(config.capabilities.includes('voice_processing') || config.capabilities.includes('VOICE_PROCESSING')) ? '✅ Yes' : '❌ No'}</span>
+                            <span class="config-value">${(config.voice_settings && config.voice_settings.voice_id) ? '✅ Yes' : '❌ No'}</span>
                         </div>
-                        ${(config.capabilities.includes('voice_processing') || config.capabilities.includes('VOICE_PROCESSING')) ? `
+                        ${(config.voice_settings && config.voice_settings.voice_id) ? `
                             <div class="config-item">
                                 <span class="config-label">Voice ID:</span>
-                                <span class="config-value">${config.voice_settings.voice_id || 'Default'}</span>
+                                <span class="config-value">${config.voice_settings.voice_id}</span>
                             </div>
                             <div class="config-item">
                                 <span class="config-label">Style:</span>
@@ -652,24 +679,13 @@
                     </div>
 
                     <div class="config-section">
-                        <h4>🎯 Use Cases</h4>
-                        <div class="use-cases-list">
-                            ${config.use_cases.map(useCase => `• ${useCase}`).join('<br>')}
-                        </div>
-                    </div>
-
-                    <div class="config-section">
-                        <h4>🔧 Specialized Tools</h4>
-                        <div class="config-item">
-                            <span class="config-label">Tool Count:</span>
-                            <span class="config-value">${config.tool_count}</span>
-                        </div>
-                        <div class="tools-list">
-                            ${config.specialized_tools.slice(0, 5).map(tool => 
-                                `<div class="tool-item">• ${tool}</div>`
+                        <h4>🛠️ Specialized Tools</h4>
+                        <div class="tools-tags">
+                            ${config.specialized_tools.slice(0, 8).map(tool => 
+                                `<span class="use-case-tag">${tool}</span>`
                             ).join('')}
-                            ${config.specialized_tools.length > 5 ? 
-                                `<div class="tool-item">... and ${config.specialized_tools.length - 5} more</div>` : ''}
+                            ${config.specialized_tools.length > 8 ? 
+                                `<span class="use-case-tag">+${config.specialized_tools.length - 8} more</span>` : ''}
                         </div>
                     </div>
 
@@ -707,22 +723,16 @@
             container.appendChild(configsGrid);
         }
 
-        function formatPersonality(personality) {
-            const personalityMap = {
-                'empathetic_interviewer': 'Empathetic Interviewer',
-                'authoritative_compliance': 'Authoritative Compliance Expert',
-                'analytical_risk_expert': 'Analytical Risk Expert',
-                'strategic_governance': 'Strategic Governance Specialist'
-            };
-            return personalityMap[personality] || personality;
-        }
-
         function formatCapability(capability) {
             return capability.replace(/_/g, ' ').toLowerCase()
                 .replace(/\b\w/g, l => l.toUpperCase());
         }
 
-
+        function formatUseCaseName(useCase) {
+            // Convert snake_case to Title Case (e.g., "audit_interviews" -> "Audit Interviews")
+            return useCase.replace(/_/g, ' ').toLowerCase()
+                .replace(/\b\w/g, l => l.toUpperCase());
+        }
 
         function showFullPrompt(configIndex) {
             const config = globalConfigs[configIndex];

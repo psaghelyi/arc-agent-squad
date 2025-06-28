@@ -206,7 +206,7 @@ docker-compose down
 - `GET /api/agents/{agent_id}` - Get specific agent information
 - `POST /api/agents/chat` - Chat with agents (intelligent agent selection)
 - `GET /api/agents/personalities/presets` - Get available personality presets
-- `GET /api/agents/capabilities/list` - Get available agent capabilities
+- `GET /api/agents/use-cases` - Get available use cases
 - `GET /api/agents/config/details` - Get detailed agent configurations
 - `GET /api/agents/grc/agent-types` - Get GRC agent type information
 
@@ -318,7 +318,7 @@ The GRC Agent Squad uses the **AWS Labs agent-squad framework** for intelligent 
 #### 1. **Classifier-Based Routing**
 Each request is processed through a **BedrockClassifier** that analyzes:
 - **Content analysis** - Understanding the context and topic
-- **GRC expertise matching** - Matching to specialized agent capabilities  
+- **GRC expertise matching** - Matching to specialized agent use cases  
 - **Agent descriptions** - Using agent personas and specializations
 - **Confidence scoring** - Providing selection confidence levels
 
