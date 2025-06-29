@@ -38,7 +38,7 @@ This project implements an AI agent squad specifically designed for the **Govern
 
 ## Agent System Requirements
 
-### Agent Personalities & Roles
+### Agent Personas & Roles
 
 1. **Information Collector Agent** (`empathetic_interviewer`)
    - **Personality**: Talkative, kind, patient, encouraging

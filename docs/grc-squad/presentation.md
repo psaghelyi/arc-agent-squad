@@ -124,7 +124,7 @@ An **agentic framework** that simulates how organizations manage complex GRC tas
 
 **Multi-Modal Experience**:
 - Text, voice, and hybrid interactions based on use case
-- Agent-specific voice personalities and response styles
+- Agent-specific voice and response styles
 - Context-aware interaction mode selection
 
 ---
@@ -253,7 +253,7 @@ graph TD
 
 # Summary
 
-- **Autonomous Operations**: Director orchestrates while agents work independently with their specialized tools
+- **Autonomous Operations**: Director orchestrates while agents work independently with their available tools
 - **Scalable Intelligence**: Agents can invoke other agents, creating complex collaborative workflows
 - **Knowledge Enhancement**: RAG with RAFT fine-tuning provides continuously improving domain expertise
 - **Tool Flexibility**: Extensible architecture supports MCP clients, APIs, Lambda functions, and custom integrations

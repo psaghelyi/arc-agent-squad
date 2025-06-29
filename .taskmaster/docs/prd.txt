@@ -171,7 +171,7 @@ The primary problem this solves is the complexity and time-intensive nature of G
 
 # Logical Dependency Chain  
 ## Foundation Dependencies
-1. **Agent Framework Setup** → Core agent personalities → Agent-squad orchestration → Basic chat functionality
+1. **Agent Framework Setup** → Core agent personas → Agent-squad orchestration → Basic chat functionality
 2. **Infrastructure Foundation** → AWS CDK stack → ECS deployment → Bedrock memory configuration → Local development
 3. **API Framework** → FastAPI application → Health endpoints → Agent management APIs → Error handling
 

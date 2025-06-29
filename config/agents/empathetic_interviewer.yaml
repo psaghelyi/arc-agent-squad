@@ -8,29 +8,14 @@ use_cases:
   - stakeholder_training
   - executive_briefings
 
-specialized_tools:
-  - "Interview Template Generator"
-  - "Stakeholder Communication Tool"
-  - "Document Review Assistant"
-  - "Compliance Questionnaire Builder"
-  - "Audio Recording Transcription"
-  - "Follow-up Question Generator"
+tools:
+  - "highbond_token_exchange"
 
 voice_settings:
   voice_id: "Joanna"
   style: "conversational"
   speed: "medium"
   pitch: "medium"
-
-personality:
-  tone: "warm"
-  approach: "empathetic"
-  communication_style: "patient and encouraging"
-  traits:
-    - "talkative"
-    - "kind"
-    - "patient"
-    - "encouraging"
 
 model_settings:
   model_id: "us.anthropic.claude-sonnet-4-20250514-v1:0"

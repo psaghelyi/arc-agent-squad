@@ -11,30 +11,14 @@ use_cases:
   - regulatory_change
   - board_reporting
 
-specialized_tools:
-  - "Executive Regulatory Database"
-  - "Board Compliance Reporting Tool"
-  - "C-Suite Training Platform"
-  - "Strategic Compliance Planner"
-  - "Executive Risk Assessment Tool"
-  - "Board Governance Framework Analyzer"
+tools:
+  - "highbond_token_exchange"
 
 voice_settings:
   voice_id: "Matthew"
   style: "authoritative"
   speed: "medium"
   pitch: "low"
-
-personality:
-  tone: "formal"
-  approach: "authoritative"
-  communication_style: "executive-briefing"
-  traits:
-    - "authoritative"
-    - "precise"
-    - "strategic"
-    - "experienced"
-    - "board-ready"
 
 model_settings:
   model_id: "us.anthropic.claude-sonnet-4-20250514-v1:0"

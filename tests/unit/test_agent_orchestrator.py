@@ -40,8 +40,8 @@ class TestGRCAgentSquad:
         assert len(agents) == 5  # Should have 5 GRC agents
         
         # Verify all expected agents are present
-        agent_personalities = [agent["agent_id"] for agent in agents]
-        expected_personalities = [
+        agents = [agent["agent_id"] for agent in agents]
+        expected_agents = [
                     "empathetic_interviewer_executive",
         "authoritative_compliance_executive",
         "analytical_risk_expert_executive",
@@ -49,8 +49,8 @@ class TestGRCAgentSquad:
         "supervisor_grc"
         ]
         
-        for personality in expected_personalities:
-            assert personality in agent_personalities
+        for agent in expected_agents:
+            assert agent in agents
 
     @pytest.mark.asyncio
     async def test_agent_names_and_descriptions(self, grc_squad):

@@ -329,9 +329,9 @@ class FileBasedAgentConfig:
         return self.config_data.get('system_prompt_variables', None)
 
 
-    def get_specialized_tools(self) -> List[str]:
-        """Get the list of specialized tools for the agent."""
-        return self.config_data.get('specialized_tools', [])
+    def get_tools(self) -> List[str]:
+        """Get the list of available tools for the agent."""
+        return self.config_data.get('tools', [])
 
     def get_voice_settings(self) -> Dict[str, str]:
         """Get voice settings for the agent."""
@@ -340,10 +340,6 @@ class FileBasedAgentConfig:
     def get_use_cases(self) -> List[str]:
         """Get the list of use cases for the agent."""
         return self.config_data.get('use_cases', [])
-
-    def get_personality(self) -> Dict[str, Any]:
-        """Get personality configuration for the agent."""
-        return self.config_data.get('personality', {})
 
     def get_model_settings(self) -> Dict[str, Any]:
         """Get model settings for the agent, with fallback to defaults."""
@@ -382,10 +378,9 @@ class FileBasedGRCAgentConfigRegistry:
             "name": config.config_data.get('name', agent_id),
             "description": config.config_data.get('description', ''),
             "use_cases": config.get_use_cases(),
-            "specialized_tools": config.get_specialized_tools(),
+            "tools": config.get_tools(),
             "voice_settings": voice_settings,
             "voice_enabled": voice_enabled,
-            "personality": config.get_personality(),
             "system_prompt": config.get_system_prompt(),
             "model_settings": config.get_model_settings()
         }

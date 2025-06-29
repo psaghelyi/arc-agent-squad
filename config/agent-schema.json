@@ -3,7 +3,7 @@
   "title": "Individual Agent Configuration",
   "description": "Schema for individual GRC agent configuration files",
   "type": "object",
-  "required": ["id", "name", "description", "use_cases", "specialized_tools", "voice_settings", "personality", "model_settings", "system_prompt_template"],
+  "required": ["id", "name", "description", "use_cases", "tools", "voice_settings", "model_settings", "system_prompt_template"],
   "properties": {
     "id": {
       "type": "string",
@@ -26,9 +26,9 @@
       },
       "minItems": 1
     },
-    "specialized_tools": {
+    "tools": {
       "type": "array",
-      "description": "Specialized tools available to this agent",
+      "description": "Tools available to this agent",
       "items": {
         "type": "string"
       },
@@ -57,36 +57,6 @@
           "type": "string",
           "enum": ["low", "medium", "high"],
           "description": "Voice pitch"
-        }
-      },
-      "additionalProperties": false
-    },
-    "personality": {
-      "type": "object",
-      "description": "Agent personality configuration",
-      "required": ["tone", "approach", "communication_style", "traits"],
-      "properties": {
-        "tone": {
-          "type": "string",
-          "enum": ["warm", "formal", "neutral", "consultative"],
-          "description": "Overall communication tone"
-        },
-        "approach": {
-          "type": "string",
-          "enum": ["empathetic", "authoritative", "analytical", "strategic"],
-          "description": "Problem-solving approach"
-        },
-        "communication_style": {
-          "type": "string",
-          "description": "Detailed communication style description"
-        },
-        "traits": {
-          "type": "array",
-          "description": "List of personality traits",
-          "items": {
-            "type": "string"
-          },
-          "minItems": 1
         }
       },
       "additionalProperties": false

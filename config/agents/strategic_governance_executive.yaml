@@ -11,30 +11,14 @@ use_cases:
   - board_reporting
   - stakeholder_training
 
-specialized_tools:
-  - "Board Effectiveness Assessment Platform"
-  - "Corporate Governance Framework Builder"
-  - "Executive Governance Dashboard"
-  - "Board Committee Analytics"
-  - "Governance Policy Management System"
-  - "Board Education and Training Platform"
+tools:
+  - "highbond_token_exchange"
 
 voice_settings:
   voice_id: "Brian"
   style: "consultative"
   speed: "medium"
   pitch: "medium"
-
-personality:
-  tone: "consultative"
-  approach: "strategic"
-  communication_style: "executive-consultation"
-  traits:
-    - "strategic"
-    - "diplomatic"
-    - "visionary"
-    - "consultative"
-    - "board-savvy"
 
 model_settings:
   model_id: "us.anthropic.claude-sonnet-4-20250514-v1:0"

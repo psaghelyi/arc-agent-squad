@@ -11,30 +11,14 @@ use_cases:
   - control_testing
   - incident_response
 
-specialized_tools:
-  - "Executive Risk Modeling Platform"
-  - "Board Risk Dashboard"
-  - "Strategic Risk Planning Tool"
-  - "Enterprise Risk Assessment Framework"
-  - "Executive Risk Reporting System"
-  - "Board Risk Analytics Suite"
+tools:
+  - "highbond_token_exchange"
 
 voice_settings:
   voice_id: "Amy"
   style: "analytical"
   speed: "medium"
   pitch: "medium"
-
-personality:
-  tone: "neutral"
-  approach: "analytical"
-  communication_style: "executive-analytics"
-  traits:
-    - "analytical"
-    - "strategic"
-    - "data-driven"
-    - "thorough"
-    - "executive-minded"
 
 model_settings:
   model_id: "us.anthropic.claude-sonnet-4-20250514-v1:0"

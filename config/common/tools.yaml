@@ -1,0 +1,30 @@
+# Available tools for GRC agents
+# This file contains definitions of tools that can be used by agents
+
+tools:
+  highbond_token_exchange:
+    name: "HighBond Token Exchange"
+    description: |
+      Exchange HighBond API token for subdomain JWT to authenticate with HighBond services.
+      This tool handles the token exchange process required to access HighBond APIs
+      for governance, risk, and compliance data retrieval and management.
+    parameters:
+      # No parameters needed as the tool uses environment variables
+      # HIGHBOND_ORG_ID, HIGHBOND_API_PATH, and HIGHBOND_API_TOKEN
+    returns:
+      type: "object"
+      description: |
+        Returns a JSON object containing the JWT token and related information,
+        or an error message if the token exchange failed.
+    usage_examples:
+      - description: "Authenticate with HighBond"
+        example: |
+          To access compliance data in HighBond, first use the token exchange tool to get a valid JWT:
+          {
+            "action": "highbond_token_exchange"
+          }
+    environment_requirements:
+      - "HIGHBOND_ORG_ID must be set in environment variables"
+      - "HIGHBOND_API_PATH must be set in environment variables"
+      - "HIGHBOND_API_TOKEN must be set in environment variables"
+    

@@ -174,7 +174,7 @@ class TestAgentConfigLoader:
                     "name": {"type": "string"},
                     "description": {"type": "string"},
                     "system_prompt_template": {"type": "string"},
-                    "specialized_tools": {
+                    "tools": {
                         "type": "array",
                         "items": {"type": "string"}
                     },
@@ -183,7 +183,6 @@ class TestAgentConfigLoader:
                         "type": "array",
                         "items": {"type": "string"}
                     },
-                    "personality": {"type": "object"},
                     "model_settings": {"type": "object"},
                     "inference_config": {"type": "object"}
                 },
@@ -201,15 +200,12 @@ class TestAgentConfigLoader:
                     "name": "Test Agent 1",
                     "description": "First test agent",
                     "system_prompt_template": "You are test agent 1",
-                    "specialized_tools": ["tool1", "tool2"],
+                    "tools": ["tool1", "tool2"],
                     "voice_settings": {
                         "voice_id": "Joanna",
                         "style": "conversational"
                     },
                     "use_cases": ["Testing", "Validation"],
-                    "personality": {
-                        "traits": ["analytical", "helpful"]
-                    },
                     "model_settings": {
                         "max_tokens": 4096,
                         "temperature": 0.7
@@ -223,15 +219,12 @@ class TestAgentConfigLoader:
                     "name": "Test Agent 2",
                     "description": "Second test agent",
                     "system_prompt_template": "You are test agent 2",
-                    "specialized_tools": ["tool3"],
+                    "tools": ["tool3"],
                     "voice_settings": {
                         "voice_id": "Matthew",
                         "style": "formal"
                     },
                     "use_cases": ["Compliance"],
-                    "personality": {
-                        "traits": ["authoritative"]
-                    },
                     "model_settings": {
                         "max_tokens": 6144,
                         "temperature": 0.6
@@ -418,15 +411,12 @@ class TestFileBasedAgentConfig:
             "name": "Test Agent",
             "description": "A test agent for validation",
             "system_prompt_template": "You are a test agent.",
-            "specialized_tools": ["tool1", "tool2"],
+            "tools": ["tool1", "tool2"],
             "voice_settings": {
                 "voice_id": "Joanna",
                 "style": "conversational"
             },
             "use_cases": ["Testing", "Validation"],
-            "personality": {
-                "traits": ["helpful", "analytical"]
-            },
             "model_settings": {
                 "max_tokens": 4096,
                 "temperature": 0.7
@@ -470,15 +460,15 @@ class TestFileBasedAgentConfig:
         prompt = config.get_system_prompt()
         assert prompt == "You are a test agent."
     
-    def test_get_specialized_tools(self, sample_agent_data):
-        """Test getting specialized tools."""
+    def test_get_available_tools(self, sample_agent_data):
+        """Test getting available tools."""
         config = FileBasedAgentConfig(
             agent_id="test_agent",
             config_data=sample_agent_data,
             default_model_settings={}
         )
         
-        tools = config.get_specialized_tools()
+        tools = config.get_tools()
         assert tools == ["tool1", "tool2"]
     
     def test_get_voice_settings(self, sample_agent_data):
@@ -503,17 +493,6 @@ class TestFileBasedAgentConfig:
         
         use_cases = config.get_use_cases()
         assert use_cases == ["Testing", "Validation"]
-    
-    def test_get_personality(self, sample_agent_data):
-        """Test getting personality."""
-        config = FileBasedAgentConfig(
-            agent_id="test_agent",
-            config_data=sample_agent_data,
-            default_model_settings={}
-        )
-        
-        personality = config.get_personality()
-        assert personality["traits"] == ["helpful", "analytical"]
     
     def test_get_model_settings(self, sample_agent_data):
         """Test getting model settings."""
@@ -546,10 +525,9 @@ class TestFileBasedGRCAgentConfigRegistry:
                 "name": "Test Registry Agent",
                 "description": "Agent for testing registry",
                 "system_prompt_template": "You are a registry test agent",
-                "specialized_tools": ["registry_tool"],
+                "tools": ["registry_tool"],
                 "voice_settings": {"voice_id": "Joanna"},
                 "use_cases": ["Registry Testing"],
-                "personality": {"traits": ["helpful"]},
                 "model_settings": {"max_tokens": 4096}
             }
             
@@ -588,11 +566,10 @@ class TestFileBasedGRCAgentConfigRegistry:
         assert metadata["agent_id"] == "test_registry_agent"
         assert metadata["name"] == "Test Registry Agent"
         assert metadata["description"] == "Agent for testing registry"
-        assert "specialized_tools" in metadata
+        assert "tools" in metadata
         assert "voice_settings" in metadata
         assert "voice_enabled" in metadata
         assert "use_cases" in metadata
-        assert "personality" in metadata
     
     def test_build_agent_metadata_nonexistent(self, temp_config_dir):
         """Test building metadata for non-existent agent."""
@@ -635,6 +612,12 @@ class TestConfigurationUsage:
             "classifier_max_tokens",
             "classifier_temperature",
             "classifier_top_p",
+            
+            # HighBond API Configuration
+            "highbond_org_id",
+            "highbond_org_domain",
+            "highbond_api_path",
+            "highbond_api_token",
             
             # Voice Services
             "transcribe_language_code",
@@ -699,10 +682,9 @@ class TestConfigurationUsage:
             "name": "Complete Test Agent",
             "description": "Agent with all possible configuration fields",
             "system_prompt_template": "Complete system prompt",
-            "specialized_tools": ["tool1", "tool2"],
+            "tools": ["tool1", "tool2"],
             "voice_settings": {"voice_id": "Joanna", "style": "conversational"},
             "use_cases": ["Testing", "Validation"],
-            "personality": {"traits": ["helpful", "analytical"]},
             "model_settings": {"max_tokens": 4096, "temperature": 0.7},
             "inference_config": {"top_p": 0.9}
         }
@@ -715,18 +697,16 @@ class TestConfigurationUsage:
         
         # Test that all getter methods work and return expected types
         assert isinstance(config.get_system_prompt(), str)
-        assert isinstance(config.get_specialized_tools(), list)
+        assert isinstance(config.get_tools(), list)
         assert isinstance(config.get_voice_settings(), dict)
         assert isinstance(config.get_use_cases(), list)
-        assert isinstance(config.get_personality(), dict)
         assert isinstance(config.get_model_settings(), dict)
         
         # Test that all data is accessible
         assert config.get_system_prompt() == "Complete system prompt"
-        assert config.get_specialized_tools() == ["tool1", "tool2"]
+        assert config.get_tools() == ["tool1", "tool2"]
         assert config.get_voice_settings()["voice_id"] == "Joanna"
         assert config.get_use_cases() == ["Testing", "Validation"]
-        assert config.get_personality()["traits"] == ["helpful", "analytical"]
         assert config.get_model_settings()["max_tokens"] == 4096
     
     def test_settings_usage_in_agent_config_loader(self):

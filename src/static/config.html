@@ -628,23 +628,7 @@
                     </div>
 
                     <div class="config-section">
-                        <h4>🎭 Personality & Role</h4>
-                        <div class="config-item">
-                            <span class="config-label">Tone:</span>
-                            <span class="config-value">${config.personality && config.personality.tone ? 
-                                config.personality.tone.charAt(0).toUpperCase() + config.personality.tone.slice(1) : 
-                                'Not specified'}</span>
-                        </div>
-                        <div class="config-item">
-                            <span class="config-label">Traits:</span>
-                            <div class="traits-tags">
-                                ${config.personality && config.personality.traits ? 
-                                    config.personality.traits.map(trait => 
-                                        `<span class="use-case-tag">${trait.charAt(0).toUpperCase() + trait.slice(1)}</span>`
-                                    ).join('') : 
-                                    '<span class="config-value">Not specified</span>'}
-                            </div>
-                        </div>
+                        <h4>🎭 Role & Persona</h4>
                         <div class="config-item">
                             <span class="config-label">Description:</span>
                             <span class="config-value">${config.description}</span>
@@ -679,13 +663,13 @@
                     </div>
 
                     <div class="config-section">
-                        <h4>🛠️ Specialized Tools</h4>
+                        <h4>🛠️ Available Tools</h4>
                         <div class="tools-tags">
-                            ${config.specialized_tools.slice(0, 8).map(tool => 
+                            ${config.tools.slice(0, 8).map(tool => 
                                 `<span class="use-case-tag">${tool}</span>`
                             ).join('')}
-                            ${config.specialized_tools.length > 8 ? 
-                                `<span class="use-case-tag">+${config.specialized_tools.length - 8} more</span>` : ''}
+                            ${config.tools.length > 8 ? 
+                                `<span class="use-case-tag">+${config.tools.length - 8} more</span>` : ''}
                         </div>
                     </div>
 

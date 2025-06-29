@@ -12,29 +12,14 @@ use_cases:
   - compliance_reviews
   - policy_development
 
-specialized_tools:
-  - "supervisor_task_planning"
-  - "supervisor_agent_selection"
-  - "supervisor_task_delegation"
-  - "supervisor_response_synthesis"
-  - "supervisor_execution_monitoring"
+tools:
+  - "highbond_token_exchange"
 
 voice_settings:
   voice_id: "Matthew"
   style: "consultative"
   speed: "medium"
   pitch: "medium"
-
-personality:
-  tone: "consultative"
-  approach: "strategic"
-  communication_style: "Clear, structured, and directive. Provides high-level guidance while delegating detailed work to specialists. Combines expert insights into comprehensive answers."
-  traits:
-    - "Strategic"
-    - "Decisive"
-    - "Coordinated"
-    - "Comprehensive"
-    - "Authoritative"
 
 model_settings:
   model_id: "us.anthropic.claude-sonnet-4-20250514-v1:0" 

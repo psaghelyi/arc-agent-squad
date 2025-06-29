@@ -9,7 +9,7 @@ A specialized AI agent squad for Governance, Risk Management, and Compliance (GR
 - 🎙️ **Voice-Enabled GRC**: Real-time speech-to-text and text-to-speech for audit interviews and compliance discussions
 - 🤖 **Specialized GRC Agents**: 4 expert agents tailored for Governance, Risk, and Compliance use cases
 - 🧠 **Intelligent Orchestration**: Automatic agent selection using agent-squad framework based on GRC context
-- 💼 **GRC Personalities**: Agents optimized for different GRC scenarios (interviewer, compliance authority, risk expert, governance strategist)
+- 💼 **GRC Personas & Roles**: Agents optimized for different GRC scenarios (interviewer, compliance authority, risk expert, governance strategist)
 - ☁️ **AWS Native**: Built for AWS cloud with Bedrock, Transcribe, Polly, and Lex integration
 - 🔄 **Lex V2 Integration**: Real-time voice interactions through agent-squad.LexBotAgent
 - 💾 **Audit Trail**: Bedrock built-in conversation memory for compliance documentation
@@ -55,7 +55,7 @@ A specialized AI agent squad for Governance, Risk Management, and Compliance (GR
 ## Current Status
 
 ✅ **Working Features:**
-- Complete agent swarm with 4 personality-based agents
+- Complete agent swarm with 4 persona-based agents
 - Intelligent agent selection based on request analysis
 - REST API with chat functionality
 - Modern web interface
@@ -206,7 +206,7 @@ docker-compose down
 - `GET /api/agents/` - List all available agents with details
 - `GET /api/agents/{agent_id}` - Get specific agent information
 - `POST /api/agents/chat` - Chat with agents (intelligent agent selection)
-- `GET /api/agents/personalities/presets` - Get available personality presets
+- `GET /api/agents/tools` - Get available tools
 - `GET /api/agents/use-cases` - Get available use cases
 - `GET /api/agents/config/details` - Get detailed agent configurations
 - `GET /api/agents/grc/agent-types` - Get GRC agent type information
@@ -482,7 +482,7 @@ Key metrics to monitor:
 1. **Agent Selection Issues**
    - Verify agents are initialized: `curl http://localhost:8001/api/agents/`
    - Check agent orchestrator logs for selection reasoning
-   - Ensure proper personality presets are loaded
+   - Ensure proper use cases are loaded
 
 2. **API Response Errors**
    - Datetime validation errors: Check `created_at` field formatting

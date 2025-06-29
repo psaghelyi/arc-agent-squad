@@ -42,7 +42,6 @@ class AgentResponse(BaseModel):
     id: str
     name: str
     description: str
-    personality: str
     status: str
     created_at: str
 
@@ -91,15 +90,14 @@ async def get_grc_agent_types(grc_squad: GRCAgentSquad = Depends(get_grc_squad))
         config_registry = get_default_config_registry()
         
         for agent in agents:
-            agent_id = agent.get("personality", "")
+            agent_id = agent.get("agent_id", "")
             config_class = config_registry.get_config(agent_id)
             
             agent_types.append({
                 "id": agent["id"],
                 "name": agent["name"], 
-                "personality": agent["personality"],
                 "description": agent["description"],
-                "use_cases": config_class.get_use_cases() if config_class else _get_agent_use_cases(agent["personality"])
+                "use_cases": config_class.get_use_cases() if config_class else []
             })
         
         return {
@@ -110,43 +108,6 @@ async def get_grc_agent_types(grc_squad: GRCAgentSquad = Depends(get_grc_squad))
     except Exception as e:
         logger.error("Failed to get GRC agent types", error=str(e))
         raise HTTPException(status_code=500, detail=f"Failed to get agent types: {str(e)}")
-
-
-def _get_agent_use_cases(personality: str) -> List[str]:
-    """Get use cases for each agent personality."""
-    use_cases_map = {
-        "empathetic_interviewer": [
-            "Compliance interviews",
-            "Risk assessment sessions", 
-            "Stakeholder consultations",
-            "Documentation reviews",
-            "Control testing interviews"
-        ],
-        "authoritative_compliance": [
-            "Regulatory interpretation",
-            "Compliance status assessments",
-            "Policy guidance",
-            "Formal compliance reporting", 
-            "Regulatory change analysis"
-        ],
-        "analytical_risk_expert": [
-            "Risk modeling",
-            "Control gap analysis",
-            "Threat assessment",
-            "Business impact analysis",
-            "Risk register maintenance",
-            "Mitigation strategy development"
-        ],
-        "strategic_governance": [
-            "Governance framework design",
-            "Policy development",
-            "Board reporting",
-            "Stakeholder engagement",
-            "Governance maturity assessment",
-            "Strategic planning"
-        ]
-    }
-    return use_cases_map.get(personality, [])
 
 
 @router.get("/{agent_id}")
@@ -396,8 +357,8 @@ async def get_detailed_agent_config(grc_squad: GRCAgentSquad = Depends(get_grc_s
                 # Get voice settings
                 voice_settings = config_class.get_voice_settings()
                 
-                # Get specialized tools
-                specialized_tools = config_class.get_specialized_tools()
+                # Get available tools
+                tools = config_class.get_tools()
                 
                 # Get model settings
                 model_settings = config_class.get_model_settings()
@@ -406,7 +367,6 @@ async def get_detailed_agent_config(grc_squad: GRCAgentSquad = Depends(get_grc_s
                     "id": agent.get("agent_id", ""),
                     "name": agent["name"],
                     "description": agent["description"],
-                    "personality": config_class.get_personality(), 
                     "status": agent.get("status", "active"),
                     "created_at": agent.get("created_at", ""),
                     
@@ -430,8 +390,8 @@ async def get_detailed_agent_config(grc_squad: GRCAgentSquad = Depends(get_grc_s
                     "system_prompt_length": len(system_prompt),
                     
                     # Tools and capabilities
-                    "specialized_tools": specialized_tools,
-                    "tool_count": len(specialized_tools),
+                    "tools": tools,
+                    "tool_count": len(tools),
                     
                     # Role-specific information from config file
                     "use_cases": config_class.get_use_cases(),
@@ -458,14 +418,14 @@ async def get_detailed_agent_config(grc_squad: GRCAgentSquad = Depends(get_grc_s
         raise HTTPException(status_code=500, detail=f"Failed to get detailed agent config: {str(e)}")
 
 
-def _get_agent_primary_role(personality: str) -> str:
-    """Get the primary role description for each agent personality."""
+def _get_agent_primary_role(agent_id: str) -> str:
+    """Get the primary role description for each agent."""
     try:
         from ...agents.agent_config_loader import get_default_config_registry
         
         # Get agent configuration from registry
         config_registry = get_default_config_registry()
-        agent_config = config_registry.get_config(personality)
+        agent_config = config_registry.get_config(agent_id)
         
         if agent_config and "primary_role" in agent_config.config_data:
             # Get primary role directly from the agent's YAML configuration

@@ -11,30 +11,14 @@ use_cases:
   - stakeholder_training
   - executive_briefings
 
-specialized_tools:
-  - "Executive Interview Template Generator"
-  - "C-Suite Communication Tool"
-  - "Board Document Review Assistant"
-  - "Executive Compliance Questionnaire Builder"
-  - "Secure Audio Recording Transcription"
-  - "Executive Meeting Scheduler"
+tools:
+  - "highbond_token_exchange"
 
 voice_settings:
   voice_id: "Joanna"
   style: "formal"
   speed: "medium"
   pitch: "medium"
-
-personality:
-  tone: "warm"
-  approach: "empathetic"
-  communication_style: "formal-yet-approachable"
-  traits:
-    - "empathetic"
-    - "professional"
-    - "detail-oriented"
-    - "patient"
-    - "executive-focused"
 
 model_settings:
   model_id: "us.anthropic.claude-sonnet-4-20250514-v1:0"

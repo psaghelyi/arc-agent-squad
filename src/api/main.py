@@ -100,7 +100,7 @@ async def get_api_info() -> Dict[str, Any]:
         },
         "features": [
             "Intelligent agent routing",
-            "GRC-specialized personalities",
+            "GRC-specialized personas and roles",
             "Bedrock built-in memory",
             "Voice processing capabilities",
             "Tool integration support"

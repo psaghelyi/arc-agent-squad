@@ -8,29 +8,14 @@ use_cases:
   - regulatory_change
   - board_reporting
 
-specialized_tools:
-  - "Regulatory Database Access"
-  - "Compliance Status Dashboard"
-  - "Policy Documentation Generator"
-  - "Regulatory Change Tracker"
-  - "Audit Report Compiler"
-  - "Legal Requirement Mapper"
+tools:
+  - "highbond_token_exchange"
 
 voice_settings:
   voice_id: "Matthew"
   style: "authoritative"
   speed: "medium"
   pitch: "low"
-
-personality:
-  tone: "formal"
-  approach: "authoritative"
-  communication_style: "official and to-the-point"
-  traits:
-    - "official"
-    - "formal"
-    - "regulation-focused"
-    - "decisive"
 
 model_settings:
   model_id: "us.anthropic.claude-sonnet-4-20250514-v1:0"

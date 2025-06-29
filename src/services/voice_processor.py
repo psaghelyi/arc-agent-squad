@@ -203,12 +203,12 @@ class VoiceProcessor:
                 'voices': []
             }
 
-    async def get_agent_voice_config(self, agent_personality: str) -> Dict[str, str]:
+    async def get_agent_voice_config(self, agent_id: str) -> Dict[str, str]:
         """
         Get appropriate voice configuration for different agent personalities.
         
         Args:
-            agent_personality: The agent ID from the YAML configuration
+            agent_id: The agent ID from the YAML configuration
             
         Returns:
             Dict with voice_id and engine settings
@@ -218,7 +218,7 @@ class VoiceProcessor:
             
             # Get agent configuration from registry
             config_registry = get_default_config_registry()
-            agent_config = config_registry.get_config(agent_personality)
+            agent_config = config_registry.get_config(agent_id)
             
             if agent_config:
                 # Get voice settings directly from the agent's YAML configuration
@@ -231,7 +231,7 @@ class VoiceProcessor:
                     }
             
             # If no config found or no voice settings in config, use default
-            self.logger.warning(f"No voice settings found for agent ID: {agent_personality}, using defaults")
+            self.logger.warning(f"No voice settings found for agent ID: {agent_id}, using defaults")
             return {
                 'voice_id': self.default_voice_id,
                 'engine': self.default_engine

@@ -54,9 +54,8 @@ Each agent configuration includes:
 
 - **Basic Information**: `id`, `name`, `description`
 - **Use Cases**: Specific scenarios where the agent excels
-- **Specialized Tools**: Tools available to the agent
+- **Tools**: Tools available to the agent
 - **Voice Settings**: Amazon Polly configuration for text-to-speech
-- **Personality**: Tone, approach, and behavioral traits
 - **Model Settings**: AI model configuration and inference parameters
 - **System Prompt**: The agent's core instructions and behavior
 

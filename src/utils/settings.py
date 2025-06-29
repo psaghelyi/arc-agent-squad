@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     aws_region: str = Field(default="us-west-2", description="AWS region")
     aws_access_key_id: Optional[str] = Field(default=None, description="AWS access key ID")
     aws_secret_access_key: Optional[str] = Field(default=None, description="AWS secret access key")
-    aws_session_token: Optional[str] = Field(default=None, description="AWS Session Token")
+    aws_session_token: Optional[str] = Field(default=None, description="AWS session token")
     
     # Agent Configuration - Dynamic Squad Composition
     agent_config_directory: str = Field(
@@ -56,6 +56,24 @@ class Settings(BaseSettings):
     classifier_top_p: float = Field(
         default=0.9,
         description="Top P for classifier/orchestrator"
+    )
+    
+    # HighBond API Configuration
+    highbond_org_id: Optional[str] = Field(
+        default=None, 
+        description="HighBond organization ID"
+    )
+    highbond_org_domain: Optional[str] = Field(
+        default=None, 
+        description="HighBond organization domain"
+    )
+    highbond_api_path: Optional[str] = Field(
+        default=None, 
+        description="HighBond API base path URL"
+    )
+    highbond_api_token: Optional[str] = Field(
+        default=None, 
+        description="HighBond API token for authentication"
     )
     
     # Voice Services Configuration - Speech processing

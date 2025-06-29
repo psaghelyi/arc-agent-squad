@@ -8,29 +8,14 @@ use_cases:
   - board_reporting
   - stakeholder_training
 
-specialized_tools:
-  - "Governance Framework Designer"
-  - "Policy Template Library"
-  - "Board Report Generator"
-  - "Stakeholder Mapping Tool"
-  - "Governance Maturity Assessor"
-  - "Strategic Planning Assistant"
+tools:
+  - "highbond_token_exchange"
 
 voice_settings:
   voice_id: "Amy"
   style: "consultative"
   speed: "medium"
   pitch: "medium"
-
-personality:
-  tone: "consultative"
-  approach: "strategic"
-  communication_style: "big-picture focused and diplomatic"
-  traits:
-    - "strategic"
-    - "consultative"
-    - "big-picture focused"
-    - "diplomatic"
 
 model_settings:
   model_id: "us.anthropic.claude-sonnet-4-20250514-v1:0"

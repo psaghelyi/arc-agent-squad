@@ -56,7 +56,6 @@ class VoiceResponse(BaseModel):
     audio_format: Optional[str] = None
     voice_id: Optional[str] = None
     agent_id: str
-    agent_personality: Optional[str] = None
     processing_time: float
 
 
@@ -83,17 +82,16 @@ async def process_voice(request: VoiceRequest) -> VoiceResponse:
         start_time = asyncio.get_event_loop().time()
         agent_response = await squad.process_request(request.text, request.session_id)
         
-        # Get agent personality for voice synthesis
+        # Get agent id for voice synthesis
         agent_selection = agent_response.get("agent_selection", {})
         agent_response_data = agent_response.get("agent_response", {})
         response_text = agent_response_data.get("response", "No response generated")
-        agent_personality = "default"  # We'll need to map this from agent selection
+        agent_id = agent_selection.get("agent_id", "default")
         
         # Synthesize speech for the agent response
         tts_result = await voice_proc.synthesize_agent_response(
             text=response_text,
-            agent_personality=agent_personality,
-            session_id=request.session_id
+            agent_id=agent_id
         )
         
         processing_time = asyncio.get_event_loop().time() - start_time
@@ -103,7 +101,6 @@ async def process_voice(request: VoiceRequest) -> VoiceResponse:
             "session_id": request.session_id,
             "text": response_text,
             "agent_id": agent_selection["agent_id"],
-            "agent_personality": agent_personality,
             "processing_time": processing_time
         }
         
@@ -166,7 +163,7 @@ async def upload_audio(
 async def synthesize_speech(
     text: str = Form(...),
     voice_id: str = Form("Joanna"),
-    agent_personality: str = Form("default")
+    agent_id: str = Form("default")
 ) -> Dict[str, Any]:
     """
     Synthesize speech from text using Amazon Polly Neural TTS.
@@ -179,7 +176,7 @@ async def synthesize_speech(
         # Synthesize speech
         result = await voice_proc.synthesize_agent_response(
             text=text,
-            agent_personality=agent_personality
+            agent_id=agent_id
         )
         
         if result['success']:
@@ -188,7 +185,7 @@ async def synthesize_speech(
                 "audio_data": result['audio_data'],
                 "audio_format": result['audio_format'],
                 "voice_id": result['voice_id'],
-                "agent_personality": result['agent_personality'],
+                "agent_id": result['agent_id'],
                 "text_length": result.get('text_length', len(text)),
                 "audio_size": result.get('audio_size', 0)
             }

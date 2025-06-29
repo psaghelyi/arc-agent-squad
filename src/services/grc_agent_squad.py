@@ -5,7 +5,7 @@ This service provides specialized agents for Governance, Risk Management, and Co
 Uses Bedrock's built-in session memory for conversation persistence.
 
 Key Features:
-- Four specialized GRC agents with distinct personalities and expertise
+- Specialized GRC agents with distinct personas and expertise
 - Automatic agent selection via agent-squad framework orchestration
 - Bedrock built-in memory for seamless conversation continuity
 - Tool registry integration for extensible functionality
@@ -18,10 +18,12 @@ from datetime import datetime, UTC
 from agent_squad.orchestrator import AgentSquad
 from agent_squad.agents import BedrockLLMAgent, BedrockLLMAgentOptions
 from agent_squad.classifiers import BedrockClassifier, BedrockClassifierOptions
+from agent_squad.utils import AgentTools
 
 from .aws_config import AWSConfig
 from src.agents.agent_config_loader import get_default_config_registry
 from src.utils.settings import settings
+from src.tools.api_tools.highbond_token_tool import HighBondTokenExchangeTool
 
 
 class GRCAgentSquad:
@@ -88,6 +90,10 @@ class GRCAgentSquad:
         all_agent_ids = config_registry.list_agent_ids()
         self.logger.info(f"Found {len(all_agent_ids)} agent configurations: {all_agent_ids}")
         
+        # Initialize the HighBond token exchange tool
+        highbond_token_tool = HighBondTokenExchangeTool()
+        self.logger.info(f"Created HighBond Token Exchange Tool: {highbond_token_tool.name}")
+        
         # Create an agent for each configuration
         for agent_id in all_agent_ids:
             config = config_registry.get_config(agent_id)
@@ -106,6 +112,18 @@ class GRCAgentSquad:
             streaming = model_settings.get('streaming', False)
             memory_enabled = model_settings.get('memory_enabled', True)
             
+            # Check if the agent has available tools configured
+            tools = config.config_data.get('tools', [])
+            tools_config = None
+            
+            # If the agent needs the HighBond token exchange tool, add it
+            if 'highbond_token_exchange' in tools:
+                self.logger.info(f"Adding HighBond Token Exchange Tool to agent: {agent_id}")
+                tools_config = {
+                    'tool': AgentTools([highbond_token_tool]),
+                    'toolMaxRecursions': 5,
+                }
+            
             # Create agent using configuration from YAML
             agent = BedrockLLMAgent(BedrockLLMAgentOptions(
                 name=config.config_data.get('name', agent_id),
@@ -118,7 +136,8 @@ class GRCAgentSquad:
                 custom_system_prompt={
                     "template": config.get_system_prompt(),
                     "variables": config.get_system_prompt_variables() or {}
-                    }  # Pass as dict with template key
+                },  # Pass as dict with template key
+                tool_config=tools_config  # Add tools if configured for this agent
             ))
             
             # Set the agent ID to the YAML config ID
@@ -126,6 +145,8 @@ class GRCAgentSquad:
             
             agents[agent_id] = agent
             self.logger.info(f"Created agent '{agent_id}' with model '{model_id}'")
+            if tools_config:
+                self.logger.info(f"Added tools to agent '{agent_id}' with max recursions: {tools_config['toolMaxRecursions']}")
         
         # Create orchestrator with classifier and default agent
         self.logger.info("Creating agent squad orchestrator...")
