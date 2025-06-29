@@ -11,7 +11,7 @@ A specialized AI agent squad for Governance, Risk Management, and Compliance (GR
 - 🧠 **Intelligent Orchestration**: Automatic agent selection using agent-squad framework based on GRC context
 - 💼 **GRC Personalities**: Agents optimized for different GRC scenarios (interviewer, compliance authority, risk expert, governance strategist)
 - ☁️ **AWS Native**: Built for AWS cloud with Bedrock, Transcribe, Polly, and Lex integration
-- 🔄 **WebRTC Support**: Real-time audio streaming for compliance interviews (planned)
+- 🔄 **Lex V2 Integration**: Real-time voice interactions through agent-squad.LexBotAgent
 - 💾 **Audit Trail**: Bedrock built-in conversation memory for compliance documentation
 - 📊 **GRC Monitoring**: CloudWatch integration for audit logging and compliance metrics
 - 🐳 **Enterprise Ready**: Docker support for secure enterprise deployment
@@ -19,7 +19,7 @@ A specialized AI agent squad for Governance, Risk Management, and Compliance (GR
 - 🌐 **Compliance Dashboard**: Web interface for GRC agent management and audit documentation
 - **File-based Agent Configuration** for easy customization and deployment
 - **Bedrock Built-in Memory** for seamless conversation continuity
-- **Real-time WebRTC** for browser-based voice interactions
+- **Amazon Lex V2** for real-time voice interactions via agent-squad.LexBotAgent
 - **Tool Registry Integration** for extensible functionality
 
 ## Architecture
@@ -27,7 +27,7 @@ A specialized AI agent squad for Governance, Risk Management, and Compliance (GR
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   Web Client    │────│  Load Balancer   │────│   ECS Fargate   │
-│   (WebRTC)      │    │      (ALB)       │    │   Containers    │
+│                 │    │      (ALB)       │    │   Containers    │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
                                                          │
                        ┌─────────────────────────────────┼─────────────────────────────────┐
@@ -64,9 +64,10 @@ A specialized AI agent squad for Governance, Risk Management, and Compliance (GR
 - AWS CDK infrastructure code
 
 🚧 **In Development:**
-- Voice processing integration with AWS Transcribe/Polly
-- WebRTC real-time audio streaming
+- Voice processing integration with AWS Transcribe/Polly via Amazon Lex V2
+- LexBotAgent integration for real-time voice interactions
 - Advanced conversation memory features
+- RAG integration with Amazon Bedrock Knowledge Bases
 
 ## Quick Start
 
@@ -238,9 +239,9 @@ The system includes 4 specialized executive-level GRC agents with distinct exper
    - **Voice**: Brian (consultative, diplomatic approach)
 
 ### Voice Processing (Planned)
-- `POST /api/voice/transcribe` - Transcribe audio to text
-- `POST /api/voice/synthesize` - Text-to-speech synthesis
-- `WS /api/voice/stream` - WebSocket for real-time voice streaming
+- Integration with Amazon Lex V2 via agent-squad.LexBotAgent
+- Automatic transcription and synthesis through Lex V2
+- Voice-enabled agent interactions through the Lex V2 interface
 
 ## Usage Examples
 

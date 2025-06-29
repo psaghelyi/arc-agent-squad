@@ -28,7 +28,7 @@ This project implements an AI agent squad specifically designed for the **Govern
 - **Speech-to-Text**: [Amazon Transcribe Streaming](mdc:https:/aws.amazon.com/transcribe) for real-time voice input
 - **Natural Language Understanding**: [Amazon Lex V2](mdc:https:/aws.amazon.com/lex) for dialog management
 - **Text-to-Speech**: [Amazon Polly Neural TTS](mdc:https:/docs.aws.amazon.com/polly/latest/dg/neural-voices.html) for natural voice output
-- **Real-time Audio**: WebRTC for browser-based voice interactions
+- **Real-time Audio**: Amazon Lex V2 via agent-squad.LexBotAgent for voice interactions
 
 ### Supporting Services
 - **Workflow Orchestration**: Amazon Step Functions (triggered by Bedrock Agents)

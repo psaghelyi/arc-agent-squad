@@ -345,3 +345,9 @@ dev-debug.log
 # Environment variables
 .vscode
 # OS specific.cursor/.env
+
+# OS specific
+
+# Task files
+# tasks.json
+# tasks/ 

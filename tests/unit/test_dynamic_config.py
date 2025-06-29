@@ -73,31 +73,7 @@ class TestSettings:
         assert "localhost:3000" in cors_str
         assert "localhost:8080" in cors_str
     
-    def test_stun_servers_list_property(self):
-        """Test the stun_servers_list property conversion."""
-        test_settings = Settings()
-        stun_list = test_settings.stun_servers_list
-        
-        assert isinstance(stun_list, list)
-        assert "stun:stun.l.google.com:19302" in stun_list
-    
-    def test_turn_servers_list_property_empty(self):
-        """Test the turn_servers_list property when no TURN servers are configured."""
-        test_settings = Settings()
-        turn_list = test_settings.turn_servers_list
-        
-        assert isinstance(turn_list, list)
-        assert len(turn_list) == 0
-    
-    def test_turn_servers_list_property_with_servers(self):
-        """Test the turn_servers_list property with TURN servers configured."""
-        test_settings = Settings(webrtc_turn_servers="turn:server1.com:3478,turn:server2.com:3478")
-        turn_list = test_settings.turn_servers_list
-        
-        assert isinstance(turn_list, list)
-        assert len(turn_list) == 2
-        assert "turn:server1.com:3478" in turn_list
-        assert "turn:server2.com:3478" in turn_list
+    # WebRTC tests removed - now using Amazon Lex V2 via agent-squad.LexBotAgent
     
     def test_is_production_property(self):
         """Test the is_production property logic."""
@@ -669,15 +645,14 @@ class TestConfigurationUsage:
             "lex_bot_id",
             "lex_bot_alias_id",
             "lex_session_id",
+            "lex_locale_id",
+            "lex_welcome_intent",
+            "lex_voice_id",
             
             # API Configuration
             "api_port",
             "api_host",
             "api_cors_origins",
-            
-            # WebRTC Configuration
-            "webrtc_stun_servers",
-            "webrtc_turn_servers",
             
             # Logging Configuration
             "log_level",
@@ -701,8 +676,6 @@ class TestConfigurationUsage:
         # Properties that convert string configs to lists or provide computed values
         expected_properties = {
             "cors_origins_list",
-            "stun_servers_list", 
-            "turn_servers_list",
             "active_agents_list",
             "is_production"
         }

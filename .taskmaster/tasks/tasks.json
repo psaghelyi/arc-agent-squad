@@ -118,15 +118,15 @@
       },
       {
         "id": 10,
-        "title": "Build WebRTC Infrastructure",
-        "description": "Create the infrastructure for browser-based voice interactions using WebRTC.",
-        "details": "Implement WebRTC for real-time audio streaming and integrate with the existing voice processing pipeline.",
-        "testStrategy": "Test real-time audio interactions in various network conditions to ensure low latency and high quality.",
-        "priority": "medium",
+    "title": "Integrate Amazon Lex V2 with LexBotAgent",
+        "description": "Integrate Amazon Lex V2 for real-time voice interactions using the agent-squad.LexBotAgent, replacing the browser-based WebRTC infrastructure.",
+        "status": "in-progress",
         "dependencies": [
           9
         ],
-        "status": "in-progress",
+        "priority": "medium",
+        "details": "Replace the WebRTC implementation with Amazon Lex V2 by leveraging the agent-squad.LexBotAgent to handle real-time voice communication. Eliminate the need for browser-based streaming and integrate the new voice communication method with the existing voice processing pipeline.",
+        "testStrategy": "Test the real-time voice interactions using Amazon Lex V2 and agent-squad.LexBotAgent. Validate performance, recognition accuracy, and system responsiveness under various network conditions.",
         "subtasks": []
       },
       {
@@ -349,11 +349,53 @@
         ],
         "priority": "medium",
         "subtasks": []
+      },
+      {
+        "id": 27,
+        "title": "Implement Audit Expert Agent 'Jordan'",
+        "description": "Develop and integrate the new Audit Expert Agent 'Jordan' into the agent squad, specializing in internal audit procedures, control testing, and evidence collection.",
+        "details": "Build the 'Jordan' agent by extending the existing specialized agent framework. The agent should incorporate functions for executing internal audit procedures, performing control testing, and managing evidence collection. Leverage similar analytical and detail-oriented traits as seen in the Risk Expert agent (Alex) while tailoring 'Jordan' to focus on audit methodologies and compliance testing. Integrate the new agent with the core agent orchestrator, ensuring it adheres to the communication protocols and configuration standards established in the previous tasks. Reuse components from the Specialized Agent Personalities module (Task 3) to ensure consistency in personality traits, and utilize the core framework from Task 2 for routing and orchestration.",
+        "testStrategy": "Conduct unit tests for each new function in 'Jordan', including audit process execution, control testing validations, and evidence logging. Set up integration tests to verify that 'Jordan' correctly interacts with the core agent orchestrator and dispatching mechanisms. Simulate audit scenarios to confirm adherence to compliance testing and ensure that logging and evidence collection are properly recorded. Additionally, test edge cases to ensure error handling and fallback mechanisms function as expected.",
+        "status": "pending",
+        "dependencies": [
+          2,
+          3
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 28,
+        "title": "Implement RAG with Amazon Knowledge Base Retriever",
+        "description": "Set up a Retrieval Augmented Generation system using Amazon Knowledge Base Retriever to provide domain-specific GRC information with proper multi-organization data isolation, and integrate it with the agent framework.",
+        "details": "Establish the infrastructure for a knowledge base tailored to GRC domains by configuring the Amazon Knowledge Base Retriever. This includes setting up dedicated data stores with access controls to ensure isolation among organizations, and implementing RAFT fine-tuning capabilities to customize responses with domain-specific GRC expertise. The implementation should include a robust API layer that allows agents (as set up in the specialized personality framework) to query the knowledge base and retrieve contextually relevant information. Integration with the agent framework should be done through well-defined interfaces that ensure seamless interactions between the orchestrator (from Task 2) and the retrieval system. Ensure that logging, monitoring, and fallback mechanisms are in place to handle query failures or data inconsistencies.",
+        "testStrategy": "Conduct end-to-end integration tests by simulating agent requests and verifying that the knowledge base returns accurate, contextually relevant GRC information. Validate data isolation by testing queries from multiple organizational contexts. Implement unit tests for the retrieval API endpoints, and load tests to measure response times. Also, simulate RAFT fine-tuning scenarios with sample inputs to ensure the model adapts to domain-specific requirements accurately.",
+        "status": "pending",
+        "dependencies": [
+          2,
+          3
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 29,
+        "title": "Implement Agent-to-Agent Tool Ecosystem",
+        "description": "Establish a robust framework that enables agents to invoke one another as tools, with dynamic selection logic and integration with external systems such as MCP clients, APIs, and Lambda functions.",
+        "details": "Design and develop an infrastructure where agents can invoke other agents as tools. This requires building a middleware layer to manage tool selection based on agent capabilities and current context, ensuring error handling, context passing, and result formatting consistency. Leverage the existing agent orchestrator (Task 2) for routing, and integrate with the MCP tool system (Task 12) alongside external APIs and Lambda functions. Implementation should include robust fallback mechanisms, logging, and monitoring to track inter-agent communications and external tool interactions.",
+        "testStrategy": "Create unit tests to verify that the tool selection logic correctly identifies and invokes the appropriate agent as a tool. Conduct integration tests to simulate inter-agent communications and ensure context and error information are properly passed and formatted. Use mock external services to test API and Lambda integrations, and perform load tests to assess system resilience under concurrent tool invocations.",
+        "status": "pending",
+        "dependencies": [
+          2,
+          12
+        ],
+        "priority": "high",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-06-20T12:12:43.291Z",
-      "updated": "2025-06-24T16:46:08.741Z",
+      "updated": "2025-06-29T12:45:56.404Z",
       "description": "Tasks for master context"
     }
   }

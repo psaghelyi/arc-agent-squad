@@ -67,6 +67,9 @@ class Settings(BaseSettings):
     lex_bot_id: Optional[str] = Field(default=None, description="Lex Bot ID (required for production)")
     lex_bot_alias_id: str = Field(default="TSTALIASID", description="Lex Bot Alias ID")
     lex_session_id: str = Field(default="test-session", description="Lex Session ID")
+    lex_locale_id: str = Field(default="en_US", description="Lex locale ID")
+    lex_welcome_intent: str = Field(default="Welcome", description="Lex welcome intent name")
+    lex_voice_id: str = Field(default="Joanna-Neural", description="Voice ID to use with Lex")
     
     # Memory Configuration - Handled by Bedrock built-in memory
     
@@ -77,13 +80,6 @@ class Settings(BaseSettings):
         default="http://localhost:3000,http://localhost:8080",
         description="CORS allowed origins (comma-separated)"
     )
-    
-    # WebRTC Configuration - Real-time communication
-    webrtc_stun_servers: str = Field(
-        default="stun:stun.l.google.com:19302",
-        description="STUN servers for WebRTC"
-    )
-    webrtc_turn_servers: Optional[str] = Field(default=None, description="TURN servers for WebRTC")
     
     # Logging Configuration
     log_level: str = Field(default="INFO", description="Logging level")
@@ -97,18 +93,6 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> List[str]:
         """Convert CORS origins string to list."""
         return [origin.strip() for origin in str(self.api_cors_origins).split(",")]
-    
-    @property
-    def stun_servers_list(self) -> List[str]:
-        """Convert STUN servers string to list."""
-        return [server.strip() for server in str(self.webrtc_stun_servers).split(",")]
-    
-    @property
-    def turn_servers_list(self) -> List[str]:
-        """Convert TURN servers string to list."""
-        if self.webrtc_turn_servers:
-            return [server.strip() for server in str(self.webrtc_turn_servers).split(",")]
-        return []
     
     @property
     def active_agents_list(self) -> List[str]:
