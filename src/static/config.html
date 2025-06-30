@@ -144,11 +144,6 @@
             color: #2d3748;
         }
 
-        .agent-info .role {
-            color: #667eea;
-            font-weight: 600;
-        }
-
         .config-section {
             margin-bottom: 20px;
         }
@@ -514,6 +509,24 @@
             statsContainer.innerHTML = '';
             
             try {
+                // First fetch stats from the stats endpoint
+                let statsData = null;
+                try {
+                    const statsResponse = await fetch('/api/agents/config/stats');
+                    if (statsResponse.ok) {
+                        const statsResult = await statsResponse.json();
+                        if (statsResult.success && statsResult.stats) {
+                            statsData = statsResult.stats;
+                            console.log("Stats data loaded successfully:", statsData);
+                        }
+                    } else {
+                        console.warn(`Stats endpoint returned status: ${statsResponse.status}`);
+                    }
+                } catch (statsError) {
+                    console.warn('Failed to fetch stats:', statsError);
+                }
+                
+                // Now fetch the detailed configs
                 const response = await fetch('/api/agents/config/details');
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -527,8 +540,25 @@
                 
                 const configs = data.detailed_configs || [];
                 
-                // Display stats
-                displayStats(configs, data.timestamp);
+                // If statsData is null or missing available_tools, count from configs as fallback
+                let availableToolsCount = 0;
+                if (statsData && Array.isArray(statsData.available_tools)) {
+                    availableToolsCount = statsData.available_tools.length;
+                    console.log(`Got ${availableToolsCount} available tools from stats API`);
+                } else {
+                    // Fallback: Count unique tools from agent configs
+                    const uniqueToolNames = new Set();
+                    configs.forEach(config => {
+                        if (config.tools && Array.isArray(config.tools)) {
+                            config.tools.forEach(tool => uniqueToolNames.add(tool));
+                        }
+                    });
+                    availableToolsCount = uniqueToolNames.size;
+                    console.log(`Fallback: Counted ${availableToolsCount} unique tools from agent configs`);
+                }
+                
+                // Display stats with the available tools count
+                displayStats(configs, data.timestamp, statsData, availableToolsCount);
                 
                 // Display configurations
                 displayConfigurations(configs);
@@ -539,14 +569,12 @@
             }
         }
 
-        function displayStats(configs, timestamp) {
+        function displayStats(configs, timestamp, statsData, availableToolsCount) {
             const statsContainer = document.getElementById('stats-container');
             
-            const totalAgents = configs.length;
-            // Check for voice_enabled flag or valid voice_settings
-            const voiceEnabledCount = configs.filter(c => 
-                c.voice_enabled || (c.voice_settings && c.voice_settings.voice_id)
-            ).length;
+            // Use stats from API when available, otherwise calculate from configs
+            const totalAgents = statsData?.total_agents || configs.length;
+            const totalTools = availableToolsCount;
             const totalUseCases = configs.reduce((sum, c) => sum + c.use_cases.length, 0);
             const avgPromptLength = configs.reduce((sum, c) => sum + c.system_prompt_length, 0) / totalAgents;
             
@@ -556,8 +584,8 @@
                     <div class="stat-label">Total Agents</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">${voiceEnabledCount}</div>
-                    <div class="stat-label">Voice Enabled</div>
+                    <div class="stat-number">${totalTools}</div>
+                    <div class="stat-label">Available Tools</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number">${totalUseCases}</div>
@@ -599,7 +627,6 @@
                         <div class="agent-avatar">${agentInitials}</div>
                         <div class="agent-info">
                             <h3>${config.name}</h3>
-                            <div class="role">${config.primary_role}</div>
                         </div>
                     </div>
 

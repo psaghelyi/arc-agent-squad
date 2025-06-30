@@ -129,20 +129,9 @@ def _highbond_token_exchange_func(params: Dict[str, Any]) -> Dict[str, Any]:
         }
 
 
-class HighBondTokenExchangeTool(AgentTool):
-    """
-    HighBond Token Exchange Tool for Agent Squad.
-    
-    This tool allows agents to exchange a HighBond API token for a subdomain JWT,
-    which is required for authenticating with HighBond services.
-    """
-    
-    def __init__(self, name: str = "highbond_token_exchange"):
-        """Initialize the HighBond Token Exchange Tool."""
-        self.logger = structlog.get_logger(__name__)
-        
-        super().__init__(
-            name=name,
-            description="Exchange HighBond API token for subdomain JWT to authenticate with HighBond services",
-            func=_highbond_token_exchange_func
-        )
+# global variable to expose the tool
+highbond_token_exchange_api_tool = AgentTool(
+    name="highbond_token_exchange_api_tool",
+    description="Exchange HighBond Application token for subdomain JWT to authenticate with HighBond API",
+    func=_highbond_token_exchange_func
+)

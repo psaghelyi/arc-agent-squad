@@ -9,7 +9,7 @@ use_cases:
   - executive_briefings
 
 tools:
-  - "highbond_token_exchange"
+  - "highbond_token_exchange_api_tool"
 
 voice_settings:
   voice_id: "Joanna"

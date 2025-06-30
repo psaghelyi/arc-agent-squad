@@ -2,7 +2,7 @@
 # This file contains definitions of tools that can be used by agents
 
 tools:
-  highbond_token_exchange:
+  highbond_token_exchange_api_tool:
     name: "HighBond Token Exchange"
     description: |
       Exchange HighBond API token for subdomain JWT to authenticate with HighBond services.
@@ -21,7 +21,7 @@ tools:
         example: |
           To access compliance data in HighBond, first use the token exchange tool to get a valid JWT:
           {
-            "action": "highbond_token_exchange"
+            "action": "highbond_token_exchange_api_tool"
           }
     environment_requirements:
       - "HIGHBOND_ORG_ID must be set in environment variables"

@@ -112,7 +112,7 @@ class TestAPIIntegration:
                 "session_id": "test-session-api"
             }
             
-            response = await client.post("/api/agents/chat", json=chat_request)
+            response = await client.post("/api/chat", json=chat_request)
             assert response.status_code == 200
             
             data = response.json()
@@ -172,7 +172,7 @@ class TestAPIIntegration:
                     "session_id": f"selection-test-{i}"
                 }
                 
-                response = await client.post("/api/agents/chat", json=chat_request)
+                response = await client.post("/api/chat", json=chat_request)
                 assert response.status_code == 200
                 
                 data = response.json()
@@ -208,16 +208,16 @@ class TestAPIIntegration:
             }
             
             # Missing message - should use default values
-            response = await client.post("/api/agents/chat", json={"session_id": "test"})
+            response = await client.post("/api/chat", json={"session_id": "test"})
             # API should handle gracefully
             assert response.status_code in [200, 422]
             
             # Missing session_id - should use default
-            response = await client.post("/api/agents/chat", json={"message": "Hello"})
+            response = await client.post("/api/chat", json={"message": "Hello"})
             assert response.status_code in [200, 422]
             
             # Empty message - should be handled gracefully
-            response = await client.post("/api/agents/chat", json={
+            response = await client.post("/api/chat", json={
                 "message": "",
                 "session_id": "test"
             })
@@ -235,7 +235,7 @@ class TestAPIIntegration:
                 "session_id": "error-test-session"
             }
             
-            response = await client.post("/api/agents/chat", json=chat_request)
+            response = await client.post("/api/chat", json=chat_request)
             # The API should return 500 when an exception occurs
             assert response.status_code == 500
             data = response.json()
@@ -271,7 +271,7 @@ class TestAPIIntegration:
                     "message": "Concurrent request",
                     "session_id": f"concurrent-session-{i}"
                 }
-                task = client.post("/api/agents/chat", json=chat_request)
+                task = client.post("/api/chat", json=chat_request)
                 tasks.append(task)
             
             # Execute all requests concurrently
@@ -308,7 +308,7 @@ class TestAPIIntegration:
                 }
             }
             
-            response1 = await client.post("/api/agents/chat", json={
+            response1 = await client.post("/api/chat", json={
                 "message": "First message",
                 "session_id": session_id
             })
@@ -336,7 +336,7 @@ class TestAPIIntegration:
                 }
             }
             
-            response2 = await client.post("/api/agents/chat", json={
+            response2 = await client.post("/api/chat", json={
                 "message": "Follow-up message",
                 "session_id": session_id
             })
@@ -367,7 +367,7 @@ class TestAPIIntegration:
                 }
             }
             
-            response = await client.post("/api/agents/chat", json={
+            response = await client.post("/api/chat", json={
                 "message": "Test message",
                 "session_id": "format-test-session"
             })
@@ -400,6 +400,6 @@ class TestAPIIntegration:
         assert response.status_code == 404
         
         # Test invalid JSON
-        response = await client.post("/api/agents/chat", content="invalid json", 
+        response = await client.post("/api/chat", content="invalid json", 
                                    headers={"Content-Type": "application/json"})
         assert response.status_code == 422 

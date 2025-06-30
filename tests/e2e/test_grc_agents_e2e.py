@@ -169,7 +169,7 @@ class TestGRCAgentsE2E:
         }
         
         async with e2e_client as client:
-            response = await client.post("/api/agents/chat", json=chat_request)
+            response = await client.post("/api/chat", json=chat_request)
             
             # This might fail if AWS is not properly configured in the test environment
             if response.status_code == 200:
@@ -221,26 +221,4 @@ class TestGRCAgentsE2E:
         # Either succeeds with a default response or fails gracefully
         if not response["success"]:
             assert "error" in response
-            assert response["error"] is not None
-
-
-@pytest.mark.e2e
-@pytest.mark.skipif(
-    not check_aws_credentials(),
-    reason="AWS credentials not available via AWSConfig/SSO"
-)
-class TestVoiceServicesE2E:
-    """End-to-end tests for voice services."""
-
-    @pytest.mark.asyncio
-    async def test_voice_endpoint_real_services(self):
-        """Test voice endpoint with real AWS services."""
-        # This would test real Transcribe/Polly integration
-        # Implementation depends on your voice service setup
-        pytest.skip("Voice services e2e tests not implemented yet")
-
-    @pytest.mark.asyncio
-    async def test_voice_processing_pipeline(self):
-        """Test the complete voice processing pipeline."""
-        # Test: Audio -> Transcribe -> Agent -> Polly -> Audio
-        pytest.skip("Voice pipeline e2e tests not implemented yet") 
+            assert response["error"] is not None 

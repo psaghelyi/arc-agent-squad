@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from .routes import agents, health, voice
+from .routes import agents, health, chat
 from ..utils.settings import settings
 
 
@@ -102,13 +102,11 @@ async def get_api_info() -> Dict[str, Any]:
             "Intelligent agent routing",
             "GRC-specialized personas and roles",
             "Bedrock built-in memory",
-            "Voice processing capabilities",
             "Tool integration support"
         ],
         "endpoints": {
             "agents": "/api/agents/",
-            "chat": "/api/agents/chat", 
-            "voice": "/api/voice/",
+            "chat": "/api/chat", 
             "health": "/health/",
             "docs": "/docs"
         }
@@ -116,18 +114,11 @@ async def get_api_info() -> Dict[str, Any]:
 
 
 # Include routers
-app.include_router(agents.router, prefix="/api/agents", tags=["agents"])
 app.include_router(health.router, prefix="/health", tags=["health"])
-app.include_router(voice.router, prefix="/api/voice", tags=["voice"])
+app.include_router(agents.router, prefix="/api/agents", tags=["agents"])
+app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 
 # Add convenience endpoints (without trailing slash) that redirect to canonical versions
-@app.get("/api/agents")
-async def agents_redirect():
-    """Redirect to canonical agents endpoint with trailing slash."""
-    from fastapi import Response
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/api/agents/", status_code=301)
-
 @app.get("/health")
 async def health_redirect():
     """Redirect to canonical health endpoint with trailing slash."""
@@ -135,13 +126,19 @@ async def health_redirect():
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url="/health/", status_code=301)
 
-@app.get("/api/voice")
-async def voice_redirect():
-    """Redirect to canonical voice endpoint with trailing slash."""
+@app.get("/api/agents")
+async def agents_redirect():
+    """Redirect to canonical agents endpoint with trailing slash."""
     from fastapi import Response
     from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/api/voice/", status_code=301)
+    return RedirectResponse(url="/api/agents/", status_code=301)
 
+@app.get("/api/chat")
+async def chat_redirect():
+    """Redirect to canonical chat endpoint with trailing slash."""
+    from fastapi import Response
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/api/chat/", status_code=301)
 
 
 # Mount static files (must come last to avoid overriding API routes)

@@ -23,7 +23,7 @@ from agent_squad.utils import AgentTools
 from .aws_config import AWSConfig
 from src.agents.agent_config_loader import get_default_config_registry
 from src.utils.settings import settings
-from src.tools.api_tools.highbond_token_tool import HighBondTokenExchangeTool
+from src.tools.tools_registry import tools_registry
 
 
 class GRCAgentSquad:
@@ -90,10 +90,6 @@ class GRCAgentSquad:
         all_agent_ids = config_registry.list_agent_ids()
         self.logger.info(f"Found {len(all_agent_ids)} agent configurations: {all_agent_ids}")
         
-        # Initialize the HighBond token exchange tool
-        highbond_token_tool = HighBondTokenExchangeTool()
-        self.logger.info(f"Created HighBond Token Exchange Tool: {highbond_token_tool.name}")
-        
         # Create an agent for each configuration
         for agent_id in all_agent_ids:
             config = config_registry.get_config(agent_id)
@@ -113,16 +109,19 @@ class GRCAgentSquad:
             memory_enabled = model_settings.get('memory_enabled', True)
             
             # Check if the agent has available tools configured
-            tools = config.config_data.get('tools', [])
             tools_config = None
+            configured_tools = config.config_data.get('tools', [])
             
-            # If the agent needs the HighBond token exchange tool, add it
-            if 'highbond_token_exchange' in tools:
-                self.logger.info(f"Adding HighBond Token Exchange Tool to agent: {agent_id}")
-                tools_config = {
-                    'tool': AgentTools([highbond_token_tool]),
-                    'toolMaxRecursions': 5,
-                }
+            if configured_tools:
+                # Get tools from registry based on agent config
+                agent_tools = tools_registry.get_tools_for_agent(configured_tools)
+                
+                if agent_tools:
+                    tools_config = {
+                        'tool': AgentTools(agent_tools),
+                        'toolMaxRecursions': 5,
+                    }
+                    self.logger.info(f"Added {len(agent_tools)} tools to agent '{agent_id}'")
             
             # Create agent using configuration from YAML
             agent = BedrockLLMAgent(BedrockLLMAgentOptions(
@@ -299,9 +298,24 @@ class GRCAgentSquad:
     
     async def get_squad_stats(self) -> Dict[str, Any]:
         """Get statistics about the agent squad."""
-        return {
-            "total_agents": len(self.agent_configs),
-            "active_agents": len(self.agent_configs),  # All loaded agents are considered active
-            "memory_type": "bedrock_built_in",
-            "agent_types": list(self.agent_configs.keys())
-        }
+        try:
+            # Get the list of available tools from the tools registry
+            available_tools = tools_registry.list_available_tools()
+            
+            return {
+                "total_agents": len(self.agent_configs),
+                "active_agents": len(self.agent_configs),  # All loaded agents are considered active
+                "memory_type": "bedrock_built_in",
+                "agent_types": list(self.agent_configs.keys()),
+                "available_tools": available_tools
+            }
+        except Exception as e:
+            self.logger.error(f"Error getting squad stats: {e}")
+            # Return a minimal valid response instead of raising an exception
+            return {
+                "total_agents": 0,
+                "active_agents": 0,
+                "memory_type": "unknown",
+                "agent_types": [],
+                "available_tools": []
+            }

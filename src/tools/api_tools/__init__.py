@@ -1,9 +1,10 @@
 """
-API tools package for GRC Agent Squad.
+API Tools Package
 
-This package contains tools that interact with external APIs.
+This package contains tools that interact with external APIs 
+for data retrieval and manipulation in the GRC domain.
 """
 
-from .highbond_token_tool import HighBondTokenExchangeTool
+from .user_token_tool import highbond_token_exchange_api_tool
 
-__all__ = ["HighBondTokenExchangeTool"]
+__all__ = ['highbond_token_exchange_api_tool']

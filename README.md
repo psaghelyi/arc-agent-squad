@@ -202,14 +202,15 @@ docker-compose down
 ### Health Check
 - `GET /health/` - Basic health check
 
+### Chat with Agents
+- `POST /api/chat` - Chat with agents (intelligent agent selection)
+
 ### Agent Management
 - `GET /api/agents/` - List all available agents with details
 - `GET /api/agents/{agent_id}` - Get specific agent information
-- `POST /api/agents/chat` - Chat with agents (intelligent agent selection)
 - `GET /api/agents/tools` - Get available tools
 - `GET /api/agents/use-cases` - Get available use cases
 - `GET /api/agents/config/details` - Get detailed agent configurations
-- `GET /api/agents/grc/agent-types` - Get GRC agent type information
 
 ### Available GRC Agents
 The system includes 4 specialized executive-level GRC agents with distinct expertise:
@@ -251,22 +252,22 @@ The system automatically selects the most appropriate GRC agent based on your re
 
 ```bash
 # Compliance query → Dr. Morgan (Compliance Authority)
-curl -X POST "http://localhost:8001/api/agents/chat" \
+curl -X POST "http://localhost:8001/api/chat" \
   -H "Content-Type: application/json" \
   -d '{"message": "What are the GDPR requirements for data retention?", "session_id": "compliance-session"}'
 
 # Risk assessment → Alex (Risk Expert)  
-curl -X POST "http://localhost:8001/api/agents/chat" \
+curl -X POST "http://localhost:8001/api/chat" \
   -H "Content-Type: application/json" \
   -d '{"message": "How do we assess cybersecurity risks in our cloud infrastructure?", "session_id": "risk-session"}'
 
 # Interview preparation → Emma (Information Collector)
-curl -X POST "http://localhost:8001/api/agents/chat" \
+curl -X POST "http://localhost:8001/api/chat" \
   -H "Content-Type: application/json" \
   -d '{"message": "I need to interview our CFO about financial controls. Can you help?", "session_id": "interview-session"}'
 
 # Governance strategy → Sam (Governance Strategist)
-curl -X POST "http://localhost:8001/api/agents/chat" \
+curl -X POST "http://localhost:8001/api/chat" \
   -H "Content-Type: application/json" \
   -d '{"message": "How should we restructure our board committees for better oversight?", "session_id": "governance-session"}'
 ```
@@ -278,22 +279,22 @@ curl -X POST "http://localhost:8001/api/agents/chat" \
 SESSION_ID="multi-agent-demo"
 
 # First request → Compliance
-curl -X POST "http://localhost:8001/api/agents/chat" \
+curl -X POST "http://localhost:8001/api/chat" \
   -H "Content-Type: application/json" \
   -d "{\"message\": \"What SOX controls do we need for financial reporting?\", \"session_id\": \"$SESSION_ID\"}"
 
 # Follow-up → Risk Expert  
-curl -X POST "http://localhost:8001/api/agents/chat" \
+curl -X POST "http://localhost:8001/api/chat" \
   -H "Content-Type: application/json" \
   -d "{\"message\": \"What are the risks if those controls fail?\", \"session_id\": \"$SESSION_ID\"}"
 
 # Follow-up → Information Collector
-curl -X POST "http://localhost:8001/api/agents/chat" \
+curl -X POST "http://localhost:8001/api/chat" \
   -H "Content-Type: application/json" \
   -d "{\"message\": \"How should I test these controls with the finance team?\", \"session_id\": \"$SESSION_ID\"}"
 
 # Follow-up → Governance Strategist
-curl -X POST "http://localhost:8001/api/agents/chat" \
+curl -X POST "http://localhost:8001/api/chat" \
   -H "Content-Type: application/json" \
   -d "{\"message\": \"What governance structure should oversee this testing?\", \"session_id\": \"$SESSION_ID\"}"
 ```

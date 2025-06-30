@@ -931,7 +931,7 @@
             
             try {
                 // Phase 1: Get display response (rich Markdown)
-                const displayResponse = await fetch('/api/agents/chat', {
+                const displayResponse = await fetch('/api/chat', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -966,7 +966,7 @@
                 if (displayData.has_voice && !isMuted) {
                     try {
                         console.log("Requesting voice response for agent:", displayData.agent_id);
-                        const voiceResponse = await fetch('/api/agents/chat', {
+                        const voiceResponse = await fetch('/api/chat', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json'

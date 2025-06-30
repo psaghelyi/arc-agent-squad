@@ -4,46 +4,13 @@ Uses agent-squad framework with Bedrock built-in memory for conversation persist
 """
 
 import structlog
-import re
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
-
-from src.agents.agent_config_loader import get_default_config_registry
 
 from ...services.grc_agent_squad import GRCAgentSquad
 
-
-# Request/Response Models
-class ChatRequest(BaseModel):
-    message: str
-    session_id: Optional[str] = "default"
-    context: Optional[Dict[str, Any]] = None
-    response_type: Optional[str] = "display"  # "display" or "voice"
-
-
-class ChatResponse(BaseModel):
-    message: str
-    agent_name: str
-    agent_id: str
-    session_id: str
-    response_type: str  # "display" or "voice"
-    confidence: Optional[float] = None
-    reasoning: Optional[str] = None
-    audio_data: Optional[str] = None  # Base64 encoded audio (only for voice responses)
-    audio_format: Optional[str] = None
-    voice_id: Optional[str] = None
-    has_voice: Optional[bool] = False
-
-
-class AgentResponse(BaseModel):
-    id: str
-    name: str
-    description: str
-    status: str
-    created_at: str
 
 
 # Initialize router
@@ -77,39 +44,6 @@ async def list_agents(grc_squad: GRCAgentSquad = Depends(get_grc_squad)):
         raise HTTPException(status_code=500, detail=f"Failed to list agents: {str(e)}")
 
 
-@router.get("/grc/agent-types") 
-async def get_grc_agent_types(grc_squad: GRCAgentSquad = Depends(get_grc_squad)):
-    """Get information about GRC agent types and their specializations."""
-    try:
-        from ...agents.agent_config_loader import get_default_config_registry
-        
-        agents = await grc_squad.list_agents()
-        agent_types = []
-        
-        # Get file-based configuration registry
-        config_registry = get_default_config_registry()
-        
-        for agent in agents:
-            agent_id = agent.get("agent_id", "")
-            config_class = config_registry.get_config(agent_id)
-            
-            agent_types.append({
-                "id": agent["id"],
-                "name": agent["name"], 
-                "description": agent["description"],
-                "use_cases": config_class.get_use_cases() if config_class else []
-            })
-        
-        return {
-            "success": True,
-            "agent_types": agent_types,
-            "total": len(agent_types)
-        }
-    except Exception as e:
-        logger.error("Failed to get GRC agent types", error=str(e))
-        raise HTTPException(status_code=500, detail=f"Failed to get agent types: {str(e)}")
-
-
 @router.get("/{agent_id}")
 async def get_agent(agent_id: str, grc_squad: GRCAgentSquad = Depends(get_grc_squad)):
     """Get information about a specific GRC agent."""
@@ -129,208 +63,38 @@ async def get_agent(agent_id: str, grc_squad: GRCAgentSquad = Depends(get_grc_sq
         raise HTTPException(status_code=500, detail=f"Failed to get agent: {str(e)}")
 
 
-@router.post("/chat")
-async def chat_with_agents(
-    request: ChatRequest,
-    grc_squad: GRCAgentSquad = Depends(get_grc_squad)
-) -> ChatResponse:
-    """
-    Chat with the GRC Agent Squad in two-phase communication:
-    - response_type='display': Get rich markdown for visual display
-    - response_type='voice': Get clean text for voice synthesis
-    """
-    try:
-        from src.services.voice_processor import VoiceProcessor
-        from src.agents.agent_config_loader import get_default_config_registry
-        import structlog
-        
-        debug_logger = structlog.get_logger("voice_debug")
-        debug_logger.info("Starting chat request processing", 
-                         response_type=request.response_type,
-                         session_id=request.session_id)
-        
-        # Build context with response type for agent
-        enhanced_context = request.context or {}
-        enhanced_context["response_type"] = request.response_type
-        
-        # Check if a specific agent_id is provided in the context
-        direct_agent_id = None
-        if enhanced_context and "agent_id" in enhanced_context:
-            direct_agent_id = enhanced_context.get("agent_id")
-            debug_logger.info("Direct agent ID specified in context", agent_id=direct_agent_id)
-        
-        # Get agent response using process_request
-        response = await grc_squad.process_request(
-            user_input=request.message,
-            session_id=request.session_id or "default",
-            context=enhanced_context
-        )
-        
-        if not response.get("success"):
-            raise HTTPException(status_code=500, detail=response.get("error", "Unknown error"))
-        
-        agent_selection = response.get("agent_selection", {})
-        agent_response = response.get("agent_response", {})
-        agent_name = agent_selection.get("agent_name", "")
-        
-        # Get the response content
-        raw_response = agent_response.get("response", "")
-        
-        # Get the agent_id directly from the response
-        # If direct_agent_id was specified, use that instead
-        agent_id = direct_agent_id if direct_agent_id else agent_selection.get("agent_id")
-        debug_logger.info("Agent selected", agent_id=agent_id, agent_name=agent_name)
-        
-        # If agent_id is missing, throw an exception
-        if not agent_id:
-            error_msg = f"Agent ID not available in response for agent: {agent_name}"
-            logger.error(error_msg)
-            raise ValueError(error_msg)
-        
-        # Process voice if requested and agent supports it
-        audio_data = None
-        audio_format = None
-        voice_id = None
-        has_voice = False
-        
-        # Always check for voice capability regardless of response_type
-        # This ensures the has_voice flag is set correctly in the response
-        debug_logger.info("Checking if agent has voice capability")
-        config_registry = get_default_config_registry()
-        
-        # Debug: Print all available agent IDs in the registry
-        all_agent_ids = config_registry.list_agent_ids()
-        debug_logger.info(f"Available agent IDs in registry: {all_agent_ids}")
-        debug_logger.info(f"Looking for agent with ID: {agent_id}")
-        
-        agent_config = config_registry.get_config(agent_id)
-        
-        if not agent_config:
-            debug_logger.warning(f"Agent config not found for ID: {agent_id}")
-            debug_logger.info("Available agent configs:", 
-                             available_configs=list(config_registry.list_agent_ids()))
-        else:
-            # Get voice settings to determine if agent has voice capability
-            voice_settings = agent_config.get_voice_settings()
-            debug_logger.info("Agent voice settings", 
-                           agent_id=agent_id,
-                           voice_settings=voice_settings)
-            
-            # Check if agent has voice capability based on having a valid voice_id
-            has_voice = bool(voice_settings and voice_settings.get('voice_id'))
-            debug_logger.info(f"Agent has voice capability based on voice_settings: {has_voice}")
-            
-            # Only process voice if requested
-            if request.response_type == "voice" and has_voice:
-                debug_logger.info("Agent has voice capability, synthesizing speech")
-                # Generate voice response
-                voice_processor = VoiceProcessor()
-                voice_result = await voice_processor.synthesize_agent_response(
-                    raw_response,
-                    agent_id
-                )
-                
-                # Log the voice result metadata for debugging
-                debug_logger.info("Voice synthesis result", 
-                                 success=voice_result.get('success'),
-                                 error=voice_result.get('error'),
-                                 audio_size=voice_result.get('audio_size', 0),
-                                 voice_id=voice_result.get('voice_id'),
-                                 agent_id=voice_result.get('agent_id'))
-                
-                # Note: Not logging the full voice_result as it contains audio data
-                
-                if voice_result.get('success'):
-                    audio_data = voice_result.get('audio_data')
-                    audio_format = voice_result.get('audio_format')
-                    voice_id = voice_result.get('voice_id')
-                    debug_logger.info(f"Voice synthesis successful, audio size: {len(audio_data) if audio_data else 0}")
-                else:
-                    debug_logger.error("Voice synthesis failed", 
-                                      error=voice_result.get('error'),
-                                      agent_id=agent_id)
-        
-        # Debug the agent_id before returning
-        debug_logger.debug(f"Final agent_id being returned: {agent_id}")
-        debug_logger.debug(f"Has voice flag: {has_voice}")
-        
-        return ChatResponse(
-            message=raw_response or "No response generated",
-            agent_name=agent_selection.get("agent_name", "GRC Agent Squad"),
-            agent_id=agent_id,
-            session_id=response.get("session_id", request.session_id or "default"),
-            response_type=request.response_type,
-            confidence=agent_selection.get("confidence"),
-            reasoning=agent_selection.get("reasoning"),
-            audio_data=audio_data,
-            audio_format=audio_format,
-            voice_id=voice_id,
-            has_voice=has_voice
-        )
-        
-    except Exception as e:
-        logger.error(f"Error in chat_with_agents: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        
-        # For test_chat_endpoint_error_handling, we need to propagate the error
-        if "Agent processing failed" in str(e):
-            raise HTTPException(status_code=500, detail=str(e))
-            
-        return ChatResponse(
-            agent_name="Error",
-            message=f"An error occurred: {str(e)}",
-            agent_id="error",
-            session_id=request.session_id or "default",
-            response_type=request.response_type or "display",
-            audio_data=None,
-            audio_format=None,
-            voice_id=None,
-            has_voice=False
-        )
-
-
-@router.get("/stats")
+@router.get("/config/stats")
 async def get_squad_stats(grc_squad: GRCAgentSquad = Depends(get_grc_squad)):
     """Get statistics about the GRC Agent Squad."""
     try:
         stats = await grc_squad.get_squad_stats()
+        
+        # Ensure available_tools is a list for consistent API response
+        if "available_tools" in stats and stats["available_tools"] is not None:
+            # Make sure it's a list
+            if not isinstance(stats["available_tools"], list):
+                stats["available_tools"] = list(stats["available_tools"])
+        else:
+            stats["available_tools"] = []
+            
         return {
             "success": True,
             "stats": stats
         }
     except Exception as e:
         logger.error("Failed to get stats", error=str(e))
-        raise HTTPException(status_code=500, detail=f"Failed to get stats: {str(e)}")
-
-
-# Legacy endpoints for API compatibility (simplified)
-@router.get("/{agent_id}/conversations")
-async def get_agent_conversations(
-    agent_id: str,
-    limit: int = 10,
-    grc_squad: GRCAgentSquad = Depends(get_grc_squad)
-):
-    """Get conversation history for a specific agent (legacy endpoint - now handled by Bedrock)."""
-    try:
-        # Note: Conversation history is now managed by Bedrock's built-in memory
-        # This endpoint returns a simplified response for API compatibility
-        agent_info = await grc_squad.get_agent_info(agent_id)
-        if not agent_info:
-            raise HTTPException(status_code=404, detail=f"Agent {agent_id} not found")
-            
+        # Instead of raising an exception, return a fallback response with empty stats
         return {
-            "agent_id": agent_id,
-            "conversations": [],  # Bedrock manages session history internally
-            "total": 0,
-            "message": "Conversation history is now managed by Bedrock's built-in memory system",
-            "memory_type": "bedrock_built_in"
+            "success": False,
+            "stats": {
+                "total_agents": 0,
+                "active_agents": 0,
+                "memory_type": "unknown",
+                "agent_types": [],
+                "available_tools": []
+            },
+            "error": f"Failed to get stats: {str(e)}"
         }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to get conversations", agent_id=agent_id, error=str(e))
-        raise HTTPException(status_code=500, detail=f"Failed to get conversations: {str(e)}")
 
 
 @router.get("/config/details")
@@ -395,7 +159,6 @@ async def get_detailed_agent_config(grc_squad: GRCAgentSquad = Depends(get_grc_s
                     
                     # Role-specific information from config file
                     "use_cases": config_class.get_use_cases(),
-                    "primary_role": _get_agent_primary_role(agent_id),
                     
                     # Technical details
                     "conversation_memory": True,
@@ -417,34 +180,6 @@ async def get_detailed_agent_config(grc_squad: GRCAgentSquad = Depends(get_grc_s
         logger.error("Failed to get detailed agent config", error=str(e))
         raise HTTPException(status_code=500, detail=f"Failed to get detailed agent config: {str(e)}")
 
-
-def _get_agent_primary_role(agent_id: str) -> str:
-    """Get the primary role description for each agent."""
-    try:
-        from ...agents.agent_config_loader import get_default_config_registry
-        
-        # Get agent configuration from registry
-        config_registry = get_default_config_registry()
-        agent_config = config_registry.get_config(agent_id)
-        
-        if agent_config and "primary_role" in agent_config.config_data:
-            # Get primary role directly from the agent's YAML configuration
-            return agent_config.config_data["primary_role"]
-        
-        # If no specific role defined in the config, construct one from the agent name
-        if agent_config and "name" in agent_config.config_data:
-            name = agent_config.config_data["name"]
-            # Extract role from name if it contains a dash (e.g., "Emma - Information Collector")
-            if " - " in name:
-                return name.split(" - ", 1)[1]
-            return name
-            
-        # Fallback to a generic role
-        return "GRC Specialist"
-        
-    except Exception as e:
-        logger.error(f"Error getting agent primary role: {e}")
-        return "General GRC Assistant"
 
 
 @router.get("/debug/voice-test")
