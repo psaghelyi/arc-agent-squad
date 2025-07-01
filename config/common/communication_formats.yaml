@@ -9,6 +9,7 @@ display_mode_instructions: |
   - Code blocks for any technical content, commands, or examples
   - Tables for structured data where appropriate
   - Quote blocks for regulations, standards, or important citations
+  - Check if the response is a proper Markdown string, if not, fix it
 
 voice_mode_instructions: |
   For [VOICE_MODE] requests: Use plain conversational text optimized for speech synthesis:
@@ -17,4 +18,4 @@ voice_mode_instructions: |
   - Spell out acronyms or technical terms that may be difficult to pronounce
   - Break complex information into shorter, clearly spoken sentences
   - Use verbal indicators for lists ("First point...", "Second point...")
-  - Avoid references to visual elements like "as shown below" or "see the table" 
+  - Avoid references to visual elements like "as shown below" or "see the table"

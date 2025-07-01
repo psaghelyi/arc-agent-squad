@@ -8,13 +8,48 @@ which is required for authenticating with HighBond services.
 import structlog
 import requests
 import json
-from typing import Dict, Any, Optional
+import os
+import yaml
+from typing import Dict, Any, Optional, Union
 
 # Import the agent-squad tools
 from agent_squad.utils import AgentTool
 
 # Import settings
 from src.utils.settings import settings
+
+
+def _get_tool_config(tool_name: str) -> Dict[str, Any]:
+    """
+    Get tool configuration from YAML file directly.
+    
+    Args:
+        tool_name: Name of the tool to get configuration for
+        
+    Returns:
+        Tool configuration dictionary or empty dict if not found
+    """
+    logger = structlog.get_logger(__name__)
+    
+    # Determine the path to the tools.yaml file
+    config_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
+        'config', 'common', 'tools.yaml'
+    )
+    
+    try:
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as file:
+                config = yaml.safe_load(file)
+            
+            if isinstance(config, dict) and 'tools' in config:
+                tool_definitions = config['tools']
+                if tool_name in tool_definitions:
+                    return tool_definitions[tool_name]
+    except Exception as e:
+        logger.error(f"Error loading tool configuration: {e}")
+    
+    return {}
 
 
 def exchange_highbond_token() -> Optional[dict]:
@@ -74,7 +109,7 @@ def exchange_highbond_token() -> Optional[dict]:
         return None
 
 
-def _highbond_token_exchange_func(params: Dict[str, Any]) -> Dict[str, Any]:
+def _highbond_token_exchange_func(params: Dict[str, Any]) -> str:
     """
     Exchange HighBond API token for subdomain JWT to authenticate with HighBond services.
     
@@ -85,7 +120,7 @@ def _highbond_token_exchange_func(params: Dict[str, Any]) -> Dict[str, Any]:
         params: Parameters for the tool (not used as it uses environment variables)
         
     Returns:
-        Dict containing the token exchange results
+        String containing the token exchange result or error message
     """
     logger = structlog.get_logger(__name__)
     logger.info("Executing HighBond Token Exchange Tool")
@@ -100,38 +135,50 @@ def _highbond_token_exchange_func(params: Dict[str, Any]) -> Dict[str, Any]:
         missing.append("highbond_api_token")
         
     if missing:
-        return {
-            "success": False,
-            "error": f"Missing required HighBond settings: {', '.join(missing)}. Please make sure these are configured."
-        }
+        error_message = f"ERROR: Missing required HighBond settings: {', '.join(missing)}. Please make sure these are configured."
+        logger.error(error_message)
+        return error_message
     
     try:
         # Call the token exchange function
         result = exchange_highbond_token()
         
         if result is None:
-            return {
-                "success": False,
-                "error": "Failed to exchange HighBond token. Check the logs for details."
-            }
+            error_message = "ERROR: Failed to exchange HighBond token. Check the logs for details."
+            logger.error(error_message)
+            return error_message
         
-        return {
-            "success": True,
-            "token_info": result,
-            "message": "Successfully exchanged HighBond token for subdomain JWT"
-        }
+        # Format the result as a clean plain text string (no Markdown)
+        token_value = result.get('token', 'No token found')
+        token_preview = f"{token_value[:20]}...{token_value[-20:]}" if len(token_value) > 40 else token_value
+        
+        success_message = (
+            "[TOKEN EXCHANGE SUCCESSFUL]\n\n"
+            f"HighBond JWT Token: {token_preview}\n\n"
+            "Token Usage Information:\n"
+            "- Use this JWT token to authenticate with HighBond API endpoints\n"
+            "- The token is configured for your HighBond subdomain\n"
+            "- Include it in API requests with header: Authorization: Bearer <token>\n\n"
+            "The token is ready for use with HighBond API operations."
+        )
+        
+        logger.info("Token exchange successful")
+        return success_message
         
     except Exception as e:
-        logger.error("Error executing HighBond Token Exchange Tool", error=str(e))
-        return {
-            "success": False,
-            "error": f"An error occurred during token exchange: {str(e)}"
-        }
+        error_message = f"ERROR: An error occurred during token exchange: {str(e)}"
+        logger.error(error_message, error=str(e))
+        return error_message
 
 
-# global variable to expose the tool
+# Get tool configuration from YAML directly
+tool_name = "highbond_token_exchange_api_tool"
+tool_config = _get_tool_config(tool_name)
+
+# Create the tool using configuration from YAML if available
+# IMPORTANT: Use the exact tool_name as the name parameter to match what agents expect
 highbond_token_exchange_api_tool = AgentTool(
-    name="highbond_token_exchange_api_tool",
-    description="Exchange HighBond Application token for subdomain JWT to authenticate with HighBond API",
+    name=tool_name,  # Use the exact name expected by agent configurations
+    description=tool_config.get("description", "Exchange HighBond Application token for subdomain JWT to authenticate with HighBond API"),
     func=_highbond_token_exchange_func
 )
