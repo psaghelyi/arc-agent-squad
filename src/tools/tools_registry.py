@@ -8,12 +8,10 @@ and makes them available to agents based on their configuration.
 
 import os
 import yaml
+import importlib
 import structlog
 from typing import Dict, List, Optional, Any
 from agent_squad.utils import AgentTool
-
-# Import available tools
-from src.tools.api_tools.user_token_tool import highbond_token_exchange_api_tool
 
 
 class ToolsRegistry:
@@ -46,18 +44,56 @@ class ToolsRegistry:
         
         self.config_path = config_path
         
-        # Register built-in tools
-        self._register_builtin_tools()
-        
-        # Load tool configuration from YAML
+        # Load tool configuration from YAML first
         self._load_tool_configs()
-    
-    def _register_builtin_tools(self) -> None:
-        """Register the built-in tools with the registry."""
-        # Register the highbond token exchange tool
-        self.register_tool(highbond_token_exchange_api_tool)
         
-        # More built-in tools can be registered here as they are developed
+        # Then dynamically import and register tools based on the config
+        self._register_tools_from_config()
+    
+    def _register_tools_from_config(self) -> None:
+        """Dynamically import and register tools based on the YAML configuration."""
+        if not self.tool_configs:
+            self.logger.warning("No tool configurations found. No tools will be registered.")
+            return
+            
+        for tool_name, tool_config in self.tool_configs.items():
+            try:
+                # Determine module path based on naming convention
+                # For example, highbond_token_exchange_api_tool should be in api_tools/user_token.py
+                if "_api_tool" in tool_name:
+                    module_category = "api_tools"
+                    # For simplicity, we assume the module name matches part of the tool name
+                    # This is a convention that can be adjusted as needed
+                    if "highbond" in tool_name and "token" in tool_name:
+                        module_name = "user_token"
+                    else:
+                        # Default fallback
+                        module_name = tool_name.replace("_api_tool", "")
+                else:
+                    # Default fallback
+                    module_category = "tools"
+                    module_name = tool_name
+                
+                # Construct the full module path
+                module_path = f"src.tools.{module_category}.{module_name}"
+                
+                # Dynamically import the module
+                self.logger.info(f"Attempting to import tool '{tool_name}' from module '{module_path}'")
+                module = importlib.import_module(module_path)
+                
+                # Look for the tool in the module
+                if hasattr(module, tool_name):
+                    tool = getattr(module, tool_name)
+                    self.register_tool(tool)
+                    self.logger.info(f"Successfully registered tool '{tool_name}' from '{module_path}'")
+                else:
+                    self.logger.error(f"Tool '{tool_name}' not found in module '{module_path}'")
+            except ImportError as e:
+                self.logger.error(f"Failed to import module for tool '{tool_name}': {e}")
+                # Log more detailed information about the path being tried
+                self.logger.error(f"Module path attempted: '{module_path}'")
+            except Exception as e:
+                self.logger.error(f"Error registering tool '{tool_name}': {e}")
     
     def register_tool(self, tool: AgentTool) -> None:
         """
@@ -82,18 +118,6 @@ class ToolsRegistry:
                     tool_definitions = config['tools']
                     self.tool_configs = tool_definitions
                     self.logger.info(f"Found {len(tool_definitions)} tool definitions in configuration")
-                    
-                    # Log available tools vs configured tools
-                    configured_tool_names = list(tool_definitions.keys())
-                    registered_tool_names = list(self.tools.keys())
-                    
-                    self.logger.info(f"Configured tools: {configured_tool_names}")
-                    self.logger.info(f"Registered tools: {registered_tool_names}")
-                    
-                    # Check for tools that are configured but not registered
-                    missing_tools = [name for name in configured_tool_names if name not in registered_tool_names]
-                    if missing_tools:
-                        self.logger.warning(f"Some configured tools are not registered: {missing_tools}")
             else:
                 self.logger.warning(f"Tools configuration file not found: {self.config_path}")
                 
