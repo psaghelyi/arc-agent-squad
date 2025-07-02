@@ -63,27 +63,31 @@ test: test-unit
 
 test-unit:
 	@echo "🧪 Running unit tests..."
-	$(PYTHON_VENV) test_runner.py unit
+	$(PYTHON_VENV) tests/test_runner.py unit
 
 test-integration:
 	@echo "🔗 Running integration tests..."
-	$(PYTHON_VENV) test_runner.py integration
+	$(PYTHON_VENV) tests/test_runner.py integration
 
 test-e2e:
 	@echo "🌐 Running end-to-end tests (requires AWS credentials, 5min timeout)..."
-	$(PYTHON_VENV) test_runner.py e2e
+	$(PYTHON_VENV) tests/test_runner.py e2e
 
 test-all:
 	@echo "🧪 Running all tests..."
-	$(PYTHON_VENV) test_runner.py all
+	$(PYTHON_VENV) tests/test_runner.py all
 
 test-coverage:
 	@echo "📊 Running tests with coverage..."
-	$(PYTHON_VENV) test_runner.py coverage
+	$(PYTHON_VENV) tests/test_runner.py coverage
 
 test-watch:
 	@echo "👀 Running tests in watch mode..."
-	$(PYTHON_VENV) test_runner.py watch
+	$(PYTHON_VENV) tests/test_runner.py watch
+
+test-quick:
+	@echo "⚡ Running quick tests..."
+	$(PYTHON_VENV) tests/test_runner.py quick
 
 lint: ## Run linting
 	$(PYTHON_VENV) -m flake8 src/ tests/

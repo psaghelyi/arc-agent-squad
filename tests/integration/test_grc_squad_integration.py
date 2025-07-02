@@ -31,7 +31,8 @@ class TestGRCSquadIntegration:
         with patch('src.services.aws_config.AWSConfig.create_aws_vault_client') as mock_bedrock:
             mock_bedrock.return_value = mock_bedrock_client
             
-            squad = GRCAgentSquad()
+            # Disable hierarchical routing for consistent test behavior
+            squad = GRCAgentSquad(enable_hierarchical_routing=False)
             return squad
 
     def create_mock_agent_response(self, response_text: str, agent_name: str = "Emma - Information Collector", 
@@ -341,4 +342,56 @@ class TestGRCSquadIntegration:
             # Verify data types
             assert isinstance(response["success"], bool)
             assert isinstance(agent_selection["confidence"], (float, type(None)))
-            assert isinstance(agent_response["response"], str) 
+            assert isinstance(agent_response["response"], str)
+
+    @pytest.mark.asyncio
+    async def test_hierarchical_routing_functionality(self):
+        """Test hierarchical routing specific functionality."""
+        print("\n🧪 Testing hierarchical routing functionality...")
+        
+        # Test with hierarchical routing enabled
+        with patch('src.services.aws_config.AWSConfig.create_aws_vault_client') as mock_bedrock:
+            mock_bedrock.return_value = Mock()
+            hierarchical_squad = GRCAgentSquad(enable_hierarchical_routing=True)
+            
+            # Verify hierarchical classifier is used
+            from src.classifiers.hierarchical_classifier import HierarchicalClassifier
+            assert isinstance(hierarchical_squad.squad.classifier, HierarchicalClassifier)
+            
+            # Test configuration loading
+            assert hierarchical_squad.squad.classifier.squad_config is not None
+            assert len(hierarchical_squad.squad.classifier.squad_config.tiers) >= 2
+            
+            # Test tier structure
+            tiers = hierarchical_squad.squad.classifier.squad_config.tiers
+            specialist_tier = next((t for t in tiers if t.type == "specialist"), None)
+            supervisor_tier = next((t for t in tiers if t.type == "supervisor"), None)
+            
+            assert specialist_tier is not None, "Should have specialist tier"
+            assert supervisor_tier is not None, "Should have supervisor tier"
+            assert specialist_tier.confidence_threshold > supervisor_tier.confidence_threshold, "Specialist threshold should be higher"
+            
+            print(f"✅ Specialist tier: {len(specialist_tier.agents)} agents, threshold: {specialist_tier.confidence_threshold}")
+            print(f"✅ Supervisor tier: {len(supervisor_tier.agents)} agents, threshold: {supervisor_tier.confidence_threshold}")
+
+    @pytest.mark.asyncio
+    async def test_hierarchical_vs_standard_routing_comparison(self):
+        """Test that hierarchical and standard routing can both be initialized."""
+        with patch('src.services.aws_config.AWSConfig.create_aws_vault_client') as mock_bedrock:
+            mock_bedrock.return_value = Mock()
+            
+            # Initialize both types
+            hierarchical_squad = GRCAgentSquad(enable_hierarchical_routing=True)
+            standard_squad = GRCAgentSquad(enable_hierarchical_routing=False)
+            
+            # Both should initialize successfully
+            assert hierarchical_squad.squad is not None
+            assert standard_squad.squad is not None
+            
+            # Should have same number of agents
+            assert len(hierarchical_squad.squad.agents) == len(standard_squad.squad.agents)
+            
+            # Should use different classifiers
+            from src.classifiers.hierarchical_classifier import HierarchicalClassifier
+            assert isinstance(hierarchical_squad.squad.classifier, HierarchicalClassifier)
+            assert not isinstance(standard_squad.squad.classifier, HierarchicalClassifier) 

@@ -17,7 +17,8 @@ class TestChatIntegration:
     @pytest.fixture
     def grc_squad(self):
         """Create a GRC Agent Squad instance."""
-        squad = GRCAgentSquad()
+        # Disable hierarchical routing for consistent test behavior
+        squad = GRCAgentSquad(enable_hierarchical_routing=False)
         return squad
 
     def create_mock_response(self, output_text, agent_name="Emma - Information Collector", agent_id="interviewer", confidence=0.95):

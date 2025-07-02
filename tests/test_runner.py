@@ -108,6 +108,8 @@ def run_quick_tests():
     return success
 
 
+
+
 def run_e2e_tests():
     """Run end-to-end tests with real AWS services."""
     print("🌐 Running end-to-end tests...")
@@ -135,7 +137,7 @@ def main():
     parser = argparse.ArgumentParser(description="Test runner for GRC Agent Squad")
     parser.add_argument(
         "test_type",
-        choices=["all", "unit", "integration", "e2e", "coverage", "watch"],
+        choices=["all", "unit", "integration", "e2e", "coverage", "watch", "quick", "orchestrator", "chat", "api"],
         help="Type of tests to run"
     )
     parser.add_argument(
@@ -151,8 +153,8 @@ def main():
     
     args = parser.parse_args()
     
-    # Change to project root directory
-    project_root = Path(__file__).parent
+    # Change to project root directory (parent of tests directory)
+    project_root = Path(__file__).parent.parent
     os.chdir(project_root)
     
     print("🚀 GRC Agent Squad Test Runner")
@@ -170,6 +172,14 @@ def main():
         success = run_tests_with_coverage()
     elif args.test_type == "watch":
         success = run_watch_tests()
+    elif args.test_type == "quick":
+        success = run_quick_tests()
+    elif args.test_type == "orchestrator":
+        success = run_orchestrator_tests()
+    elif args.test_type == "chat":
+        success = run_chat_tests()
+    elif args.test_type == "api":
+        success = run_api_tests()
     
     exit_code = 0 if success else 1
     

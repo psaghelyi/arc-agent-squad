@@ -40,6 +40,16 @@ class Settings(BaseSettings):
         description="Default agent to use when no specific agent is selected"
     )
     
+    # Hierarchical Routing Configuration
+    enable_hierarchical_routing: bool = Field(
+        default=True,
+        description="Enable hierarchical agent routing with confidence thresholds"
+    )
+    squad_config_path: str = Field(
+        default="config/squad_configurations/grc_basic.yaml",
+        description="Path to squad configuration file for hierarchical routing"
+    )
+    
     # Classifier model settings
     classifier_model_id: str = Field(
         default="us.anthropic.claude-3-5-haiku-20241022-v1:0",

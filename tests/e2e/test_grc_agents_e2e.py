@@ -47,7 +47,8 @@ class TestGRCAgentsE2E:
             if not aws_config.validate_credentials_sync():
                 pytest.skip("AWS credentials validation failed")
             
-            squad = GRCAgentSquad()
+            # Keep hierarchical routing enabled for e2e tests to test real behavior
+            squad = GRCAgentSquad(enable_hierarchical_routing=True)
             return squad
         except Exception as e:
             pytest.skip(f"Could not initialize GRC squad with real AWS services: {e}")

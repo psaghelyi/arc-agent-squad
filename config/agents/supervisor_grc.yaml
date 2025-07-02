@@ -29,7 +29,7 @@ model_settings:
     temperature: 0.5
     topP: 0.9
   memory_enabled: true
-  streaming: true
+  streaming: false
   framework: "AWS agent-squad"
   llm_framework: "BedrockLLMAgent"
 

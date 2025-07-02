@@ -643,7 +643,11 @@ class TestConfigurationUsage:
 
             # Development Configuration
             "debug",
-            "development_mode"
+            "development_mode",
+            
+            # Hierarchical Routing Configuration
+            "enable_hierarchical_routing",
+            "squad_config_path"
         }
         
         # Check that all expected fields exist in the Settings class

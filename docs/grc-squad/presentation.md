@@ -9,34 +9,73 @@ theme: "diligent"
 
 ---
 
-# The Challenge
+# Our Solution: Create Your own GRC Squad
 
-- **Complex Regulatory Environment**: Increasing regulations requiring specialized knowledge
-- **Time-Intensive Processes**: Manual audit interviews, compliance assessments, and risk evaluations
-- **Expertise Gaps**: Difficult to maintain in-house expertise across all GRC domains
-- **Documentation Burden**: Extensive requirements for audit trails and compliance evidence
-- **Inconsistent Approaches**: Variation in how GRC processes are executed across organizations
+An **agentic framework** that simulates how organizations manage complex GRC tasks through intelligent delegation:
+- **Layered Architecture**: Supervisor agent orchestrates complex multi-step operations by delegating to specialist agents
+- **Intelligent Task Delegation**: Classifier analyzes requests and breaks them into subtasks for appropriate expert agents
+- **Agentic Tool Ecosystem**: Agents can call APIs, Lambda functions, MCP clients, and even other agents as tools
+- **Autonomous Agent Tools**: Each agent is both a specialist and a tool that can be used by other agents
+- **Modular Agent Construction**: Agents can be constructed from a set of tools, use cases and capabilities
 
 ---
 
-# Our Solution: GRC Agent Squad
+# GRC Squad Configurations for Different Company Sizes
 
-An **agentic framework** that simulates how organizations manage complex GRC tasks through intelligent delegation:
+- **Small Companies**: 1-2 agents with versatile use cases
+- **Medium Companies**: 5-6 agents with orchestration and complex use cases
+- **Large Companies**: 10+ agents with layered structure, multilevel delegation
 
-- **Director-Led Architecture**: Squad Director orchestrates complex multi-step operations by delegating to specialist agents
-- **Intelligent Task Delegation**: Director analyzes requests and breaks them into subtasks for appropriate expert agents
-- **Agentic Tool Ecosystem**: Agents can call APIs, Lambda functions, MCP clients, and even other agents as tools
-- **RAG-Enhanced Context**: Amazon Knowledge Base Retriever provides domain-specific knowledge with RAFT capability
-- **Autonomous Agent Tools**: Each agent is both a specialist and a tool that can be used by other agents
-- **Conversation Continuity**: DynamoDB chat storage with built-in session memory for complex workflows
+```mermaid
+graph TD
+    %% Small Company Configuration
+    subgraph "Small Company"
+        EU1[End User] --> A1[Single GRC Agent]
+    end
+    
+    %% Medium Company Configuration
+    subgraph "Medium Company"
+        EU2[End User] --> D1[Director]
+        D1 --> A2_1[Agent 1]
+        D1 --> A2_2[Agent 2]
+        D1 --> A2_3[Agent 3]
+        D1 --> A2_4[Agent 4]
+    end
+    
+    %% Large Company Configuration
+    subgraph "Large Company"
+        EU3[End User] --> VP[VP of GRC]
+        VP --> D2_1[Director 1]
+        VP --> D2_2[Director 2]
+        
+        D2_1 --> A3_1[Agent 1]
+        D2_1 --> A3_2[Agent 2]
+        D2_1 --> A3_3[Agent 3]
+        
+        D2_2 --> A3_4[Agent 4]
+        D2_2 --> A3_5[Agent 5]
+        D2_2 --> A3_6[Agent 6]
+    end
+    
+    %% Styling
+    classDef user fill:#f9f9f9,stroke:#333,stroke-width:1px
+    classDef director fill:#ff6b6b,stroke:#333,stroke-width:2px,color:#fff
+    classDef vp fill:#ff9e64,stroke:#333,stroke-width:2px,color:#fff
+    classDef agent fill:#c7d2fe,stroke:#333,stroke-width:1px
+    
+    class EU1,EU2,EU3 user
+    class D1,D2_1,D2_2 director
+    class VP vp
+    class A1,A2_1,A2_2,A2_3,A2_4,A3_1,A3_2,A3_3,A3_4,A3_5,A3_6 agent
+```
 
 ---
 
 # Meet The Squad
 
-**🎯 Director (Supervisor)**: High-level supervisor orchestrating complex tasks by breaking them into subtasks and delegating to specialist agents
+**🎯 SupervisorAgent**: Hybrid team leader that coordinates complex cases by orchestrating parallel communication between specialist agents
 
-**🔄 Intelligent Routing**: Direct classifier bypass for simple requests, Director orchestration for complex workflows
+**🔄 Confidence-Based Routing**: High confidence requests go directly to experts, low confidence/complex requests use supervisor coordination
 
 - **Emma**: Information Collector - Empathetic interviewer conducting audit interviews, stakeholder consultations, and compliance information gathering
 - **Dr. Morgan**: Compliance Authority - Official compliance agent providing definitive regulatory guidance and formal documentation
@@ -48,33 +87,33 @@ An **agentic framework** that simulates how organizations manage complex GRC tas
 
 # Key Capabilities
 
-- **Agentic Framework**: Director-led task delegation with autonomous agent-to-agent communication
-- **Agents as Tools**: Each specialist can be invoked as a tool by other agents or the Director
+- **Hybrid Routing**: Confidence threshold (0.8) determines direct expert access vs supervisor coordination
+- **Parallel Coordination**: SupervisorAgent can communicate with multiple team members simultaneously
 - **RAG-Enhanced Intelligence**: Amazon Knowledge Base Retriever with RAFT fine-tuning capability
-- **Multi-Modal Interaction**: Text chat, voice synthesis (Polly NTTS), and real-time voice (Lex V2)
+- **Multi-Modal Interaction**: Rich text chat, voice synthesis (Polly NTTS), and real-time voice (Lex V2)
 - **Tool Ecosystem**: MCP clients, API calls, Lambda functions, and external service integrations
-- **Context Continuity**: DynamoDB chat storage maintains complex workflow state across interactions
-- **Dynamic Orchestration**: Smart routing - simple requests bypass Director, complex ones get full orchestration
+- **Context Continuity**: Bedrock built-in memory maintains complex workflow state across interactions
 
 ---
 
 # Use Cases: Complex Orchestration
 
-**Multi-Step Risk Assessment Workflow**:
-1. Director receives: "Assess our cloud migration risks and create a mitigation plan"
-2. Director delegates: Information gathering → Risk analysis → Control recommendations → Documentation
-3. Emma interviews stakeholders → Alex analyzes risks → Morgan reviews compliance → Sam designs governance → Jordan audits controls
+**Multi-Step Risk Assessment Workflow** (Low Confidence → Supervisor):
+1. User: "Assess our cloud migration risks and create a mitigation plan"
+2. Classifier confidence < 0.8 → Routes to SupervisorAgent
+3. Supervisor coordinates: Emma interviews stakeholders || Alex analyzes risks || Morgan reviews compliance || Sam designs governance
+4. Supervisor synthesizes responses into comprehensive plan
 
-**Autonomous Agent Collaboration**:
-- Agents call each other as tools during complex workflows
-- Director maintains oversight while agents work independently
+**Parallel Team Coordination**:
+- SupervisorAgent uses `send_messages` tool for simultaneous agent communication
+- Team members work independently while supervisor maintains coordination
 - RAG provides domain knowledge, tools provide external data and actions
 
 ---
 
 # Use Cases: Simple Requests
 
-**Direct Agent Routing (Classifier Bypass)**:
+**Direct Expert Routing (High Confidence ≥ 0.8)**:
 - **"What are GDPR data retention requirements?"** → Direct to Dr. Morgan (Compliance)
 - **"Schedule an interview with our CISO"** → Direct to Emma (Information Collector) 
 - **"What's our current risk exposure?"** → Direct to Alex (Risk Expert)
@@ -90,12 +129,12 @@ An **agentic framework** that simulates how organizations manage complex GRC tas
 
 ---
 
-# Agentic Tool Ecosystem
+# Hybrid Tool Ecosystem
 
-**Agent-to-Agent Communication**:
-- Agents invoke other agents as tools in workflows
-- Director orchestrates while enabling autonomous collaboration
-- Dynamic tool selection based on capabilities
+**SupervisorAgent Communication**:
+- `send_messages` tool enables parallel agent coordination
+- SupervisorAgent orchestrates complex multi-agent workflows
+- Dynamic routing based on confidence thresholds
 
 **External Tool Integration**:
 - **MCP Clients**: File operations, database queries, document analysis
@@ -105,7 +144,7 @@ An **agentic framework** that simulates how organizations manage complex GRC tas
 
 **Context Enhancement**:
 - **RAG (Knowledge Base)**: Domain-specific GRC knowledge with RAFT fine-tuning
-- **DynamoDB Storage**: Persistent conversation state for multi-session workflows
+- **Bedrock Memory**: Built-in session memory for conversation continuity
 - **System Prompts**: Agent personality and capability definitions
 
 ---
@@ -115,12 +154,12 @@ An **agentic framework** that simulates how organizations manage complex GRC tas
 **Current Implementation**:
 - **Voice Synthesis**: Amazon Polly Neural TTS for agent responses
 - **Text-Based Chat**: Primary interaction with rich markdown support
-- **Conversation Memory**: DynamoDB storage for session continuity
+- **Conversation Memory**: Bedrock built-in memory for session continuity
 
 **Advanced Voice Features** (In Development):
 - **Real-Time Voice Interviews**: Emma agent with Lex V2 integration
 - **Bidirectional Voice**: Full speech-to-text and text-to-speech pipeline
-- **Voice-Guided Workflows**: Director-led voice orchestration
+- **Voice-Guided Workflows**: SupervisorAgent-led voice orchestration
 
 **Multi-Modal Experience**:
 - Text, voice, and hybrid interactions based on use case
@@ -136,29 +175,34 @@ graph TD
     Client["Web Client<br/>(Chat Interface)"] --> ALB["Load Balancer<br/>(ALB)"]
     ALB --> ECSF["ECS Fargate<br/>Containers"]
     
-    subgraph "Agentic Framework"
+    subgraph "Hybrid Routing Framework"
         ECSF --> FastAPI["FastAPI<br/>Application"]
-        FastAPI --> Director["Squad Director<br/>(Supervisor/Orchestrator)"]
-        FastAPI --> Classifier["BedrockClassifier<br/>(Simple Request Router)"]
+        FastAPI --> Router{{"Confidence-Based<br/>Router"}}
         
-        Director --> Emma["Emma<br/>(Information Collector)"]
-        Director --> Morgan["Dr. Morgan<br/>(Compliance Authority)"]
-        Director --> Alex["Alex<br/>(Risk Expert)"]
-        Director --> Sam["Sam<br/>(Governance Strategist)"]
-        Director --> Jordan["Jordan<br/>(Audit Expert)"]
+        Router -->|"confidence ≥ 0.8"| Classifier["BedrockClassifier<br/>(Direct Expert Routing)"]
+        Router -->|"confidence < 0.8"| Supervisor["SupervisorAgent<br/>(Team Coordination)"]
         
-        Classifier --> Emma
-        Classifier --> Morgan
-        Classifier --> Alex
-        Classifier --> Sam
-        Classifier --> Jordan
+        %% Direct Expert Routing
+        Classifier -->|"High Confidence"| Emma["Emma<br/>(Information Collector)"]
+        Classifier -->|"High Confidence"| Morgan["Dr. Morgan<br/>(Compliance Authority)"]
+        Classifier -->|"High Confidence"| Alex["Alex<br/>(Risk Expert)"]
+        Classifier -->|"High Confidence"| Sam["Sam<br/>(Governance Strategist)"]
+        Classifier -->|"High Confidence"| Jordan["Jordan<br/>(Audit Expert)"]
         
-        %% Agent-to-Agent Communication
-        Emma -.-> Morgan
-        Morgan -.-> Alex
-        Alex -.-> Sam
-        Sam -.-> Jordan
-        Jordan -.-> Emma
+        %% Supervisor Coordination
+        Supervisor -->|"Team Leader"| SupervisorGRC["Supervisor GRC<br/>(Lead Agent)"]
+        Supervisor -->|"Coordinates Team"| Emma
+        Supervisor -->|"Coordinates Team"| Morgan
+        Supervisor -->|"Coordinates Team"| Alex
+        Supervisor -->|"Coordinates Team"| Sam
+        Supervisor -->|"Coordinates Team"| Jordan
+        
+        %% Agent-to-Agent Communication via Supervisor
+        SupervisorGRC -.->|"send_messages tool"| Emma
+        SupervisorGRC -.->|"send_messages tool"| Morgan
+        SupervisorGRC -.->|"send_messages tool"| Alex
+        SupervisorGRC -.->|"send_messages tool"| Sam
+        SupervisorGRC -.->|"send_messages tool"| Jordan
     end
     
     subgraph "AI Services"
@@ -167,20 +211,20 @@ graph TD
         Alex --> Bedrock
         Sam --> Bedrock
         Jordan --> Bedrock
-        Director --> Bedrock
+        SupervisorGRC --> Bedrock
         
         Emma --> LexV2["Amazon Lex V2<br/>(Real-time Voice)"]
-        Director --> Polly["Amazon Polly<br/>(Voice Synthesis)"]
+        SupervisorGRC --> Polly["Amazon Polly<br/>(Voice Synthesis)"]
     end
     
     subgraph "Knowledge & Memory"
         Bedrock --> KnowledgeBase["Amazon Knowledge Base<br/>(RAG + RAFT)"]
-        Director --> DynamoDB["DynamoDB<br/>(Chat Storage)"]
-        Emma --> DynamoDB
-        Morgan --> DynamoDB
-        Alex --> DynamoDB
-        Sam --> DynamoDB
-        Jordan --> DynamoDB
+        SupervisorGRC --> BedrockMemory["Bedrock Built-in<br/>(Session Memory)"]
+        Emma --> BedrockMemory
+        Morgan --> BedrockMemory
+        Alex --> BedrockMemory
+        Sam --> BedrockMemory
+        Jordan --> BedrockMemory
     end
     
     subgraph "Agent Tools"
@@ -196,7 +240,9 @@ graph TD
         ALB --> WAF["AWS WAF<br/>Security"]
     end
 
-    style Director fill:#ff6b6b,stroke:#333,stroke-width:3px,color:#fff
+    style Router fill:#ff6b6b,stroke:#333,stroke-width:3px,color:#fff
+    style Supervisor fill:#ff9e64,stroke:#333,stroke-width:3px,color:#fff
+    style SupervisorGRC fill:#ff6b6b,stroke:#333,stroke-width:2px,color:#fff
     style Classifier fill:#4ecdc4,stroke:#333,stroke-width:2px,color:#fff
     style Emma fill:#c7d2fe,stroke:#333,stroke-width:1px
     style Morgan fill:#c7d2fe,stroke:#333,stroke-width:1px
@@ -204,14 +250,15 @@ graph TD
     style Sam fill:#c7d2fe,stroke:#333,stroke-width:1px
     style Jordan fill:#c7d2fe,stroke:#333,stroke-width:1px
     style KnowledgeBase fill:#ffd93d,stroke:#333,stroke-width:2px
-    style DynamoDB fill:#6bcf7f,stroke:#333,stroke-width:2px
+    style BedrockMemory fill:#6bcf7f,stroke:#333,stroke-width:2px
     style LexV2 fill:#ff8b94,stroke:#333,stroke-width:1px
 ```
 
-- **Agentic Framework**: Director-led orchestration with agent collaboration
+- **Hybrid Framework**: Confidence-based routing between direct expert access and supervisor coordination
+- **SupervisorAgent**: Team leader orchestrates complex cases with parallel agent communication
 - **Tool Ecosystem**: Agents as tools, MCP clients, APIs, Lambda functions
 - **RAG Architecture**: Knowledge Base Retriever with RAFT fine-tuning  
-- **Persistent Memory**: DynamoDB chat storage for workflow continuity
+- **Built-in Memory**: Bedrock session memory for conversation continuity
 
 ---
 
@@ -219,11 +266,11 @@ graph TD
 
 <div id="left">
 
-**Phase 1: Agentic Framework (Current PoC)** ✓
-- Director-led orchestration with classifier bypass
-- Agent-to-agent communication and tool integration
+**Phase 1: Hybrid Framework (Current PoC)** ✓
+- SupervisorAgent-led orchestration with confidence-based routing
+- Parallel agent communication and tool integration
 - Basic voice synthesis (Polly NTTS)
-- DynamoDB chat storage and session management
+- Bedrock built-in memory for session management
 
 **Phase 2: Enhanced Tool Ecosystem** 🚧
 - RAG implementation with Amazon Knowledge Base Retriever
@@ -238,8 +285,8 @@ graph TD
 **Phase 3: Advanced Voice & Real-Time Features** 📋
 - Emma agent with full Lex V2 integration for voice interviews
 - Bidirectional voice processing with Amazon Transcribe
-- Real-time conversation flows and voice-guided workflows
-- Multi-modal interaction orchestration
+- Real-time conversation flows and SupervisorAgent voice orchestration
+- Multi-modal interaction coordination
 
 **Future: Enterprise & Production** 🏢
 - Production-scale deployment and monitoring
@@ -253,12 +300,12 @@ graph TD
 
 # Summary
 
-- **Autonomous Operations**: Director orchestrates while agents work independently with their available tools
-- **Scalable Intelligence**: Agents can invoke other agents, creating complex collaborative workflows
+- **Hybrid Intelligence**: Confidence-based routing between direct expert access and supervisor coordination
+- **Parallel Coordination**: SupervisorAgent orchestrates complex workflows with simultaneous team communication
 - **Knowledge Enhancement**: RAG with RAFT fine-tuning provides continuously improving domain expertise
 - **Tool Flexibility**: Extensible architecture supports MCP clients, APIs, Lambda functions, and custom integrations
-- **Context Continuity**: DynamoDB storage maintains workflow state across complex multi-session operations
-- **Adaptive Interaction**: Smart routing between simple direct responses and complex orchestrated workflows
+- **Context Continuity**: Bedrock built-in memory maintains workflow state across complex multi-session operations
+- **Adaptive Interaction**: Smart routing (≥0.8 confidence) between simple direct responses and complex orchestrated workflows
 
 ---
 

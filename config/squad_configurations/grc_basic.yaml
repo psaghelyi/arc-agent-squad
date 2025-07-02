@@ -1,0 +1,29 @@
+squad_config:
+  name: "GRC Basic Squad"
+  description: "Basic GRC configuration with specialists and one director"
+  routing_strategy: "confidence_tiered"
+  
+  hierarchy:
+    tiers:
+      - name: "specialists"
+        type: "specialist"
+        confidence_threshold: 0.8
+        description: "Direct specialist routing for clear, domain-specific queries"
+        agents:
+          - empathetic_interviewer_executive
+          - authoritative_compliance_executive
+          - analytical_risk_expert_executive
+          - strategic_governance_executive
+      
+      - name: "directors"
+        type: "supervisor"
+        confidence_threshold: 0.6
+        description: "Director coordination for complex or multi-domain queries"
+        agents:
+          - supervisor_grc
+
+  # Fallback configuration
+  fallback:
+    agent: supervisor_grc
+    confidence_threshold: 0.0
+    description: "Default fallback when no other agent matches"

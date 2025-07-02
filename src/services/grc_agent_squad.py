@@ -12,6 +12,7 @@ Key Features:
 """
 
 import structlog
+import os
 from typing import Dict, List, Optional, Any
 from datetime import datetime, UTC
 
@@ -24,6 +25,8 @@ from .aws_config import AWSConfig
 from src.agents.agent_config_loader import get_default_config_registry
 from src.utils.settings import settings
 from src.tools.tools_registry import tools_registry
+from src.classifiers.hierarchical_classifier import HierarchicalClassifier
+from src.routing.routing_strategy import HierarchicalRoutingStrategy
 
 
 class GRCAgentSquad:
@@ -39,9 +42,13 @@ class GRCAgentSquad:
     Uses Bedrock's built-in session memory for conversation persistence.
     """
     
-    def __init__(self):
+    def __init__(self, enable_hierarchical_routing: Optional[bool] = None, squad_config_path: Optional[str] = None):
         """
         Initialize the GRC Agent Squad.
+        
+        Args:
+            enable_hierarchical_routing: Whether to use hierarchical routing (default: from settings)
+            squad_config_path: Path to squad configuration file (default: from settings)
         """
         self.logger = structlog.get_logger(__name__)
         
@@ -51,11 +58,17 @@ class GRCAgentSquad:
         # Agent configurations for GRC
         self.agent_configs = {}
         
+        # Routing configuration - use settings defaults if not provided
+        self.enable_hierarchical_routing = enable_hierarchical_routing if enable_hierarchical_routing is not None else settings.enable_hierarchical_routing
+        self.squad_config_path = squad_config_path or settings.squad_config_path
+        
         # Initialize GRC agents
         self._initialize_grc_agents()
         
+        routing_type = "hierarchical" if enable_hierarchical_routing else "standard"
         self.logger.info("GRC Agent Squad initialized with Bedrock built-in memory", 
-                        agent_count=len(self.squad.agents) if self.squad else 0)
+                        agent_count=len(self.squad.agents) if self.squad else 0,
+                        routing_type=routing_type)
     
     def _initialize_grc_agents(self):
         """Initialize the four specialized GRC agents using YAML configurations."""
@@ -71,17 +84,56 @@ class GRCAgentSquad:
         # Get file-based configuration registry
         config_registry = get_default_config_registry()
         
-        # Create classifier using settings instead of hardcoded values
-        self.logger.info("Creating Bedrock classifier with settings...")
-        classifier = BedrockClassifier(BedrockClassifierOptions(
-            model_id=settings.classifier_model_id,
-            client=bedrock_client,
-            inference_config={
-                'maxTokens': settings.classifier_max_tokens,
-                'temperature': settings.classifier_temperature,
-                'topP': settings.classifier_top_p
-            }
-        ))
+        # Create classifier - hierarchical or standard based on configuration
+        if self.enable_hierarchical_routing:
+            self.logger.info("Creating hierarchical classifier with settings...")
+            
+            # Load squad configuration
+            try:
+                squad_config = HierarchicalClassifier.load_squad_config(self.squad_config_path)
+                self.logger.info("Loaded squad configuration", 
+                                squad_name=squad_config.name,
+                                tier_count=len(squad_config.tiers))
+            except Exception as e:
+                self.logger.warning(f"Failed to load squad config, falling back to standard classifier: {e}")
+                self.enable_hierarchical_routing = False
+                squad_config = None
+            
+            if squad_config:
+                classifier = HierarchicalClassifier(
+                    BedrockClassifierOptions(
+                        model_id=settings.classifier_model_id,
+                        client=bedrock_client,
+                        inference_config={
+                            'maxTokens': settings.classifier_max_tokens,
+                            'temperature': settings.classifier_temperature,
+                            'topP': settings.classifier_top_p
+                        }
+                    ),
+                    squad_config
+                )
+            else:
+                # Fallback to standard classifier
+                classifier = BedrockClassifier(BedrockClassifierOptions(
+                    model_id=settings.classifier_model_id,
+                    client=bedrock_client,
+                    inference_config={
+                        'maxTokens': settings.classifier_max_tokens,
+                        'temperature': settings.classifier_temperature,
+                        'topP': settings.classifier_top_p
+                    }
+                ))
+        else:
+            self.logger.info("Creating standard Bedrock classifier with settings...")
+            classifier = BedrockClassifier(BedrockClassifierOptions(
+                model_id=settings.classifier_model_id,
+                client=bedrock_client,
+                inference_config={
+                    'maxTokens': settings.classifier_max_tokens,
+                    'temperature': settings.classifier_temperature,
+                    'topP': settings.classifier_top_p
+                }
+            ))
         
         # Create agents using their YAML configurations
         agents = {}
@@ -176,6 +228,44 @@ class GRCAgentSquad:
         for agent_id in config_registry.loader.list_agent_ids():
             self.agent_configs[agent_id] = config_registry.build_agent_metadata(agent_id)
     
+    def _get_routing_method(self, selected_agent_id: str, confidence: Optional[float]) -> Optional[str]:
+        """
+        Get the routing method for display in the agent header.
+        
+        Args:
+            selected_agent_id: ID of the selected agent
+            confidence: Confidence score from classification
+            
+        Returns:
+            Routing method string (e.g., "specialist", "supervisor", "fallback")
+        """
+        if not self.enable_hierarchical_routing:
+            return None
+            
+        # Determine routing method based on agent type and confidence
+        if confidence is not None:
+            # Determine routing tier based on confidence and agent
+            if selected_agent_id == "supervisor_grc":
+                if confidence >= 0.6:
+                    return "supervisor"
+                else:
+                    return "fallback"
+            else:
+                # Specialist agents
+                if confidence >= 0.8:
+                    return "specialist"
+                elif confidence >= 0.6:
+                    return "escalated"
+                else:
+                    return "fallback"
+        else:
+            # No confidence available - likely direct routing or fallback
+            if selected_agent_id == "supervisor_grc":
+                return "fallback"
+            else:
+                return "direct"
+    
+    
     async def process_request(self, user_input: str, session_id: str = "default", 
                             context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
@@ -236,6 +326,9 @@ class GRCAgentSquad:
                     confidence = float(raw_confidence)
                 else:
                     confidence = None  # Default to None instead of "Unknown"
+                
+                # Debug logging for confidence issues
+                self.logger.debug(f"Confidence extraction: raw={raw_confidence}, processed={confidence}")
             
             # Extract response content
             if hasattr(response, 'output') and response.output:
@@ -258,6 +351,18 @@ class GRCAgentSquad:
                     response_text = str(response.output)
             else:
                 response_text = "No response from agent"
+            
+            # For hierarchical routing, modify the agent name to include routing method
+            # This integrates with the existing header format in index.html
+            response_mode = context.get("response_type", "display") if context else "display"
+            if (self.enable_hierarchical_routing and 
+                selected_agent_name != "No Agent" and 
+                response_mode == "display"):
+                routing_method = self._get_routing_method(selected_agent_id, confidence)
+                if routing_method:
+                    # Modify the agent name to include routing method
+                    # This will appear in the single header line as: "🤖 Dr. Morgan • specialist"
+                    selected_agent_name = f"{selected_agent_name} • {routing_method}"
             
             self.logger.info(f"Processed request with agent ID: {selected_agent_id}, name: {selected_agent_name}")
             

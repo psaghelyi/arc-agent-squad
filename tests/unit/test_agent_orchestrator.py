@@ -28,7 +28,8 @@ class TestGRCAgentSquad:
     @pytest.fixture
     def grc_squad(self):
         """Create a GRC Agent Squad instance."""
-        squad = GRCAgentSquad()
+        # Disable hierarchical routing for consistent test behavior
+        squad = GRCAgentSquad(enable_hierarchical_routing=False)
         return squad
 
     @pytest.mark.asyncio
