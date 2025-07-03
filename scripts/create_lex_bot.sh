@@ -5,16 +5,26 @@ set -e
 
 BOT_NAME="grc-agent-squad-bot"
 REGION="us-west-2"
+AWS_PROFILE=${AWS_PROFILE:-acl-playground}
 
 echo "🤖 Creating AWS Lex bot: $BOT_NAME"
 
+# Use aws-vault if we're not running in an environment with AWS credentials
+if [[ -z "$AWS_ACCESS_KEY_ID" ]]; then
+  echo "Using aws-vault with profile: $AWS_PROFILE"
+  AWS_CMD="aws-vault exec $AWS_PROFILE -- aws"
+else
+  echo "Using existing AWS credentials"
+  AWS_CMD="aws"
+fi
+
 # Get AWS account ID
-ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+ACCOUNT_ID=$($AWS_CMD sts get-caller-identity --query Account --output text)
 echo "Account ID: $ACCOUNT_ID"
 
 # Create the bot
 echo "Step 1: Creating bot..."
-BOT_RESPONSE=$(aws lexv2-models create-bot \
+BOT_RESPONSE=$($AWS_CMD lexv2-models create-bot \
     --bot-name "$BOT_NAME" \
     --description "Bot for GRC (Governance, Risk, Compliance) agent interactions" \
     --region $REGION \
@@ -28,7 +38,7 @@ echo "✅ Bot created with ID: $BOT_ID"
 
 # Create bot locale
 echo "Step 2: Creating bot locale..."
-aws lexv2-models create-bot-locale \
+$AWS_CMD lexv2-models create-bot-locale \
     --bot-id $BOT_ID \
     --bot-version "DRAFT" \
     --locale-id "en_US" \
@@ -41,7 +51,7 @@ echo "✅ Bot locale created"
 
 # Create a simple Welcome intent
 echo "Step 3: Creating Welcome intent..."
-aws lexv2-models create-intent \
+$AWS_CMD lexv2-models create-intent \
     --bot-id $BOT_ID \
     --bot-version "DRAFT" \
     --locale-id "en_US" \
@@ -49,17 +59,17 @@ aws lexv2-models create-intent \
     --intent-name "Welcome" \
     --description "Welcome intent for GRC bot" \
     --sample-utterances '[
-        {"Utterance": "Hello"},
-        {"Utterance": "Hi"},
-        {"Utterance": "I need help"},
-        {"Utterance": "Start"}
+        {"utterance": "Hello"},
+        {"utterance": "Hi"},
+        {"utterance": "I need help"},
+        {"utterance": "Start"}
     ]' > /dev/null
 
 echo "✅ Welcome intent created"
 
 # Build the bot locale
 echo "Step 4: Building bot locale..."
-aws lexv2-models build-bot-locale \
+$AWS_CMD lexv2-models build-bot-locale \
     --bot-id $BOT_ID \
     --bot-version "DRAFT" \
     --locale-id "en_US" \
@@ -70,7 +80,7 @@ echo "✅ Bot build initiated"
 # Wait for build to complete
 echo "Step 5: Waiting for build to complete..."
 while true; do
-    STATUS=$(aws lexv2-models describe-bot-locale \
+    STATUS=$($AWS_CMD lexv2-models describe-bot-locale \
         --bot-id $BOT_ID \
         --bot-version "DRAFT" \
         --locale-id "en_US" \
@@ -94,7 +104,7 @@ done
 
 # Create bot alias
 echo "Step 6: Creating bot alias..."
-ALIAS_RESPONSE=$(aws lexv2-models create-bot-alias \
+ALIAS_RESPONSE=$($AWS_CMD lexv2-models create-bot-alias \
     --bot-id $BOT_ID \
     --bot-alias-name "Development" \
     --bot-version "DRAFT" \
@@ -115,6 +125,11 @@ echo "📋 Next steps:"
 echo "1. Add this to your .env file:"
 echo "   LEX_BOT_ID=$BOT_ID"
 echo "   LEX_BOT_ALIAS_ID=$ALIAS_ID"
+
+# Store in a temp file that can be sourced by the Makefile
+echo "export LEX_BOT_ID=$BOT_ID" > .lex_bot_env
+echo "export LEX_BOT_ALIAS_ID=$ALIAS_ID" >> .lex_bot_env
+echo "export LEX_BOT_REGION=$REGION" >> .lex_bot_env
 echo ""
 echo "2. Test your application:"
 echo "   make local-start"

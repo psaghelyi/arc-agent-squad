@@ -17,7 +17,7 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime, UTC
 
 from agent_squad.orchestrator import AgentSquad
-from agent_squad.agents import BedrockLLMAgent, BedrockLLMAgentOptions
+from agent_squad.agents import BedrockLLMAgent, BedrockLLMAgentOptions, LexBotAgent, LexBotAgentOptions
 from agent_squad.classifiers import BedrockClassifier, BedrockClassifierOptions
 from agent_squad.utils import AgentTools
 
@@ -75,7 +75,9 @@ class GRCAgentSquad:
         
         # Configure AWS session using shared AWSConfig implementation
         try:
-            bedrock_client = AWSConfig.create_aws_vault_client('bedrock-runtime')
+            # Explicitly use the acl-playground profile to avoid SSO token issues
+            self.aws_config = AWSConfig(profile='acl-playground')
+            bedrock_client = AWSConfig.create_aws_vault_client('bedrock-runtime', 'acl-playground')
             self.logger.info("AWS session and Bedrock client configured successfully using shared AWSConfig")
         except Exception as e:
             self.logger.error(f"Failed to configure AWS session or Bedrock client: {e}")
@@ -151,52 +153,100 @@ class GRCAgentSquad:
                 
             # Extract model settings from YAML configuration
             model_settings = config.get_model_settings()
-            model_id = model_settings['model_id']
-            inference_config = model_settings.get('inference_config', {
-                "maxTokens": 4096,
-                "temperature": 0.7,
-                "topP": 0.9
-            })
-            streaming = model_settings.get('streaming', False)
-            memory_enabled = model_settings.get('memory_enabled', True)
+            agent_kind = model_settings.get('agent_kind', 'BedrockLLMAgent')
             
-            # Check if the agent has available tools configured
-            tools_config = None
-            configured_tools = config.config_data.get('tools', [])
-            
-            if configured_tools:
-                # Get tools from registry based on agent config
-                agent_tools = tools_registry.get_tools_for_agent(configured_tools)
+            # Create agent based on agent_kind
+            if agent_kind == 'LexBotAgent':
+                # Check if required Lex environment variables are available
+                lex_bot_id = os.environ.get('LEX_BOT_ID')
+                lex_bot_alias_id = os.environ.get('LEX_BOT_ALIAS_ID')
+                lex_bot_region = os.environ.get('LEX_BOT_REGION', 'us-west-2')
                 
-                if agent_tools:
-                    tools_config = {
-                        'tool': AgentTools(agent_tools),
-                        'toolMaxRecursions': 5,
-                    }
-                    self.logger.info(f"Added {len(agent_tools)} tools to agent '{agent_id}'")
-            
-            # Create agent using configuration from YAML
-            agent = BedrockLLMAgent(BedrockLLMAgentOptions(
-                name=config.config_data.get('name', agent_id),
-                description=config.config_data.get('description', ''),
-                model_id=model_id,
-                streaming=streaming,
-                inference_config=inference_config,
-                save_chat=memory_enabled,  # Use memory_enabled from config
-                client=bedrock_client,
-                custom_system_prompt={
-                    "template": config.get_system_prompt(),
-                    "variables": config.get_system_prompt_variables() or {}
-                },  # Pass as dict with template key
-                tool_config=tools_config  # Add tools if configured for this agent
-            ))
+                if not lex_bot_id or not lex_bot_alias_id:
+                    missing_vars = []
+                    if not lex_bot_id:
+                        missing_vars.append('LEX_BOT_ID')
+                    if not lex_bot_alias_id:
+                        missing_vars.append('LEX_BOT_ALIAS_ID')
+                    
+                    error_msg = f"LexBotAgent configuration error for agent '{agent_id}': Missing required environment variables: {', '.join(missing_vars)}. Please configure these variables to use LexBotAgent."
+                    self.logger.error(error_msg)
+                    raise ValueError(error_msg)
+                
+                self.logger.info(f"Using Lex bot configuration: ID={lex_bot_id}, Alias={lex_bot_alias_id}, Region={lex_bot_region}")
+                
+                # Create LexBotAgent with required environment variables
+                # Use our specialized method to create Lex client with aws-vault
+                try:
+                    # Using the specialized method that directly extracts aws-vault credentials with the correct region
+                    lex_client = AWSConfig.create_lex_runtime_client(
+                        profile='acl-playground', 
+                        region_name=lex_bot_region
+                    )
+                    self.logger.info(f"Successfully created Lex client for agent '{agent_id}' using specialized method with region {lex_bot_region}")
+                    
+                    agent = LexBotAgent(LexBotAgentOptions(
+                        name=config.config_data.get('name', agent_id),
+                        description=config.config_data.get('description', ''),
+                        bot_id=lex_bot_id,
+                        bot_alias_id=lex_bot_alias_id,
+                        locale_id=os.environ.get('LEX_LOCALE_ID', 'en_US'),
+                        client=lex_client
+                    ))
+                except Exception as e:
+                    error_msg = f"Failed to create Lex client for LexBotAgent '{agent_id}': {e}"
+                    self.logger.error(error_msg)
+                    raise ValueError(error_msg)
+                self.logger.info(f"Created LexBotAgent '{agent_id}'")
+            elif agent_kind == 'BedrockLLMAgent':
+                # Create BedrockLLMAgent (default)
+                model_id = model_settings['model_id']
+                inference_config = model_settings.get('inference_config', {
+                    "maxTokens": 4096,
+                    "temperature": 0.7,
+                    "topP": 0.9
+                })
+                streaming = model_settings.get('streaming', False)
+                memory_enabled = model_settings.get('memory_enabled', True)
+                
+                # Check if the agent has available tools configured
+                tools_config = None
+                configured_tools = config.config_data.get('tools', [])
+                
+                if configured_tools:
+                    # Get tools from registry based on agent config
+                    agent_tools = tools_registry.get_tools_for_agent(configured_tools)
+                    
+                    if agent_tools:
+                        tools_config = {
+                            'tool': AgentTools(agent_tools),
+                            'toolMaxRecursions': 5,
+                        }
+                        self.logger.info(f"Added {len(agent_tools)} tools to agent '{agent_id}'")
+                
+                agent = BedrockLLMAgent(BedrockLLMAgentOptions(
+                    name=config.config_data.get('name', agent_id),
+                    description=config.config_data.get('description', ''),
+                    model_id=model_id,
+                    streaming=streaming,
+                    inference_config=inference_config,
+                    save_chat=memory_enabled,  # Use memory_enabled from config
+                    client=bedrock_client,
+                    custom_system_prompt={
+                        "template": config.get_system_prompt(),
+                        "variables": config.get_system_prompt_variables() or {}
+                    },  # Pass as dict with template key
+                    tool_config=tools_config  # Add tools if configured for this agent
+                ))
+                self.logger.info(f"Created BedrockLLMAgent '{agent_id}' with model '{model_id}'")
             
             # Set the agent ID to the YAML config ID
             agent.id = agent_id
             
             agents[agent_id] = agent
-            self.logger.info(f"Created agent '{agent_id}' with model '{model_id}'")
-            if tools_config:
+            
+            # Log tools info only for BedrockLLMAgent that supports tools
+            if agent_kind == 'BedrockLLMAgent' and 'tools_config' in locals() and tools_config:
                 self.logger.info(f"Added tools to agent '{agent_id}' with max recursions: {tools_config['toolMaxRecursions']}")
         
         # Create orchestrator with classifier and default agent

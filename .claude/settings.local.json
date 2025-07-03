@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(aws-vault exec:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(if [ -f .lex_bot_env ])",
+      "Bash(then echo \"Lex bot environment exists:\")",
+      "Bash(cat:*)",
+      "Bash(else echo \"No .lex_bot_env file found\")",
+      "Bash(fi)",
+      "Bash(source:*)",
+      "Bash(rm:*)",
+      "Bash(rg:*)",
+      "Bash(make:*)",
+      "Bash(pkill:*)"
+    ],
+    "deny": []
+  }
+}

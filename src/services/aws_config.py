@@ -211,6 +211,56 @@ class AWSConfig:
         """Get a Lex Runtime V2 client instance."""
         return self.session.client('lexv2-runtime', region_name=self.region)
     
+    @classmethod
+    def create_lex_runtime_client(cls, profile: str = "acl-playground", region_name: str = "us-west-2"):
+        """
+        Class method specifically for creating a Lex Runtime client with aws-vault credentials.
+        This avoids issues with SSO token loading by always using aws-vault extraction.
+        
+        Args:
+            profile: AWS profile name for aws-vault (default: acl-playground)
+            region_name: AWS region (default: us-west-2)
+            
+        Returns:
+            Configured Lex Runtime client
+        """
+        logger = structlog.get_logger(__name__)
+        logger.info(f"Creating Lex Runtime client with aws-vault profile: {profile}")
+        
+        try:
+            # Run aws-vault exec with --json flag to get credentials
+            result = subprocess.run(
+                f"aws-vault exec {profile} --json", 
+                shell=True, 
+                capture_output=True, 
+                check=True,
+                text=True
+            )
+            
+            credentials = json.loads(result.stdout)
+            
+            # Create a client directly with the retrieved credentials
+            client = boto3.client(
+                'lexv2-runtime',
+                aws_access_key_id=credentials['AccessKeyId'],
+                aws_secret_access_key=credentials['SecretAccessKey'],
+                aws_session_token=credentials['SessionToken'],
+                region_name=region_name
+            )
+            
+            logger.info(f"Successfully created Lex client with aws-vault for profile: {profile}")
+            return client
+            
+        except subprocess.CalledProcessError as e:
+            logger.error(f"aws-vault command failed when creating Lex client: {e}")
+            raise Exception(f"Failed to extract credentials from aws-vault for Lex client: {e}")
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse aws-vault JSON output when creating Lex client: {e}")
+            raise Exception(f"Invalid JSON from aws-vault when creating Lex client: {e}")
+        except Exception as e:
+            logger.error(f"Failed to create Lex client with aws-vault: {e}")
+            raise
+    
     def get_stepfunctions_client(self):
         """Get a Step Functions client instance."""
         return self.session.client('stepfunctions', region_name=self.region)

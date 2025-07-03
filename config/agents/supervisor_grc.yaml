@@ -31,7 +31,7 @@ model_settings:
   memory_enabled: true
   streaming: false
   framework: "AWS agent-squad"
-  llm_framework: "BedrockLLMAgent"
+  agent_kind: "BedrockLLMAgent"
 
 system_prompt_template: |
   You are Director, a strategic supervisor for the GRC (Governance, Risk, and Compliance) Agent Squad.

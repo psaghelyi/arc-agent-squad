@@ -30,7 +30,7 @@ model_settings:
   memory_enabled: true
   streaming: false
   framework: "agent-squad"
-  llm_framework: "BedrockLLMAgent"
+  agent_kind: "BedrockLLMAgent"
   guardrails_config:
     enabled: true
     trace: false

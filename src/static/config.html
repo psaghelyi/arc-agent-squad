@@ -388,6 +388,87 @@
             padding: 2px 0;
         }
 
+        /* Error styling */
+        .error-header {
+            border-left: 4px solid #e53e3e !important;
+        }
+        
+        .error-avatar {
+            background: linear-gradient(135deg, #e53e3e, #c53030) !important;
+            animation: pulse-error 2s infinite;
+        }
+        
+        .error-badge {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 4px;
+            display: inline-block;
+        }
+        
+        .error-section {
+            background: #fef5e7;
+            border: 1px solid #f6ad55;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .error-section h4 {
+            color: #c53030;
+            margin-bottom: 12px;
+        }
+        
+        .error-message {
+            background: #fed7d7;
+            color: #2d3748;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border-left: 4px solid #e53e3e;
+        }
+        
+        .error-help {
+            color: #744210;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .squad-error-banner {
+            background: #fed7d7;
+            border: 1px solid #e53e3e;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            color: #c53030;
+        }
+        
+        .squad-error-banner h3 {
+            margin: 0 0 8px 0;
+            color: #c53030;
+        }
+        
+        .error-stat {
+            background: linear-gradient(135deg, #fed7d7, #fbb6ce) !important;
+            border: 1px solid #e53e3e;
+        }
+        
+        .error-stat .stat-number {
+            color: #c53030;
+        }
+        
+        .error-stat .stat-label {
+            color: #c53030;
+        }
+
+        @keyframes pulse-error {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 2rem;
@@ -540,6 +621,20 @@
                 
                 const configs = data.detailed_configs || [];
                 
+                // Display squad-level errors if they exist
+                if (data.has_squad_error && data.squad_error) {
+                    container.innerHTML = `
+                        <div class="squad-error-banner">
+                            <h3>🚨 Squad Configuration Error</h3>
+                            <p><strong>Error:</strong> ${data.squad_error}</p>
+                            <p>The agent squad failed to initialize. Individual agent configurations are shown below, but the squad will not be functional until this error is resolved.</p>
+                        </div>
+                        <div id="configs-list"></div>
+                    `;
+                } else {
+                    container.innerHTML = '<div id="configs-list"></div>';
+                }
+                
                 // If statsData is null or missing available_tools, count from configs as fallback
                 let availableToolsCount = 0;
                 if (statsData && Array.isArray(statsData.available_tools)) {
@@ -557,8 +652,8 @@
                     console.log(`Fallback: Counted ${availableToolsCount} unique tools from agent configs`);
                 }
                 
-                // Display stats with the available tools count
-                displayStats(configs, data.timestamp, statsData, availableToolsCount);
+                // Display stats with the available tools count and error information
+                displayStats(configs, data.timestamp, statsData, availableToolsCount, data.errors_count, data.has_squad_error);
                 
                 // Display configurations
                 displayConfigurations(configs);
@@ -569,7 +664,7 @@
             }
         }
 
-        function displayStats(configs, timestamp, statsData, availableToolsCount) {
+        function displayStats(configs, timestamp, statsData, availableToolsCount, errorsCount = 0, hasSquadError = false) {
             const statsContainer = document.getElementById('stats-container');
             
             // Use stats from API when available, otherwise calculate from configs
@@ -591,9 +686,9 @@
                     <div class="stat-number">${totalUseCases}</div>
                     <div class="stat-label">Unique Use Cases</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-number">${Math.round(avgPromptLength / 1000)}k</div>
-                    <div class="stat-label">Avg Prompt Length</div>
+                <div class="stat-card ${errorsCount > 0 || hasSquadError ? 'error-stat' : ''}">
+                    <div class="stat-number">${errorsCount + (hasSquadError ? 1 : 0)}</div>
+                    <div class="stat-label">Configuration Errors</div>
                 </div>
             `;
         }
@@ -602,7 +697,7 @@
         let globalConfigs = [];
 
         function displayConfigurations(configs) {
-            const container = document.getElementById('configs-container');
+            const container = document.getElementById('configs-list') || document.getElementById('configs-container');
             globalConfigs = configs; // Store for modal access
             
             if (configs.length === 0) {
@@ -623,12 +718,26 @@
                     .substring(0, 2);
                 
                 configCard.innerHTML = `
-                    <div class="agent-header">
-                        <div class="agent-avatar">${agentInitials}</div>
+                    <div class="agent-header ${config.has_error ? 'error-header' : ''}">
+                        <div class="agent-avatar ${config.has_error ? 'error-avatar' : ''}">${agentInitials}</div>
                         <div class="agent-info">
                             <h3>${config.name}</h3>
+                            ${config.has_error ? `<div class="error-badge">⚠️ Configuration Error</div>` : ''}
                         </div>
                     </div>
+                    
+                    ${config.has_error ? `
+                    <div class="config-section error-section">
+                        <h4>❌ Configuration Error</h4>
+                        <div class="error-message">
+                            <strong>Error:</strong> ${config.error}
+                        </div>
+                        <div class="error-help">
+                            <strong>Agent Type:</strong> ${config.agent_kind}<br>
+                            Please check your environment configuration and restart the service.
+                        </div>
+                    </div>
+                    ` : ''}
 
                     <div class="config-section">
                         <h4>🤖 Model Configuration</h4>
@@ -642,15 +751,15 @@
                         </div>
                         <div class="config-item">
                             <span class="config-label">Max Tokens:</span>
-                            <span class="config-value">${config.inference_config.maxTokens.toLocaleString()}</span>
+                            <span class="config-value">${config.inference_config?.maxTokens?.toLocaleString() || 'N/A'}</span>
                         </div>
                         <div class="config-item">
                             <span class="config-label">Temperature:</span>
-                            <span class="config-value">${config.inference_config.temperature}</span>
+                            <span class="config-value">${config.inference_config?.temperature || 'N/A'}</span>
                         </div>
                         <div class="config-item">
                             <span class="config-label">Framework:</span>
-                            <span class="config-value">${config.llm_framework}</span>
+                            <span class="config-value">${config.agent_kind || 'N/A'}</span>
                         </div>
                     </div>
 
@@ -665,7 +774,7 @@
                     <div class="config-section">
                         <h4>🛠️ Use Cases</h4>
                         <div class="use-cases-list">
-                            ${config.use_cases.map(useCase => 
+                            ${(config.use_cases || []).map(useCase => 
                                 `<span class="use-case-tag ${useCase === 'VOICE_PROCESSING' ? 'voice-enabled' : ''}">${formatUseCaseName(useCase)}</span>`
                             ).join('')}
                         </div>

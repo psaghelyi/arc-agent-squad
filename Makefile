@@ -99,18 +99,42 @@ format: ## Format code
 	$(PYTHON_VENV) -m black src/ tests/
 	$(PYTHON_VENV) -m isort src/ tests/
 
+# Lex bot management
+ensure-lex-bot: ## Check if Lex bot exists, create one if not
+	@echo "Ensuring Lex bot exists..."
+	@chmod +x scripts/check_lex_bot.sh scripts/create_lex_bot.sh scripts/ensure_lex_bot.sh
+	@scripts/ensure_lex_bot.sh
+
 # Local development
-local-start: ## Start the application locally (uses programmatic credential extraction)
+local-start: ensure-lex-bot ## Start the application locally (uses programmatic credential extraction)
 	@echo "Starting GRC Agent Squad locally..."
-	$(PYTHON_VENV) -m src.main
+	@if [ -f .lex_bot_env ]; then \
+		echo "Loading Lex bot configuration..."; \
+		source .lex_bot_env && export LEX_BOT_ID LEX_BOT_ALIAS_ID LEX_BOT_REGION && $(PYTHON_VENV) -m src.main; \
+	else \
+		echo "ERROR: Lex bot configuration not found!"; \
+		exit 1; \
+	fi
 
-local-dev: ## Start the application locally without AWS validation
+local-dev: ensure-lex-bot ## Start the application locally without AWS validation
 	@echo "Starting GRC Agent Squad in local development mode..."
-	SKIP_AWS_VALIDATION=true $(PYTHON_VENV) -m src.main
+	@if [ -f .lex_bot_env ]; then \
+		echo "Loading Lex bot configuration..."; \
+		source .lex_bot_env && export LEX_BOT_ID LEX_BOT_ALIAS_ID LEX_BOT_REGION && SKIP_AWS_VALIDATION=true $(PYTHON_VENV) -m src.main; \
+	else \
+		echo "ERROR: Lex bot configuration not found!"; \
+		exit 1; \
+	fi
 
-local-api: ## Start FastAPI server locally (uses programmatic credential extraction)
+local-api: ensure-lex-bot ## Start FastAPI server locally (uses programmatic credential extraction)
 	@echo "Starting FastAPI server locally..."
-	$(PYTHON_VENV) -m uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
+	@if [ -f .lex_bot_env ]; then \
+		echo "Loading Lex bot configuration..."; \
+		source .lex_bot_env && export LEX_BOT_ID LEX_BOT_ALIAS_ID LEX_BOT_REGION && $(PYTHON_VENV) -m uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000; \
+	else \
+		echo "ERROR: Lex bot configuration not found!"; \
+		exit 1; \
+	fi
 
 # Docker operations
 docker-build: ## Build Docker image

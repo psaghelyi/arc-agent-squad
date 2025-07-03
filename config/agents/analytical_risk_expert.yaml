@@ -27,7 +27,7 @@ model_settings:
   memory_enabled: true
   streaming: false
   framework: "agent-squad"
-  llm_framework: "BedrockLLMAgent"
+  agent_kind: "BedrockLLMAgent"
 
 system_prompt_template: |
   You are Alex, an analytical risk expert specializing in comprehensive risk assessment and management for GRC (Governance, Risk, and Compliance) processes.

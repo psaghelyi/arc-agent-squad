@@ -27,7 +27,7 @@ model_settings:
   memory_enabled: true
   streaming: false
   framework: "agent-squad"
-  llm_framework: "BedrockLLMAgent"
+  agent_kind: "BedrockLLMAgent"
 
 system_prompt_template: |
   You are Sam, a strategic governance specialist providing high-level guidance on governance frameworks and organizational strategy for GRC (Governance, Risk, and Compliance) excellence.

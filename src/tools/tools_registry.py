@@ -69,13 +69,20 @@ class ToolsRegistry:
                     else:
                         # Default fallback
                         module_name = tool_name.replace("_api_tool", "")
+                elif tool_name == "interview_guide_tool":
+                    # Special handling for interview guide tool
+                    module_category = ""
+                    module_name = "interview_guide_tool"
                 else:
                     # Default fallback
                     module_category = "tools"
                     module_name = tool_name
                 
                 # Construct the full module path
-                module_path = f"src.tools.{module_category}.{module_name}"
+                if module_category:
+                    module_path = f"src.tools.{module_category}.{module_name}"
+                else:
+                    module_path = f"src.tools.{module_name}"
                 
                 # Dynamically import the module
                 self.logger.info(f"Attempting to import tool '{tool_name}' from module '{module_path}'")

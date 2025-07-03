@@ -98,16 +98,46 @@ async def get_squad_stats(grc_squad: GRCAgentSquad = Depends(get_grc_squad)):
 
 
 @router.get("/config/details")
-async def get_detailed_agent_config(grc_squad: GRCAgentSquad = Depends(get_grc_squad)):
+async def get_detailed_agent_config():
     """Get detailed configuration information for all agents including model IDs, prompts, and settings."""
     try:
         from ...agents.agent_config_loader import get_default_config_registry
         
-        agents = await grc_squad.list_agents()
+        # Try to get the GRC squad, but handle configuration errors gracefully
+        grc_squad = None
+        squad_error = None
+        agents = []
+        
+        try:
+            grc_squad = get_grc_squad()
+            agents = await grc_squad.list_agents()
+        except Exception as e:
+            squad_error = str(e)
+            logger.warning(f"GRC squad initialization failed: {squad_error}")
+        
         detailed_configs = []
         
-        # Get file-based configuration registry
+        # Get file-based configuration registry (this should work even if squad failed)
         config_registry = get_default_config_registry()
+        
+        # If squad failed, get agent configs directly from registry
+        if not agents and config_registry:
+            agent_ids = config_registry.list_agent_ids()
+            agents = []
+            for agent_id in agent_ids:
+                config_class = config_registry.get_config(agent_id)
+                if config_class:
+                    agents.append({
+                        "agent_id": agent_id,
+                        "name": config_class.config_data.get("name", agent_id),
+                        "description": config_class.config_data.get("description", "")
+                    })
+                else:
+                    agents.append({
+                        "agent_id": agent_id,
+                        "name": f"Agent {agent_id}",
+                        "description": "Configuration file not found"
+                    })
         
         # Get detailed configuration for each agent
         for agent in agents:
@@ -115,57 +145,124 @@ async def get_detailed_agent_config(grc_squad: GRCAgentSquad = Depends(get_grc_s
             config_class = config_registry.get_config(agent_id)
             
             if config_class:
-                # Get system prompt
-                system_prompt = config_class.get_system_prompt()
-                
-                # Get voice settings
-                voice_settings = config_class.get_voice_settings()
-                
-                # Get available tools
-                tools = config_class.get_tools()
-                
-                # Get model settings
-                model_settings = config_class.get_model_settings()
-                
-                detailed_config = {
-                    "id": agent.get("agent_id", ""),
-                    "name": agent["name"],
-                    "description": agent["description"],
-                    "status": agent.get("status", "active"),
-                    "created_at": agent.get("created_at", ""),
+                try:
+                    # Get system prompt
+                    system_prompt = config_class.get_system_prompt()
                     
-                    # Detailed configuration from file
-                    "model_id": model_settings.get("model_id", "N/A"),
-                    "model_provider": model_settings.get("model_provider", "N/A"),
-                    "inference_config": model_settings.get("inference_config", {
-                        "maxTokens": 4096,
-                        "temperature": 0.7,
-                        "topP": 0.9
-                    }),
-                    "memory_enabled": model_settings.get("memory_enabled", True),
-                    "streaming": model_settings.get("streaming", False),
+                    # Get voice settings
+                    voice_settings = config_class.get_voice_settings()
                     
-                    # Voice configuration
-                    "voice_settings": voice_settings,
-                    "voice_enabled": bool(voice_settings and voice_settings.get('voice_id')),
+                    # Get available tools
+                    tools = config_class.get_tools()
                     
-                    # System prompt and role
-                    "system_prompt": system_prompt,
-                    "system_prompt_length": len(system_prompt),
+                    # Get model settings
+                    model_settings = config_class.get_model_settings()
                     
-                    # Tools and capabilities
-                    "tools": tools,
-                    "tool_count": len(tools),
+                    # Check if this agent would have configuration errors
+                    agent_error = None
+                    agent_kind = model_settings.get("agent_kind", "BedrockLLMAgent")
                     
-                    # Role-specific information from config file
-                    "use_cases": config_class.get_use_cases(),
+                    if agent_kind == "LexBotAgent":
+                        # Check for required Lex environment variables
+                        import os
+                        missing_vars = []
+                        if not os.environ.get('LEX_BOT_ID'):
+                            missing_vars.append('LEX_BOT_ID')
+                        if not os.environ.get('LEX_BOT_ALIAS_ID'):
+                            missing_vars.append('LEX_BOT_ALIAS_ID')
+                        
+                        if missing_vars:
+                            agent_error = f"Missing required environment variables: {', '.join(missing_vars)}"
                     
-                    # Technical details
-                    "conversation_memory": True,
-                    "session_persistence": True,
-                    "framework": model_settings.get("framework", "agent-squad"),
-                    "llm_framework": model_settings.get("llm_framework", "BedrockLLMAgent")
-                }
+                    detailed_config = {
+                        "id": agent.get("agent_id", ""),
+                        "name": agent.get("name", config_class.config_data.get("name", agent_id)),
+                        "description": agent.get("description", config_class.config_data.get("description", "")),
+                        "status": "error" if agent_error else agent.get("status", "active"),
+                        "created_at": agent.get("created_at", ""),
+                        
+                        # Error information
+                        "error": agent_error,
+                        "has_error": bool(agent_error),
+                        
+                        # Detailed configuration from file
+                        "model_id": model_settings.get("model_id", "N/A"),
+                        "model_provider": model_settings.get("model_provider", "N/A"),
+                        "inference_config": model_settings.get("inference_config", {
+                            "maxTokens": 4096,
+                            "temperature": 0.7,
+                            "topP": 0.9
+                        }),
+                        "memory_enabled": model_settings.get("memory_enabled", True),
+                        "streaming": model_settings.get("streaming", False),
+                        
+                        # Voice configuration
+                        "voice_settings": voice_settings,
+                        "voice_enabled": bool(voice_settings and voice_settings.get('voice_id')),
+                        
+                        # System prompt and role
+                        "system_prompt": system_prompt,
+                        "system_prompt_length": len(system_prompt),
+                        
+                        # Tools and capabilities
+                        "tools": tools,
+                        "tool_count": len(tools),
+                        
+                        # Role-specific information from config file
+                        "use_cases": config_class.get_use_cases(),
+                        
+                        # Technical details
+                        "conversation_memory": True,
+                        "session_persistence": True,
+                        "framework": model_settings.get("framework", "agent-squad"),
+                        "agent_kind": agent_kind
+                    }
+                    
+                except Exception as config_error:
+                    # Handle individual agent configuration errors
+                    detailed_config = {
+                        "id": agent.get("agent_id", ""),
+                        "name": agent.get("name", agent_id),
+                        "description": agent.get("description", "Configuration error"),
+                        "status": "error",
+                        "created_at": "",
+                        
+                        # Error information
+                        "error": str(config_error),
+                        "has_error": True,
+                        
+                        # Safe defaults for required fields
+                        "model_id": "N/A",
+                        "model_provider": "N/A",
+                        "inference_config": {
+                            "maxTokens": 0,
+                            "temperature": 0,
+                            "topP": 0
+                        },
+                        "memory_enabled": False,
+                        "streaming": False,
+                        
+                        # Voice configuration
+                        "voice_settings": {},
+                        "voice_enabled": False,
+                        
+                        # System prompt and role
+                        "system_prompt": "",
+                        "system_prompt_length": 0,
+                        
+                        # Tools and capabilities
+                        "tools": [],
+                        "tool_count": 0,
+                        
+                        # Role-specific information
+                        "use_cases": [],
+                        
+                        # Technical details
+                        "conversation_memory": False,
+                        "session_persistence": False,
+                        "framework": "unknown",
+                        "agent_kind": "Unknown"
+                    }
                 
                 detailed_configs.append(detailed_config)
         
@@ -173,7 +270,10 @@ async def get_detailed_agent_config(grc_squad: GRCAgentSquad = Depends(get_grc_s
             "success": True,
             "detailed_configs": detailed_configs,
             "total": len(detailed_configs),
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
+            "squad_error": squad_error,
+            "has_squad_error": bool(squad_error),
+            "errors_count": sum(1 for config in detailed_configs if config.get("has_error", False))
         }
         
     except Exception as e:

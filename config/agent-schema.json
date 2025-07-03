@@ -64,7 +64,7 @@
     "model_settings": {
       "type": "object",
       "description": "AI model configuration",
-      "required": ["model_id", "model_provider", "inference_config", "memory_enabled", "streaming", "framework", "llm_framework"],
+      "required": ["model_id", "model_provider", "inference_config", "memory_enabled", "streaming", "framework", "agent_kind"],
       "properties": {
         "model_id": {
           "type": "string",
@@ -120,9 +120,9 @@
           "type": "string",
           "description": "Agent framework"
         },
-        "llm_framework": {
+        "agent_kind": {
           "type": "string",
-          "description": "LLM framework implementation"
+          "description": "Agent kind/type implementation"
         }
       },
       "additionalProperties": true

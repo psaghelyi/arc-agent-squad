@@ -28,3 +28,126 @@ tools:
       - "HIGHBOND_API_PATH must be set in environment variables"
       - "HIGHBOND_API_TOKEN must be set in environment variables"
     
+  interview_guide_tool:
+    name: "Interview Guide"
+    description: |
+      Provides structured interview templates and guidance for conducting various types of 
+      GRC interviews including compliance audits, risk assessments, control testing, 
+      and stakeholder consultations. Includes professional introductions, structured 
+      questions, follow-up prompts, and closing statements.
+    functions:
+      - name: "get_interview_types"
+        description: "Get available interview types with descriptions"
+        parameters:
+          type: "object"
+          properties: {}
+        returns:
+          type: "string"
+          description: "JSON list of available interview types"
+      
+      - name: "start_interview"
+        description: "Start a structured interview guide for the specified type"
+        parameters:
+          type: "object"
+          properties:
+            interview_type:
+              type: "string"
+              description: "Type of interview (compliance_audit, risk_assessment, control_testing, stakeholder_consultation)"
+              enum: ["compliance_audit", "risk_assessment", "control_testing", "stakeholder_consultation"]
+            session_id:
+              type: "string"
+              description: "Session identifier for tracking (optional)"
+              default: "default"
+          required: ["interview_type"]
+        returns:
+          type: "string"
+          description: "JSON with interview introduction and opening questions"
+      
+      - name: "get_section_questions"
+        description: "Get questions for a specific interview section"
+        parameters:
+          type: "object"
+          properties:
+            section_name:
+              type: "string"
+              description: "Name of the section (e.g., 'process_questions', 'control_questions', 'risk_identification')"
+            session_id:
+              type: "string"
+              description: "Session identifier (optional)"
+              default: "default"
+          required: ["section_name"]
+        returns:
+          type: "string"
+          description: "JSON with questions for the specified section"
+      
+      - name: "get_follow_up_prompts"
+        description: "Get follow-up prompts for deeper questioning during the interview"
+        parameters:
+          type: "object"
+          properties:
+            session_id:
+              type: "string"
+              description: "Session identifier (optional)"
+              default: "default"
+        returns:
+          type: "string"
+          description: "JSON with follow-up prompts"
+      
+      - name: "get_interview_closing"
+        description: "Get the professional closing statement for the interview"
+        parameters:
+          type: "object"
+          properties:
+            session_id:
+              type: "string"
+              description: "Session identifier (optional)"
+              default: "default"
+        returns:
+          type: "string"
+          description: "JSON with closing statement"
+      
+      - name: "get_interview_progress"
+        description: "Get the current progress of the interview"
+        parameters:
+          type: "object"
+          properties:
+            session_id:
+              type: "string"
+              description: "Session identifier (optional)"
+              default: "default"
+        returns:
+          type: "string"
+          description: "JSON with interview progress information"
+      
+      - name: "complete_interview"
+        description: "Mark the interview as complete and clean up resources"
+        parameters:
+          type: "object"
+          properties:
+            session_id:
+              type: "string"
+              description: "Session identifier (optional)"
+              default: "default"
+        returns:
+          type: "string"
+          description: "JSON with completion status"
+    
+    usage_examples:
+      - description: "Start a compliance audit interview"
+        example: |
+          To begin a structured compliance audit interview:
+          {
+            "action": "start_interview",
+            "interview_type": "compliance_audit",
+            "session_id": "audit_001"
+          }
+      
+      - description: "Get questions for a specific section"
+        example: |
+          To get control-related questions during the interview:
+          {
+            "action": "get_section_questions", 
+            "section_name": "control_questions",
+            "session_id": "audit_001"
+          }
+    

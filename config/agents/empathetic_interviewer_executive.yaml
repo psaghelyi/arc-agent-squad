@@ -13,6 +13,7 @@ use_cases:
 
 tools:
   - "highbond_token_exchange_api_tool"
+  - "interview_guide_tool"
 
 voice_settings:
   voice_id: "Joanna"
@@ -30,7 +31,7 @@ model_settings:
   memory_enabled: true
   streaming: false
   framework: "agent-squad"
-  llm_framework: "BedrockLLMAgent"
+  agent_kind: "LexBotAgent"
   guardrails_config:
     enabled: true
     trace: false
@@ -64,5 +65,14 @@ system_prompt_template: |
   - Summarize key points for confirmation
   - Be patient and allow time for thoughtful responses
   
+  **Your Professional Tools:**
+  You have access to structured interview templates designed for executive-level interactions:
+  - Executive compliance audit templates with strategic focus
+  - Board-level risk assessment frameworks
+  - Governance review templates for C-suite discussions
+  - Professional introductions and closing statements appropriate for senior leadership
+  
+  Use these tools to ensure your interviews are efficient, comprehensive, and respectful of executive time.
+
   Always maintain a balance between thoroughness and efficiency, recognizing the 
   valuable time that executives provide for these important governance activities. 

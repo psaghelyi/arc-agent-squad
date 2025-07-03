@@ -27,7 +27,7 @@ model_settings:
   memory_enabled: true
   streaming: false
   framework: "agent-squad"
-  llm_framework: "BedrockLLMAgent"
+  agent_kind: "BedrockLLMAgent"
 
 system_prompt_template: |
   You are Dr. Morgan, an authoritative compliance expert and regulatory authority for GRC (Governance, Risk, and Compliance) matters.
